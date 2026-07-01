@@ -1,0 +1,458 @@
+/* 3D Quantum Circuit Styles */
+.circuit-3d-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.circuit-3d-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.circuit-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em 0.5em 0.5em 0.5em;
+    margin-bottom: 20px;
+    z-index: 10;
+    position: relative;
+}
+
+.control-group {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.control-btn.active {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+.circuit-3d-view {
+    width: 100%;
+    height: 60vh;
+    min-height: 300px;
+    max-height: 100%;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Container styles */
+#3d-quantum-circuit {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    max-height: 100vh;
+    background: #0f0f23;
+    padding: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+/* Fullscreen styles */
+#3d-quantum-circuit:fullscreen,
+#3d-quantum-circuit.fullscreen-active {
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0f0f23;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+}
+
+#3d-quantum-circuit:fullscreen .circuit-3d-container,
+#3d-quantum-circuit.fullscreen-active .circuit-3d-container {
+    height: 100%;
+    max-height: none;
+}
+
+#3d-quantum-circuit:fullscreen .circuit-3d-view,
+#3d-quantum-circuit.fullscreen-active .circuit-3d-view {
+    min-height: 70vh;
+    flex: 1;
+}
+
+/* Webkit fullscreen support */
+#3d-quantum-circuit:-webkit-full-screen {
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0f0f23;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#3d-quantum-circuit:-webkit-full-screen .circuit-3d-container {
+    height: 100%;
+    max-height: none;
+}
+
+#3d-quantum-circuit:-webkit-full-screen .circuit-3d-view {
+    min-height: 70vh;
+    flex: 1;
+}
+
+/* Fullscreen active class styles */
+#3d-quantum-circuit.fullscreen-active {
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0f0f23;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+}
+
+#3d-quantum-circuit.fullscreen-active .circuit-3d-container {
+    height: 100%;
+    max-height: none;
+}
+
+#3d-quantum-circuit.fullscreen-active .circuit-3d-view {
+    min-height: 70vh;
+    flex: 1;
+}
+
+.circuit-info-panel {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1em 0.5em;
+    margin-top: 20px;
+    z-index: 10;
+    position: relative;
+}
+
+.info-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.info-section h4 {
+    color: #fff;
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.info-item span:first-child {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.info-item span:last-child {
+    font-weight: 600;
+    color: #4dabf7;
+}
+
+.gate-palette {
+    width: 100%;
+    padding: 1em 0.5em;
+    margin-top: 20px;
+    z-index: 10;
+    position: relative;
+}
+
+.gate-palette h4 {
+    color: #fff;
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.gate-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+}
+
+.gate-btn {
+    background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);
+    border: none;
+    color: white;
+    padding: 15px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(77, 171, 247, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-height: 80px;
+    justify-content: center;
+}
+
+.gate-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(77, 171, 247, 0.6);
+}
+
+.gate-btn[data-gate="h"] { background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%); }
+.gate-btn[data-gate="x"] { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); }
+.gate-btn[data-gate="y"] { background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); }
+.gate-btn[data-gate="z"] { background: linear-gradient(135deg, #9775fa 0%, #845ef7 100%); }
+.gate-btn[data-gate="cx"] { background: linear-gradient(135deg, #ffa94d 0%, #ff922b 100%); }
+.gate-btn[data-gate="t"] { background: linear-gradient(135deg, #20c997 0%, #1c7ed6 100%); }
+.gate-btn[data-gate="s"] { background: linear-gradient(135deg, #fd7e14 0%, #f76707 100%); }
+.gate-btn[data-gate="rx"] { background: linear-gradient(135deg, #e83e8c 0%, #d63384 100%); }
+.gate-btn[data-gate="ry"] { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); }
+.gate-btn[data-gate="rz"] { background: linear-gradient(135deg, #dc3545 0%, #c92a2a 100%); }
+
+.gate-symbol {
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.gate-name {
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.gate-detail {
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.state-description {
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Modal Styles */
+.gate-selector-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 15px;
+    padding: 30px;
+    min-width: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+    color: #fff;
+    margin: 0 0 20px 0;
+    text-align: center;
+    font-size: 20px;
+}
+
+.gate-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.gate-option {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.gate-option label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.gate-option select,
+.gate-option input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.gate-option select:focus,
+.gate-option input:focus {
+    outline: none;
+    border-color: #4dabf7;
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.3);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(77, 171, 247, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(77, 171, 247, 0.6);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .circuit-3d-container {
+        padding: 15px;
+    }
+    
+    .circuit-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .control-group {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .circuit-info-panel {
+        grid-template-columns: 1fr;
+    }
+    
+    .gate-buttons {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    }
+    
+    .modal-content {
+        min-width: 90vw;
+        margin: 20px;
+    }
+}
+
+/* Animation for circuit elements */
+@keyframes gatePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.gate-btn:active {
+    animation: gatePulse 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for the container */
+.circuit-3d-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.circuit-3d-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.circuit-3d-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.circuit-3d-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}

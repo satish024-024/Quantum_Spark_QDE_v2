@@ -1,0 +1,14 @@
+{
+  "huggingface": "",
+  "openai": "",
+  "anthropic": "",
+  "together": "",
+  "replicate": "",
+  "_instructions": "No API keys configured - please add your keys as needed",
+  "_get_huggingface_key": "FREE: Add your Hugging Face API key here",
+  "_get_openai_key": "\u00f0\u0178\u2019\u00b3 PAID: Go to https://platform.openai.com/api-keys (requires payment method)",
+  "_get_anthropic_key": "\u00f0\u0178\u2019\u00b3 PAID: Go to https://console.anthropic.com/ (requires payment method)",
+  "_get_together_key": "\u00f0\u0178\u2019\u00b3 PAID: Go to https://api.together.xyz/ (requires payment method)",
+  "_get_replicate_key": "\u00f0\u0178\u2019\u00b3 PAID: Go to https://replicate.com/account/api-tokens (requires payment method)",
+  "_note": "Configure your API keys to enable AI assistance for quantum computing"
+}

@@ -1,0 +1,56 @@
+# Virtual environments
+venv/
+quantum_dashboard_env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# Large database files (seeded at runtime via /tmp)
+quantum_data.db-shm
+quantum_data.db-wal
+experiments.db
+
+# Large data/cache files
+historical_data_cache.json
+ibm_quantum_api_report_*.json
+
+# Flask runtime state
+flask_sessions/
+
+# Backup and development-only directories
+backup_files/
+backup_ai_services_20251220/
+
+# Development tools
+.cursor/
+.claude/
+.idea/
+.vscode/
+
+# Secrets (should use Vercel env vars instead)
+.env
+.env.backup
+.secret_key
+.encryption_key
+.encryption_key.hint
+.startup_shown
+cloud_ai_config.json
+
+# Other runtime outputs
+jobs_output.json
+ionq_test_results.json
+*.log
+
+# Quantum circuit generators (standalone Node.js tools, not needed on Vercel)
+quantum_circuit_generators/
+
+# Cursor/IDE files
+.cursorignore
+.cursorrules
+CLEANUP_LIST.md
+QUANTUM_CIRCUITS_STUDY_GUIDE.txt

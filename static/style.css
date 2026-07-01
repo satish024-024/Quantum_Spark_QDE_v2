@@ -1,0 +1,658 @@
+/* Quantum-inspired styling */
+:root {
+    --primary: #2c3e50;
+    --secondary: #3498db;
+    --accent: #9b59b6;
+    --light: #ecf0f1;
+    --dark: #1a252f;
+    --success: #2ecc71;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --neutral: #7f8c8d;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--dark);
+    color: var(--light);
+    line-height: 1.6;
+}
+
+.quantum-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--accent);
+}
+
+h1 {
+    color: var(--secondary);
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.quantum-subtitle {
+    color: var(--accent);
+    font-style: italic;
+}
+
+/* Theme Selection Styles */
+.theme-selection {
+    margin: 40px 0;
+    text-align: center;
+}
+
+.theme-selection h2 {
+    color: var(--secondary);
+    font-size: 2rem;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin: 40px 0;
+}
+
+.theme-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--dark) 100%);
+    border: 2px solid var(--accent);
+    border-radius: 15px;
+    padding: 30px 20px;
+    text-decoration: none;
+    color: var(--light);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.theme-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(52, 152, 219, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.theme-card:hover::before {
+    left: 100%;
+}
+
+.theme-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(52, 152, 219, 0.3);
+    border-color: var(--secondary);
+}
+
+.theme-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.theme-card:hover .theme-icon {
+    transform: scale(1.1);
+    background: var(--secondary);
+}
+
+.theme-card h3 {
+    color: var(--secondary);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.theme-card p {
+    color: var(--light);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.theme-badge {
+    display: inline-block;
+    background: var(--success);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Specific theme colors */
+.hackathon-theme {
+    border-color: #ff6b6b;
+}
+
+.hackathon-theme:hover {
+    border-color: #ff5252;
+    box-shadow: 0 20px 40px rgba(255, 107, 107, 0.3);
+}
+
+.hackathon-theme .theme-icon {
+    background: #ff6b6b;
+}
+
+.hackathon-theme:hover .theme-icon {
+    background: #ff5252;
+}
+
+.advanced-theme {
+    border-color: #4ecdc4;
+}
+
+.advanced-theme:hover {
+    border-color: #26a69a;
+    box-shadow: 0 20px 40px rgba(78, 205, 196, 0.3);
+}
+
+.advanced-theme .theme-icon {
+    background: #4ecdc4;
+}
+
+.advanced-theme:hover .theme-icon {
+    background: #26a69a;
+}
+
+.modern-theme {
+    border-color: #45b7d1;
+}
+
+.modern-theme:hover {
+    border-color: #2196f3;
+    box-shadow: 0 20px 40px rgba(69, 183, 209, 0.3);
+}
+
+.modern-theme .theme-icon {
+    background: #45b7d1;
+}
+
+.modern-theme:hover .theme-icon {
+    background: #2196f3;
+}
+
+.professional-theme {
+    border-color: #95a5a6;
+}
+
+.professional-theme:hover {
+    border-color: #7f8c8d;
+    box-shadow: 0 20px 40px rgba(149, 165, 166, 0.3);
+}
+
+.professional-theme .theme-icon {
+    background: #95a5a6;
+}
+
+.professional-theme:hover .theme-icon {
+    background: #7f8c8d;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .theme-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .theme-card {
+        padding: 20px 15px;
+    }
+    
+    .theme-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .theme-card h3 {
+        font-size: 1.2rem;
+    }
+    
+    .theme-selection h2 {
+        font-size: 1.5rem;
+    }
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 20px;
+}
+
+@media (min-width: 992px) {
+    .dashboard {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+    }
+    
+    .section.backends {
+        grid-column: 1 / 3;
+    }
+    
+    .section.jobs {
+        grid-column: 1 / 3;
+    }
+    
+    .section.qubit-state {
+        grid-column: 1 / 2;
+    }
+    
+    .section.quantum-circuit {
+        grid-column: 2 / 3;
+    }
+}
+
+.section {
+    background-color: var(--primary);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, var(--secondary), var(--accent));
+    z-index: 1;
+}
+
+.section h2 {
+    color: var(--secondary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.section h2::after {
+    content: "";
+    height: 2px;
+    flex: 1;
+    background: linear-gradient(to right, var(--secondary), transparent);
+    margin-left: 15px;
+}
+
+.section h3 {
+    color: var(--accent);
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* Quantum grid for backends */
+.quantum-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 20px;
+}
+
+.quantum-card {
+    background-color: var(--dark);
+    border-radius: 6px;
+    padding: 15px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.quantum-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.quantum-card .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.quantum-card .name {
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.quantum-card .status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.quantum-card .status.active {
+    background-color: var(--success);
+    color: var(--dark);
+}
+
+.quantum-card .status.inactive {
+    background-color: var(--danger);
+    color: var(--light);
+}
+
+.quantum-card .info {
+    margin-top: 10px;
+}
+
+.quantum-card .info div {
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.quantum-card .label {
+    color: var(--neutral);
+}
+
+.quantum-card .value {
+    font-weight: bold;
+}
+
+.quantum-card .visualization {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.quantum-card .visualization img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+/* Jobs table */
+.quantum-table-container {
+    overflow-x: auto;
+}
+
+.quantum-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--dark);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.quantum-table th, .quantum-table td {
+    padding: 12px 15px;
+    text-align: left;
+}
+
+.quantum-table th {
+    background-color: var(--accent);
+    color: var(--light);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.quantum-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.quantum-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.quantum-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.job-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+    display: inline-block;
+    min-width: 90px;
+}
+
+.job-status.running {
+    background-color: var(--success);
+    color: var(--dark);
+}
+
+.job-status.queued {
+    background-color: var(--warning);
+    color: var(--dark);
+}
+
+.job-status.completed {
+    background-color: var(--secondary);
+    color: var(--dark);
+}
+
+.job-status.error {
+    background-color: var(--danger);
+    color: var(--light);
+}
+
+/* Quantum visualization */
+.quantum-visualization {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.visualization-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.visualization-panel {
+    background-color: var(--dark);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px;
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#histogram-visualization,
+#bloch-visualization {
+    width: 100%;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#histogram-visualization img,
+#bloch-visualization img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.quantum-stats {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    margin-top: 20px;
+}
+
+#qubit-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.stat {
+    background-color: var(--dark);
+    border-radius: 6px;
+    padding: 15px;
+    min-width: 140px;
+    margin: 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat:hover {
+    transform: scale(1.05);
+}
+
+.stat .label {
+    color: var(--neutral);
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.stat .value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+/* Quantum Circuit Visualization */
+#quantum-circuit-visualization {
+    width: 100%;
+    height: 300px;
+    background-color: var(--dark);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#superposition-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.circuit-explanation {
+    text-align: center;
+    color: var(--neutral);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 10px;
+}
+
+/* Loading states */
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--neutral);
+    font-style: italic;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--accent);
+    color: var(--neutral);
+    font-size: 0.9rem;
+}
+
+/* Pulse animation for active elements */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Quantum-inspired glowing effect */
+.glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.glow::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        circle,
+        rgba(52, 152, 219, 0.1) 0%,
+        rgba(155, 89, 182, 0.1) 25%,
+        transparent 70%
+    );
+    animation: rotate 15s linear infinite;
+    z-index: -1;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hide scrollbars while maintaining scroll functionality */
+.widget-content, 
+.widget-content *,
+[style*="overflow-y: auto"],
+[style*="overflow-y: scroll"] {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.widget-content::-webkit-scrollbar,
+.widget-content *::-webkit-scrollbar,
+[style*="overflow-y: auto"]::-webkit-scrollbar,
+[style*="overflow-y: scroll"]::-webkit-scrollbar {
+    display: none; /* WebKit browsers */
+}
+
+/* Specific targeting for widget containers */
+.widget-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.widget-container::-webkit-scrollbar {
+    display: none;
+}

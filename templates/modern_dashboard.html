@@ -1,0 +1,3749 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark - Modern Dashboard</title>
+
+    <!-- Modern Fonts - Optimized for LCP -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+            rel="stylesheet">
+    </noscript>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- AI Agent Panel Styles -->
+    <link rel="stylesheet" href="/static/ai-agent/ai_styles.css">
+
+    <!-- Plotly for 3D visualizations -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <!-- Job Normalizer - Data validation layer (must load first) -->
+    <script src="{{ url_for('static', filename='job_normalizer.js') }}"></script>
+
+    <!-- Dashboard Metrics - Summary Cards Manager -->
+    <script src="{{ url_for('static', filename='dashboard_metrics.js') }}"></script>
+
+    <!-- THREE.js - Load FIRST before any dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+    <script>
+        // Verify THREE.js loaded successfully
+        if (typeof THREE !== 'undefined') {
+            console.log('✅ THREE.js loaded successfully (version:', THREE.REVISION, ')');
+            window.THREELoaded = true;
+        } else {
+            console.error('❌ THREE.js failed to load from CDN');
+            window.THREELoaded = false;
+        }
+    </script>
+
+    <!-- THREE.js Extensions - Load AFTER THREE.js -->
+    <script src="/static/libs/three/OrbitControls.js"></script>
+    <script src="/static/libs/three/CSS2DRenderer.js"></script>
+    <script>
+        // Verify THREE.js extensions loaded
+        if (typeof THREE !== 'undefined' && THREE.OrbitControls) {
+            console.log('✅ THREE.js OrbitControls loaded');
+        } else if (typeof THREE !== 'undefined') {
+            console.warn('⚠️ OrbitControls may not have loaded correctly');
+        }
+
+        if (typeof THREE !== 'undefined' && THREE.CSS2DRenderer) {
+            console.log('✅ THREE.js CSS2DRenderer loaded');
+        } else if (typeof THREE !== 'undefined') {
+            console.warn('⚠️ CSS2DRenderer may not have loaded correctly');
+        }
+    </script>
+
+    <!-- Qiskit.js 2025 Robust Loader with Multiple CDNs and Complete Shim -->
+    <script>
+        (function () {
+            var loaded = false;
+            var loadStartTime = Date.now();
+
+            // CRITICAL FIX: Qiskit.js Python library doesn't have browser CDN builds
+            // Rather than failing on multiple 404 errors, use local shim immediately
+            var urls = [
+                '/static/qiskit-dashboard-shim.js'  // Dashboard compatibility shim only
+                // NOTE: Qiskit is a Python ib without browser builds, disabling CDN attempts
+                // Removed: cdn.jsdelivr.net, unpkg.com, cdnjs, esm.sh, skypack - all return 404
+            ];
+
+            function loadNext(index) {
+                if (index >= urls.length) {
+                    console.warn('All Qiskit.js CDNs failed, installing comprehensive shim...');
+                    installCompleteShim();
+                    return;
+                }
+
+                var s = document.createElement('script');
+                s.src = urls[index];
+                s.async = true;
+                s.crossOrigin = 'anonymous';
+                s.integrity = ''; // Skip integrity for now to avoid version conflicts
+
+                s.onload = function () {
+                    loaded = true;
+                    window.qiskitLoaded = true;
+                    var loadTime = Date.now() - loadStartTime;
+                    console.log(`✅ Qiskit.js loaded successfully from ${urls[index]} (${loadTime}ms)`);
+                };
+
+                s.onerror = function () {
+                    console.warn(`Qiskit.js CDN ${index + 1}/${urls.length} failed: ${urls[index]}`);
+                    loadNext(index + 1);
+                };
+
+                document.head.appendChild(s);
+            }
+
+            function installCompleteShim() {
+                if (typeof window.qiskit === 'undefined') {
+                    console.log('🔧 Installing Qiskit.js dashboard compatibility shim...');
+
+                    // Dashboard compatibility shim - NOT full Qiskit.js
+                    window.qiskit = {
+                        // Version info
+                        version: '1.0.0-shim',
+
+                        // Quantum Circuit class
+                        QuantumCircuit: class QuantumCircuit {
+                            constructor(numQubits, numClbits) {
+                                this.numQubits = numQubits || 2;
+                                this.numClbits = numClbits || this.numQubits;
+                                this.gates = [];
+                                this.measurements = [];
+                                this.name = 'circuit_' + Date.now();
+                            }
+
+                            // Gate operations
+                            h(qubit) { this.gates.push({ type: 'h', qubit: qubit }); return this; }
+                            x(qubit) { this.gates.push({ type: 'x', qubit: qubit }); return this; }
+                            y(qubit) { this.gates.push({ type: 'y', qubit: qubit }); return this; }
+                            z(qubit) { this.gates.push({ type: 'z', qubit: qubit }); return this; }
+                            s(qubit) { this.gates.push({ type: 's', qubit: qubit }); return this; }
+                            t(qubit) { this.gates.push({ type: 't', qubit: qubit }); return this; }
+                            rx(angle, qubit) { this.gates.push({ type: 'rx', qubit: qubit, angle: angle }); return this; }
+                            ry(angle, qubit) { this.gates.push({ type: 'ry', qubit: qubit, angle: angle }); return this; }
+                            rz(angle, qubit) { this.gates.push({ type: 'rz', qubit: qubit, angle: angle }); return this; }
+
+                            // Two-qubit gates
+                            cx(control, target) { this.gates.push({ type: 'cx', control: control, target: target }); return this; }
+                            cz(control, target) { this.gates.push({ type: 'cz', control: control, target: target }); return this; }
+                            swap(qubit1, qubit2) { this.gates.push({ type: 'swap', qubit1: qubit1, qubit2: qubit2 }); return this; }
+
+                            // Measurements
+                            measure(qubit, clbit) {
+                                this.measurements.push({ qubit: qubit, clbit: clbit || qubit });
+                                return this;
+                            }
+
+                            // Circuit info
+                            depth() { return this.gates.length; }
+                            size() { return this.gates.length; }
+                            num_qubits() { return this.numQubits; }
+                            num_clbits() { return this.numClbits; }
+
+                            // QASM export (simplified)
+                            qasm() {
+                                let qasm = `OPENQASM 2.0;\ninclude "qelib1.inc";\n\n`;
+                                qasm += `qreg q[${this.numQubits}];\n`;
+                                qasm += `creg c[${this.numClbits}];\n\n`;
+
+                                this.gates.forEach(gate => {
+                                    switch (gate.type) {
+                                        case 'h': qasm += `h q[${gate.qubit}];\n`; break;
+                                        case 'x': qasm += `x q[${gate.qubit}];\n`; break;
+                                        case 'y': qasm += `y q[${gate.qubit}];\n`; break;
+                                        case 'z': qasm += `z q[${gate.qubit}];\n`; break;
+                                        case 's': qasm += `s q[${gate.qubit}];\n`; break;
+                                        case 't': qasm += `t q[${gate.qubit}];\n`; break;
+                                        case 'cx': qasm += `cx q[${gate.control}], q[${gate.target}];\n`; break;
+                                        case 'cz': qasm += `cz q[${gate.control}], q[${gate.target}];\n`; break;
+                                        case 'swap': qasm += `swap q[${gate.qubit1}], q[${gate.qubit2}];\n`; break;
+                                    }
+                                });
+
+                                this.measurements.forEach(measurement => {
+                                    qasm += `measure q[${measurement.qubit}] -> c[${measurement.clbit}];\n`;
+                                });
+
+                                return qasm;
+                            }
+
+                            // Draw circuit (text representation)
+                            draw() {
+                                return this.qasm();
+                            }
+                        },
+
+                        // Aer simulator shim
+                        Aer: {
+                            get_backend: function (name) {
+                                return {
+                                    name: name || 'qasm_simulator',
+                                    status: function () { return { backend_name: name || 'qasm_simulator', operational: true }; },
+                                    configuration: function () {
+                                        return {
+                                            backend_name: name || 'qasm_simulator',
+                                            backend_version: '1.0.0',
+                                            n_qubits: 32,
+                                            basis_gates: ['u1', 'u2', 'u3', 'cx'],
+                                            gates: [],
+                                            local: true,
+                                            simulator: true,
+                                            conditional: true,
+                                            open_pulse: false,
+                                            memory: true,
+                                            max_shots: 100000
+                                        };
+                                    }
+                                };
+                            }
+                        },
+
+                        // IBM Quantum interface
+                        IBMQ: {
+                            save_account: async function (token, hub, group, project) {
+                                if (typeof Storage !== 'undefined') {
+                                    localStorage.setItem('qiskit_token', token);
+                                    localStorage.setItem('qiskit_hub', hub || 'ibm-q');
+                                    localStorage.setItem('qiskit_group', group || 'open');
+                                    localStorage.setItem('qiskit_project', project || 'main');
+                                }
+                                return true;
+                            },
+
+                            load_account: async function () {
+                                return {
+                                    backends: async function () {
+                                        return [
+                                            {
+                                                name: 'ibmq_qasm_simulator',
+                                                status: 'operational',
+                                                n_qubits: 32,
+                                                basis_gates: ['u1', 'u2', 'u3', 'cx'],
+                                                operational: true,
+                                                simulator: true
+                                            },
+                                            {
+                                                name: 'ibmq_lima',
+                                                status: 'operational',
+                                                n_qubits: 5,
+                                                basis_gates: ['id', 'rz', 'sx', 'x', 'cx', 'reset'],
+                                                operational: true,
+                                                simulator: false
+                                            },
+                                            {
+                                                name: 'ibmq_belem',
+                                                status: 'operational',
+                                                n_qubits: 5,
+                                                basis_gates: ['id', 'rz', 'sx', 'x', 'cx', 'reset'],
+                                                operational: true,
+                                                simulator: false
+                                            }
+                                        ];
+                                    },
+                                    jobs: async function () {
+                                        return [
+                                            {
+                                                job_id: 'demo_job_' + Date.now(),
+                                                backend: 'ibmq_qasm_simulator',
+                                                status: 'COMPLETED',
+                                                creation_date: new Date().toISOString(),
+                                                qobj: { qasm: 'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\nh q[0];\ncx q[0], q[1];\nmeasure q -> c;' }
+                                            }
+                                        ];
+                                    }
+                                };
+                            },
+
+                            get_provider: function () {
+                                return {
+                                    backends: async function () {
+                                        return [
+                                            { name: 'ibmq_qasm_simulator', operational: true },
+                                            { name: 'ibmq_lima', operational: true },
+                                            { name: 'ibmq_belem', operational: true }
+                                        ];
+                                    }
+                                };
+                            }
+                        },
+
+                        // Transpiler
+                        transpile: function (circuit, backend) {
+                            // Return circuit as-is for shim
+                            return circuit;
+                        },
+
+                        // Execute function
+                        execute: async function (circuit, backend, shots) {
+                            return {
+                                job_id: 'shim_job_' + Date.now(),
+                                backend: backend || 'qasm_simulator',
+                                status: 'COMPLETED',
+                                result: function () {
+                                    return {
+                                        get_counts: function () {
+                                            // Return demo results
+                                            let counts = {};
+                                            counts['00'] = Math.floor((shots || 1024) * 0.5);
+                                            counts['11'] = Math.floor((shots || 1024) * 0.3);
+                                            counts['01'] = Math.floor((shots || 1024) * 0.15);
+                                            counts['10'] = Math.floor((shots || 1024) * 0.05);
+                                            return counts;
+                                        }
+                                    };
+                                }
+                            };
+                        }
+                    };
+
+                    window.qiskitLoaded = true;
+                    var shimTime = Date.now() - loadStartTime;
+                    console.log(`🔧 Qiskit.js dashboard compatibility shim installed (${shimTime}ms) - UI operations supported`);
+                }
+            }
+
+            // Start loading with timeout
+            loadNext(0);
+            setTimeout(function () {
+                if (!loaded) {
+                    console.warn('Qiskit.js loading timeout, installing shim...');
+                    installCompleteShim();
+                }
+            }, 3000);
+        })();
+    </script>
+
+    <!-- Sortable.js for drag and drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- Google Gemini AI - Use browser-compatible version -->
+    <script>
+        // Polyfill for exports if not defined
+        if (typeof exports === 'undefined') {
+            window.exports = {};
+        }
+        if (typeof module === 'undefined') {
+            window.module = { exports: {} };
+        }
+    </script>
+    <script src="https://unpkg.com/@google/generative-ai@0.1.3/dist/index.js"></script>
+
+    <!-- Offline Manager for offline functionality -->
+    <script src="{{ url_for('static', filename='offline_manager.js') }}"></script>
+
+    <!-- RemoteDataService - Production-grade HTTP data boundary -->
+    <script src="/static/remote_data_service.js"></script>
+
+    <!-- API Utilities with Retry Logic (legacy - will be deprecated) -->
+    <script src="/static/api_utils.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='modern_dashboard.css') }}">
+
+    <!-- Tutorial System Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tutorial.css') }}">
+</head>
+
+<body class="modern-theme">
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <!-- Left Section: Logo & Branding -->
+        <div class="header-left">
+            <!-- College Logo -->
+            <div class="college-branding">
+                <img src="/static/journey/bvc_college_of_engineering_logo.jpg" alt="BVC College Logo"
+                    class="college-logo">
+                <div class="college-name">BVC College of Engineering</div>
+            </div>
+
+            <!-- Separator -->
+            <div class="header-separator"></div>
+
+            <!-- Quantum Spark Logo -->
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-atom"></i>
+                    <div class="logo-glow"></div>
+                </div>
+                <div class="logo-text">
+                    <h1 id="quantum-spark-title" style="cursor: pointer;">Quantum Spark</h1>
+                    <div class="subtitle">Amaravathi Quantum Hackathon</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Section: Status & Info -->
+        <div class="header-center">
+            <div class="status-cluster">
+                <div class="hackathon-badge">
+                    <i class="fas fa-trophy"></i>
+                    <span class="badge-text">2025</span>
+                </div>
+                <div class="connection-status" id="connection-status">
+                    <div class="status-indicator">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <span class="status-text">CONNECTED TO IBM QUANTUM</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Controls & Actions -->
+        <div class="header-right">
+            <!-- Primary Actions -->
+            <div class="action-group primary-actions">
+                <button class="btn btn-primary" id="refresh-all-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="btn-text">Refresh</span>
+                </button>
+            </div>
+
+            <!-- Provider Selector Dropdown -->
+            <div class="provider-selector-container">
+                <div class="provider-dropdown" id="provider-dropdown">
+                    <div class="provider-selected" id="provider-selected">
+                        <div class="provider-icon ibm-icon">
+                            <i class="fas fa-cloud"></i>
+                        </div>
+                        <div class="provider-info">
+                            <span class="provider-name">IBM Quantum</span>
+                            <span class="computation-badge gate-badge">⚛️ Gate</span>
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="provider-options" id="provider-options">
+                        <!-- Gate-Based Providers -->
+                        <div class="provider-group-label">Gate-Based Quantum</div>
+                        <div class="provider-option" data-provider="ibm" data-model="gate">
+                            <div class="provider-icon ibm-icon"><i class="fas fa-cloud"></i></div>
+                            <span class="provider-name">IBM Quantum</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="local" data-model="gate">
+                            <div class="provider-icon local-icon"><i class="fas fa-laptop"></i></div>
+                            <span class="provider-name">Local Simulator</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="ionq" data-model="gate">
+                            <div class="provider-icon ionq-icon"><i class="fas fa-atom"></i></div>
+                            <span class="provider-name">IonQ</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="aws_braket" data-model="gate">
+                            <div class="provider-icon aws-icon"><i class="fab fa-aws"></i></div>
+                            <span class="provider-name">AWS Braket</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="azure" data-model="gate">
+                            <div class="provider-icon azure-icon"><i class="fab fa-microsoft"></i></div>
+                            <span class="provider-name">Azure Quantum</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="rigetti" data-model="gate">
+                            <div class="provider-icon rigetti-icon"><i class="fas fa-microchip"></i></div>
+                            <span class="provider-name">Rigetti</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="google" data-model="gate">
+                            <div class="provider-icon google-icon"><i class="fab fa-google"></i></div>
+                            <span class="provider-name">Google</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+                        <div class="provider-option" data-provider="quantinuum" data-model="gate">
+                            <div class="provider-icon quantinuum-icon"><i class="fas fa-bolt"></i></div>
+                            <span class="provider-name">Quantinuum</span>
+                            <span class="computation-badge gate-badge">⚛️</span>
+                        </div>
+
+                        <!-- Annealing Provider -->
+                        <div class="provider-group-label">Quantum Annealing</div>
+                        <div class="provider-option" data-provider="dwave" data-model="annealing">
+                            <div class="provider-icon dwave-icon"><i class="fas fa-wave-square"></i></div>
+                            <span class="provider-name">D-Wave</span>
+                            <span class="computation-badge annealing-badge">🔶</span>
+                        </div>
+
+                        <!-- Photonic Provider -->
+                        <div class="provider-group-label">Photonic Quantum</div>
+                        <div class="provider-option" data-provider="xanadu" data-model="photonic">
+                            <div class="provider-icon xanadu-icon"><i class="fas fa-lightbulb"></i></div>
+                            <span class="provider-name">Xanadu</span>
+                            <span class="computation-badge photonic-badge">🟢</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="action-group secondary-actions">
+                <button class="btn btn-secondary" id="tutorial-btn" title="Tutorial">
+                    <i class="fas fa-graduation-cap"></i>
+                </button>
+                <!-- AI Key Button -->
+                <button class="btn btn-secondary" id="ai-key-btn" title="AI Features">
+                    <i class="fas fa-key"></i>
+                    <span class="ai-status-badge locked" id="ai-status">Locked</span>
+                </button>
+                <button class="btn btn-secondary" id="theme-switcher-btn" title="Theme">
+                    <i class="fas fa-palette"></i>
+                </button>
+                <button class="btn btn-secondary" id="customize-btn" title="Customize">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+
+            <!-- Auto-refresh Controls -->
+            <div class="auto-refresh-panel" id="auto-refresh-controls">
+                <div class="refresh-status">
+                    <div class="countdown-display" id="hack-countdown">5:00</div>
+                    <div class="refresh-indicator" id="refresh-indicator"></div>
+                </div>
+                <select class="interval-selector" id="refresh-interval-select">
+                    <option value="30">30s</option>
+                    <option value="60">1m</option>
+                    <option value="120">2m</option>
+                    <option value="300" selected>5m</option>
+                    <option value="600">10m</option>
+                    <option value="900">15m</option>
+                </select>
+                <button class="toggle-btn" id="auto-refresh-toggle" title="Toggle Auto-refresh">
+                    <i class="fas fa-pause"></i>
+                </button>
+            </div>
+
+            <!-- Authentication Controls -->
+            <div class="auth-controls" id="auth-controls">
+                <button class="btn btn-secondary" id="login-btn" style="display: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </button>
+                <button class="btn btn-secondary" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+                <div class="user-status" id="user-status">
+                    <i class="fas fa-user"></i>
+                    <span id="user-email">Not logged in</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notifications Container -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Tutorial System will be dynamically created by tutorial.js -->
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- AI Integration Panel -->
+        <div class="ai-panel fade-in">
+            <h3>
+                <i class="fas fa-robot"></i>
+                AI Quantum Assistant
+            </h3>
+            <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: center;">
+                <input type="text" class="ai-input" id="ai-input"
+                    placeholder="Ask me to create circuits, explain quantum concepts, or generate code..." style="flex: 1; margin: 0; padding: 1rem 1.5rem; height: 50px; box-sizing: border-box;">
+                <button id="ai-send-btn"
+                    style="padding: 0 1.5rem; background: var(--modern-gradient); border: none; color: white; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; height: 50px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin: 0;">
+                    Send
+                </button>
+            </div>
+            <div id="ai-response"
+                style="color: var(--text-secondary); font-size: 1rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--glass-border);">
+            </div>
+        </div>
+
+
+        <!-- Metrics Overview -->
+        <section class="metrics-grid slide-up">
+            <div class="metric-card">
+                <div class="metric-label">Active Backends</div>
+                <div class="metric-value" id="active-backends">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Jobs</div>
+                <div class="metric-value" id="total-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Running Jobs</div>
+                <div class="metric-value" id="running-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Success Rate</div>
+                <div class="metric-value" id="success-rate">-</div>
+            </div>
+        </section>
+
+        <!-- Widget Grid -->
+        <div class="widget-grid" id="widget-grid">
+            <!-- Quantum Backends Widget -->
+            <div class="widget fade-in" data-widget="backends">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-server"></i>
+                        Quantum Backends
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backends-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum backends...</span>
+                    </div>
+                    <div id="backends-content" style="display: none;">
+                        <!-- Backends content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum Jobs Widget -->
+            <div class="widget fade-in" data-widget="jobs">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-tasks"></i>
+                        Quantum Jobs
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="jobs-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum jobs...</span>
+                    </div>
+                    <div id="jobs-content" style="display: none;">
+                        <!-- Jobs content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 3D Bloch Sphere Widget -->
+            <div class="widget fade-in" data-widget="bloch-sphere">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-globe"></i>
+                        3D Bloch Sphere
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="bloch-loading">
+                        <div class="spinner"></div>
+                        <span>Loading Blochy sphere...</span>
+                    </div>
+                    <div class="visualization-container" id="bloch-content" style="display: none;">
+                        <!-- Blochy 3D sphere will be rendered here -->
+                        <div id="bloch-3d-container" style="width: 100%; height: 350px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Quantum Circuit Widget -->
+            <div class="widget fade-in" data-widget="circuit">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-cube"></i>
+                        3D Quantum Circuit Builder
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="circuit-loading">
+                        <div class="spinner"></div>
+                        <span>Loading 3D circuit...</span>
+                    </div>
+                    <div class="visualization-container" id="circuit-content" style="display: none;">
+                        <!-- 3D Circuit visualization will be rendered here -->
+                        <div id="3d-quantum-circuit" style="width: 100%; height: 350px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entanglement Analysis Widget -->
+            <div class="widget fade-in" data-widget="entanglement">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-link"></i>
+                        Entanglement Analysis
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="entanglement-loading">
+                        <div class="spinner"></div>
+                        <span>Loading entanglement data...</span>
+                    </div>
+                    <div id="entanglement-content" style="display: none;">
+                        <!-- Entanglement analysis will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Widget -->
+            <div class="widget fade-in" data-widget="results">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Measurement Results
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="results-loading">
+                        <div class="spinner"></div>
+                        <span>Loading measurement results...</span>
+                    </div>
+                    <div id="results-content" style="display: none;">
+                        <!-- Results will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum State Widget -->
+            <div class="widget fade-in" data-widget="quantum-state">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-atom"></i>
+                        Quantum State
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="quantum-state-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum state...</span>
+                    </div>
+                    <div id="quantum-state-content" style="display: none;">
+                        <!-- Quantum state will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Widget -->
+            <div class="widget fade-in" data-widget="performance">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-line"></i>
+                        Performance
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="performance-loading">
+                        <div class="spinner"></div>
+                        <span>Loading performance data...</span>
+                    </div>
+                    <div id="performance-content" style="display: none;">
+                        <!-- Performance charts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Widget -->
+            <div class="widget fade-in" data-widget="ai-chat">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-robot"></i>
+                        AI Assistant
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="ai-chat-loading">
+                        <div class="spinner"></div>
+                        <span>Initializing AI assistant...</span>
+                    </div>
+                    <div id="ai-chat-content" style="display: none;">
+                        <!-- AI Chat interface will be loaded here -->
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chat-messages">
+                                <div class="message ai-message">
+                                    <div class="message-content">
+                                        <i class="fas fa-robot"></i>
+                                        Hello! I'm your quantum computing AI assistant. Ask me anything about quantum
+                                        states, circuits, or quantum computing concepts!
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chat-input" placeholder="Ask about quantum computing..."
+                                    class="chat-input">
+                                <button id="send-message" class="send-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Data Widget -->
+            <div class="widget fade-in" data-widget="historical-data">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-history"></i>
+                        Historical Data
+
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="historical-data-loading">
+                        <div class="spinner"></div>
+                        <span>Loading historical data...</span>
+                    </div>
+                    <div id="historical-data-content" style="display: none;">
+                        <!-- Historical data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend Comparison Widget - REMOVED: Widget handler and API endpoint don't exist -->
+        </div>
+    </main>
+
+    <!-- Hidden placeholder ensures element exists for widgets updater -->
+    <div id="active-jobs-content" style="display:none"></div>
+
+    <!-- Popup Modal -->
+    <div class="popup-overlay" id="popup-overlay">
+        <div class="popup-modal">
+            <div class="popup-header">
+                <h3 id="popup-title">Widget View</h3>
+                <button class="popup-close" id="popup-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-content" id="popup-content">
+                <!-- Popup content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Customization Panel -->
+    <div class="customization-panel" id="customization-panel">
+        <div class="customization-header">
+            <h3>Customize Dashboard</h3>
+            <button class="widget-btn" id="close-customization">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="customization-content">
+            <!-- Job Limit Selector -->
+            <h4><i class="fas fa-list-ol"></i> Job Display Limit</h4>
+            <div class="job-limit-selector"
+                style="margin-bottom: 1.5rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <label for="job-limit-select"
+                    style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                    How many jobs to fetch from IBM Quantum:
+                </label>
+                <select id="job-limit-select"
+                    style="width: 100%; padding: 0.5rem 0.75rem; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #f1f5f9; font-size: 0.9rem; cursor: pointer; -webkit-appearance: none; -moz-appearance: none; appearance: none;">
+                    <option value="5" style="background: #1e293b; color: #f1f5f9;">5 jobs (fastest)</option>
+                    <option value="10" style="background: #1e293b; color: #f1f5f9;">10 jobs</option>
+                    <option value="30" style="background: #1e293b; color: #f1f5f9;">30 jobs</option>
+                    <option value="50" style="background: #1e293b; color: #f1f5f9;">50 jobs</option>
+                    <option value="100" style="background: #1e293b; color: #f1f5f9;">100 jobs</option>
+                    <option value="all" selected style="background: #1e293b; color: #f1f5f9;">All jobs (complete data)
+                    </option>
+                </select>
+                <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                    ⚡ Fetching fewer jobs improves load time. "All" provides complete data for accurate totals.
+                </p>
+            </div>
+
+            <h4>Available Widgets</h4>
+            <ul class="widget-list" id="available-widgets">
+                <li class="widget-item" data-widget="backends">
+                    <span><i class="fas fa-server"></i> Quantum Backends</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="jobs">
+                    <span><i class="fas fa-tasks"></i> Quantum Jobs</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="bloch-sphere">
+                    <span><i class="fas fa-globe"></i> 3D Bloch Sphere (Blochy)</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="circuit">
+                    <span><i class="fas fa-cube"></i> 3D Quantum Circuit</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="entanglement">
+                    <span><i class="fas fa-link"></i> Entanglement Analysis</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="results">
+                    <span><i class="fas fa-chart-bar"></i> Measurement Results</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="quantum-state">
+                    <span><i class="fas fa-atom"></i> Quantum State</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="performance">
+                    <span><i class="fas fa-chart-line"></i> Performance</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="ai-chat">
+                    <span><i class="fas fa-robot"></i> AI Assistant</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Math.js for quantum calculations -->
+    <script src="https://unpkg.com/mathjs@11.11.0/lib/browser/math.min.js"></script>
+
+
+
+
+    <!-- Blochy Integration - Core (simplified) -->
+    <script>
+        // Simplified Bloch sphere implementation
+        window.BlochSphere = {
+            init: function () {
+                console.log('Bloch sphere initialized (simplified)');
+            }
+        };
+    </script>
+
+    <!-- 3D Circuit Loader Fix - Prevents multiple script loads -->
+    <script src="/static/3d_circuit_loader_fix.js"></script>
+
+    <!-- 3D Circuit with improved loading -->
+    <script>
+        // Enhanced 3D Circuit initialization
+        window.QuantumCircuit3D = {
+            init: function () {
+                console.log('Initializing 3D Quantum Circuit...');
+                this.loadCircuitVisualizer();
+            },
+
+            loadCircuitVisualizer: function () {
+                // CRITICAL FIX: Check if script already exists to prevent multiple loads
+                const existingScript = document.querySelector('script[src*="3d_quantum_circuit.js"]');
+                if (existingScript) {
+                    console.log('  3D Circuit script already exists, skipping load');
+                    this.initializeCircuit();
+                    return;
+                }
+
+                // Also check if already loaded
+                if (window.UnifiedQuantumCircuitApp) {
+                    console.log('  Unified 3D Circuit already loaded, initializing...');
+                    this.initializeCircuit();
+                    return;
+                }
+
+                // Load Unified 3D circuit with error handling
+                console.log('📦 Loading Unified 3D circuit script...');
+                const script = document.createElement('script');
+                script.src = '/static/unified_3d_circuit_visualizer.js';
+                script.onload = () => {
+                    console.log('  Unified 3D Circuit script loaded successfully');
+                    this.initializeCircuit();
+                };
+                script.onerror = () => {
+                    console.warn('❌ Unified 3D Circuit script failed to load, using fallback');
+                    this.createFallbackCircuit();
+                };
+                document.head.appendChild(script);
+            },
+
+            initializeCircuit: function () {
+                try {
+                    const container = document.getElementById('3d-quantum-circuit');
+                    if (!container) {
+                        console.error('3d-quantum-circuit container not found');
+                        return;
+                    }
+
+                    // Prepare container for Unified App
+                    // The app expects a canvas with id 'quantumCanvas'
+                    container.innerHTML = '';
+                    const canvas = document.createElement('canvas');
+                    canvas.id = 'quantumCanvas';
+                    canvas.style.width = '100%';
+                    canvas.style.height = '100%';
+                    canvas.style.display = 'block';
+                    container.appendChild(canvas);
+
+                    // Initialize the app
+                    if (typeof window.UnifiedQuantumCircuitApp === 'function') {
+                        console.log('Initializing UnifiedQuantumCircuitApp...');
+                        window.unifiedQuantumApp = new window.UnifiedQuantumCircuitApp();
+                    } else {
+                        console.warn('UnifiedQuantumCircuitApp class not found');
+                        this.createFallbackCircuit();
+                    }
+                } catch (error) {
+                    console.error('Error initializing 3D circuit:', error);
+                    this.createFallbackCircuit();
+                }
+            },
+
+            createFallbackCircuit: function () {
+                const container = document.getElementById('3d-quantum-circuit');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <i class="fas fa-cube" style="font-size: 2em; margin-bottom: 10px;"></i>
+                            <p>3D Circuit Visualization</p>
+                            <p style="font-size: 0.9em;">Loading 3D circuit components...</p>
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => window.QuantumCircuit3D.init());
+        } else {
+            window.QuantumCircuit3D.init();
+        }
+    </script>
+
+    <!-- THREE.js and Extensions already loaded in head section -->
+
+    <!-- Enhanced Bloch Integration (ensure core Bloch functions available) -->
+    <script src="/static/plot.js"></script>
+    <script src="/static/bloch_plot.js"></script>
+    <script src="/static/bloch_quantum.js"></script>
+    <script src="/static/bloch_ui.js"></script>
+
+    <!-- Unified 3D Circuit Visualizer - FIX for UnifiedQuantumCircuitApp not found error -->
+    <script src="/static/unified_3d_circuit_visualizer.js"></script>
+
+    <!-- Multi-Provider Submission Panel (v3) - NEW, does not modify existing IBM code -->
+    <script src="/static/multi_provider_submission.js"></script>
+
+    <!-- Theme Switcher -->
+    <script src="/static/theme_switcher.js"></script>
+
+    <!-- Theme Styles -->
+    
+
+    <!-- Widgets Library - Load FIRST for widget rendering -->
+    <script src="/static/widgets.js"></script>
+
+    <!-- Dashboard Metrics - Summary Cards (Total Jobs, Running Jobs, Success Rate) -->
+    <script src="/static/dashboard_metrics.js"></script>
+
+    <!-- Main Dashboard Script -->
+    <script src="/static/dashboard_new.js"></script>
+
+    <!-- AI Agent Panel (VS Code Copilot-style) -->
+    <script src="/static/ai-agent/ai_widget_registry.js"></script>
+    <script src="/static/ai-agent/ai_commands.js"></script>
+    <script src="/static/ai-agent/ai_panel.js"></script>
+
+    <!-- AI Chat Button Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // AI Feature Button Event Listeners
+            const aiCircuitGenBtn = document.getElementById('ai-circuit-gen-btn');
+            const aiConceptSearchBtn = document.getElementById('ai-concept-search-btn');
+            const aiChatBtn = document.getElementById('ai-chat-btn');
+            const aiCloudConfigBtn = document.getElementById('ai-cloud-config-btn');
+
+            // Wait for dashboard to be initialized, then add AI button handlers
+            const initAIButtons = () => {
+                if (window.dashboard && window.dashboard.createAISidePanel) {
+                    if (aiCircuitGenBtn) {
+                        aiCircuitGenBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiConceptSearchBtn) {
+                        aiConceptSearchBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiChatBtn) {
+                        aiChatBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiCloudConfigBtn) {
+                        aiCloudConfigBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+                } else {
+                    // Retry after a short delay
+                    setTimeout(initAIButtons, 100);
+                }
+            };
+
+            // Initialize AI buttons
+            initAIButtons();
+        });
+    </script>
+
+    <!-- Customize Button & Drag-and-Drop Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🎨 Initializing Customize Panel and Drag-and-Drop...');
+
+            // === CUSTOMIZE BUTTON HANDLER ===
+            const customizeBtns = document.querySelectorAll('#customize-btn');
+            const customizationPanel = document.getElementById('customization-panel');
+            const closeCustomization = document.getElementById('close-customization');
+
+            // Handle all customize buttons (there might be duplicates)
+            customizeBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    console.log('  Customize button clicked');
+                    if (customizationPanel) {
+                        customizationPanel.classList.toggle('open');
+                        console.log('  Customization panel toggled:', customizationPanel.classList.contains('open'));
+                    } else {
+                        console.error('  Customization panel not found');
+                    }
+                });
+            });
+
+            // Close button
+            if (closeCustomization) {
+                closeCustomization.addEventListener('click', function () {
+                    console.log('  Closing customization panel');
+                    customizationPanel.classList.remove('open');
+                });
+            }
+
+            // Close panel when clicking outside
+            document.addEventListener('click', function (e) {
+                if (customizationPanel && customizationPanel.classList.contains('open')) {
+                    const isClickInside = customizationPanel.contains(e.target) ||
+                        Array.from(customizeBtns).some(btn => btn.contains(e.target));
+                    if (!isClickInside) {
+                        customizationPanel.classList.remove('open');
+                    }
+                }
+            });
+
+            // === JOB LIMIT SELECTOR HANDLER ===
+            const jobLimitSelect = document.getElementById('job-limit-select');
+            if (jobLimitSelect) {
+                // Load saved preference from localStorage
+                const savedLimit = localStorage.getItem('quantumJobLimit') || 'all';
+                jobLimitSelect.value = savedLimit;
+                window.quantumJobLimit = savedLimit;
+                console.log('📋 Job limit loaded:', savedLimit);
+
+                // Handle selection change
+                jobLimitSelect.addEventListener('change', function () {
+                    const newLimit = this.value;
+                    localStorage.setItem('quantumJobLimit', newLimit);
+                    window.quantumJobLimit = newLimit;
+                    console.log('📋 Job limit changed to:', newLimit);
+
+                    // Show notification
+                    if (window.dashboard && window.dashboard.showNotification) {
+                        window.dashboard.showNotification(
+                            `Job limit set to ${newLimit === 'all' ? 'All jobs' : newLimit + ' jobs'}. Refreshing...`,
+                            'info'
+                        );
+                    }
+
+                    // Clear the cache to force fresh fetch with new limit
+                    if (window.remoteDataService && window.remoteDataService.clearCache) {
+                        window.remoteDataService.clearCache('/api/jobs');
+                    }
+
+                    // Trigger dashboard refresh
+                    if (window.dashboard && window.dashboard.refreshAllData) {
+                        window.dashboard.refreshAllData();
+                    } else if (window.dashboardMetrics && window.dashboardMetrics.refresh) {
+                        window.dashboardMetrics.refresh();
+                    }
+                });
+            }
+
+            // === DRAG AND DROP WITH SORTABLE.JS ===
+            const widgetGrid = document.getElementById('widget-grid');
+            let sortableInstance = null;
+
+            function initializeDragAndDrop() {
+                if (typeof Sortable === 'undefined') {
+                    console.warn('⚠️  Sortable.js not loaded yet, retrying...');
+                    setTimeout(initializeDragAndDrop, 200);
+                    return;
+                }
+
+                if (!widgetGrid) {
+                    console.error('❌ Widget grid not found');
+                    return;
+                }
+
+                try {
+                    sortableInstance = new Sortable(widgetGrid, {
+                        animation: 350, // Increased from 200ms for smoother animation
+                        easing: 'cubic-bezier(0.25, 0.8, 0.25, 1)', // Smooth easing
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        handle: '.widget-header', // Only drag by header
+                        forceFallback: true,
+                        fallbackClass: 'sortable-fallback',
+                        fallbackOnBody: true,
+                        swapThreshold: 0.65,
+                        preventOnFilter: true, // Prevent text selection
+
+                        onStart: function (evt) {
+                            console.log('🎯 Started dragging widget:', evt.item.getAttribute('data-widget'));
+                            evt.item.classList.add('dragging');
+                            widgetGrid.classList.add('dragging-active');
+                            // Disable text selection on the entire grid
+                            widgetGrid.style.userSelect = 'none';
+                            document.body.style.userSelect = 'none';
+                        },
+
+                        onEnd: function (evt) {
+                            console.log('✅ Dropped widget at position:', evt.newIndex);
+                            evt.item.classList.remove('dragging');
+                            widgetGrid.classList.remove('dragging-active');
+                            // Re-enable text selection
+                            widgetGrid.style.userSelect = '';
+                            document.body.style.userSelect = '';
+                            saveWidgetOrder();
+                        },
+
+                        onMove: function (evt, originalEvent) {
+                            // Add smooth visual feedback during drag
+                            const draggedElement = evt.dragged;
+                            const relatedElement = evt.related;
+
+                            // Add hover effect to the element being moved over
+                            if (relatedElement && !relatedElement.classList.contains('dragging')) {
+                                relatedElement.style.transform = 'scale(0.98)';
+                                setTimeout(() => {
+                                    relatedElement.style.transform = '';
+                                }, 200);
+                            }
+
+                            return true; // Allow the move
+                        }
+                    });
+
+                    console.log('✅ Drag-and-drop initialized successfully with enhanced animations');
+                } catch (error) {
+                    console.error('❌ Error initializing drag-and-drop:', error);
+                }
+            }
+
+            // Save widget order to localStorage
+            function saveWidgetOrder() {
+                try {
+                    const widgets = Array.from(widgetGrid.querySelectorAll('.widget'));
+                    const order = widgets.map(widget => widget.getAttribute('data-widget'));
+                    localStorage.setItem('widgetOrder', JSON.stringify(order));
+                    console.log('💾 Widget order saved:', order);
+                } catch (error) {
+                    console.error('Error saving widget order:', error);
+                }
+            }
+
+            // Load widget order from localStorage
+            function loadWidgetOrder() {
+                try {
+                    const savedOrder = localStorage.getItem('widgetOrder');
+                    if (savedOrder) {
+                        const order = JSON.parse(savedOrder);
+                        console.log('📂 Loading saved widget order:', order);
+
+                        // Reorder widgets based on saved order
+                        order.forEach((widgetType, index) => {
+                            const widget = widgetGrid.querySelector(`[data-widget="${widgetType}"]`);
+                            if (widget) {
+                                widgetGrid.appendChild(widget);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading widget order:', error);
+                }
+            }
+
+            // Initialize drag-and-drop
+            initializeDragAndDrop();
+
+            // Load saved widget order
+            loadWidgetOrder();
+
+            // Add CSS for drag-and-drop visual feedback
+            const style = document.createElement('style');
+            style.textContent = `
+                /* Prevent text selection during drag */
+                .widget-grid.dragging-active,
+                .widget-grid.dragging-active * {
+                    user-select: none !important;
+                    -webkit-user-select: none !important;
+                    -moz-user-select: none !important;
+                    -ms-user-select: none !important;
+                }
+
+                /* Ghost element (placeholder where item will drop) */
+                .sortable-ghost {
+                    opacity: 0.3;
+                    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1));
+                    border: 2px dashed rgba(6, 182, 212, 0.5);
+                    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+                    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                }
+
+                /* Chosen element (element being dragged) */
+                .sortable-chosen {
+                    transform: scale(1.05) rotate(-1deg);
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 
+                                0 0 0 2px rgba(6, 182, 212, 0.5),
+                                0 0 30px rgba(6, 182, 212, 0.3);
+                    z-index: 2000;
+                    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1),
+                                box-shadow 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    cursor: grabbing !important;
+                }
+
+                /* Drag element (actively being dragged) */
+                .sortable-drag {
+                    opacity: 0.9;
+                    transform: rotate(-2deg) scale(1.03);
+                    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
+                    animation: dragPulse 1s ease-in-out infinite;
+                }
+
+                @keyframes dragPulse {
+                    0%, 100% {
+                        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5),
+                                    0 0 30px rgba(6, 182, 212, 0.4);
+                    }
+                    50% {
+                        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5),
+                                    0 0 40px rgba(6, 182, 212, 0.6);
+                    }
+                }
+
+                /* Custom dragging class */
+                .widget.dragging {
+                    opacity: 0.6;
+                    transform: scale(0.97);
+                    transition: opacity 0.2s ease, transform 0.2s ease;
+                }
+
+                /* Widget header cursor states */
+                .widget-header {
+                    cursor: move;
+                    cursor: grab;
+                    transition: background 0.2s ease;
+                    user-select: none;
+                    -webkit-user-select: none;
+                }
+
+                .widget-header:active {
+                    cursor: grabbing;
+                }
+
+                .customization-panel {
+                    position: fixed;
+                    right: -400px;
+                    top: 0;
+                    width: 400px;
+                    height: 100vh;
+                    background: var(--glass-bg);
+                    backdrop-filter: blur(20px);
+                    border-left: 1px solid var(--glass-border);
+                    box-shadow: var(--shadow-deep);
+                    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    z-index: 1000;
+                    overflow-y: auto;
+                }
+
+                .customization-panel.open {
+                    right: 0;
+                }
+
+                .customization-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1.5rem;
+                    border-bottom: 1px solid var(--glass-border);
+                }
+
+                .customization-header h3 {
+                    margin: 0;
+                    color: var(--text-primary);
+                    font-size: 1.25rem;
+                }
+
+                .customization-content {
+                    padding: 1.5rem;
+                }
+
+                .customization-content h4 {
+                    color: var(--text-primary);
+                    margin-bottom: 1rem;
+                }
+
+                .widget-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                }
+
+                .widget-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.75rem 1rem;
+                    margin-bottom: 0.5rem;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid var(--glass-border);
+                    border-radius: var(--border-radius);
+                    transition: all 0.3s ease;
+                }
+
+                .widget-item:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    transform: translateX(5px);
+                }
+
+                .widget-item span {
+                    color: var(--text-primary);
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .widget-item span i {
+                    color: var(--text-accent);
+                }
+            `;
+            document.head.appendChild(style);
+
+            console.log('✅ Customize panel and drag-and-drop initialized');
+        });
+    </script>
+
+
+
+
+    <!-- Enhanced AI Assistant -->
+    <script src="/static/enhanced_ai_assistant.js"></script>
+
+    <!-- Backend Comparison (Compare button + modal) -->
+    <script src="/static/backend_comparison.js?v=2.0"></script>
+
+    <!-- Offline Status Management -->
+    <script>
+        // Offline status management for modern dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            const connectionStatus = document.getElementById('connection-status');
+            const statusIcon = connectionStatus.querySelector('i');
+            const statusText = connectionStatus.querySelector('span');
+
+            // Wait for offline manager to initialize
+            let offlineManager;
+            const checkOfflineManager = setInterval(() => {
+                if (window.offlineManager) {
+                    offlineManager = window.offlineManager;
+                    clearInterval(checkOfflineManager);
+                    initializeOfflineStatus();
+                }
+            }, 100);
+
+            function initializeOfflineStatus() {
+                updateConnectionStatus();
+                setupOfflineNotifications();
+
+                // Update status periodically
+                setInterval(updateConnectionStatus, 30000); // Every 30 seconds
+            }
+
+            function updateConnectionStatus() {
+                if (!offlineManager) return;
+
+                const isOnline = offlineManager.isOnlineStatus();
+                const statusDiv = document.getElementById('connection-status');
+                const currentMode = window.dashboardMode || 'ibm';
+
+                if (isOnline) {
+                    statusDiv.className = 'connection-status';
+
+                    // Update based on current dashboard mode
+                    if (currentMode === 'ibm') {
+                        statusIcon.className = 'fas fa-cloud';
+                        statusText.textContent = 'Connected to IBM Quantum';
+                        statusDiv.style.color = '#06b6d4';
+                    } else {
+                        statusIcon.className = 'fas fa-desktop';
+                        statusText.textContent = 'Local Simulator Active';
+                        statusDiv.style.color = '#10b981';
+                    }
+                } else {
+                    statusDiv.className = 'connection-status offline';
+                    statusIcon.className = 'fas fa-circle';
+                    statusText.textContent = 'Offline Mode - Using Cached Data';
+                }
+            }
+
+            function setupOfflineNotifications() {
+                // Listen for offline manager events (if available)
+                if (offlineManager) {
+                    // Check data freshness on load
+                    checkDataFreshness();
+                }
+            }
+
+            async function checkDataFreshness() {
+                try {
+                    const response = await fetch('/api/sync_status');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const isFresh15 = data.is_data_fresh_15min;
+                        const isFresh30 = data.is_data_fresh_30min;
+
+                        if (!isFresh15 && !isFresh30) {
+                            showOfflineNotification(
+                                'Data is stale',
+                                'Your cached data is more than 30 minutes old. Connect to internet for fresh data.',
+                                'warning'
+                            );
+                        } else if (!isFresh15) {
+                            showOfflineNotification(
+                                'Data is getting old',
+                                'Your cached data is more than 15 minutes old.',
+                                'info'
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not check data freshness:', error);
+                }
+            }
+
+            function showOfflineNotification(title, message, type = 'info') {
+                // Remove existing notifications
+                const existing = document.querySelectorAll('.offline-notification');
+                existing.forEach(el => el.remove());
+
+                // Create new notification
+                const notification = document.createElement('div');
+                notification.className = `offline-notification ${type} show`;
+
+                notification.innerHTML = `
+                    <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+                    <h4 style="margin: 0 0 8px 0; color: var(--text-primary);">${title}</h4>
+                    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">${message}</p>
+                `;
+
+                document.body.appendChild(notification);
+
+                // Auto-remove after 10 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 10000);
+            }
+
+            // Add offline status to header-right section
+            // Offline status button removed for cleaner header
+        });
+    </script>
+
+    <!-- Timer and Auto-refresh functionality -->
+    <script>
+        // Timer and Auto-refresh functionality
+        let countdownTimer = null;
+        let currentInterval = 300; // 5 minutes default
+        let isAutoRefreshEnabled = true;
+        let timeRemaining = currentInterval;
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateCountdownDisplay() {
+            const countdownElement = document.getElementById('hack-countdown');
+            if (countdownElement) {
+                countdownElement.textContent = formatTime(timeRemaining);
+            }
+        }
+
+        function startCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            timeRemaining = currentInterval;
+            updateCountdownDisplay();
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                updateCountdownDisplay();
+
+                if (timeRemaining <= 0) {
+                    // Auto-refresh when timer expires
+                    if (isAutoRefreshEnabled && window.dashboard) {
+                        console.log('🔄 Auto-refreshing dashboard...');
+                        if (window.dashboard.updateAllWidgets) {
+                            window.dashboard.updateAllWidgets();
+                        } else if (window.dashboard.loadInitialData) {
+                            window.dashboard.loadInitialData();
+                        }
+                        if (window.dashboard.showNotification) {
+                            window.dashboard.showNotification('🔄 Dashboard auto-refreshed!', 'success');
+                        }
+                    }
+                    // Reset timer
+                    timeRemaining = currentInterval;
+                }
+            }, 1000);
+        }
+
+        function setupTimerControls() {
+            const intervalSelect = document.getElementById('refresh-interval-select');
+            const toggleBtn = document.getElementById('auto-refresh-toggle');
+
+            if (intervalSelect) {
+                intervalSelect.addEventListener('change', (e) => {
+                    currentInterval = parseInt(e.target.value);
+                    timeRemaining = currentInterval;
+                    updateCountdownDisplay();
+                    if (isAutoRefreshEnabled) {
+                        startCountdown();
+                    }
+                });
+            }
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    isAutoRefreshEnabled = !isAutoRefreshEnabled;
+                    const icon = toggleBtn.querySelector('i');
+
+                    if (isAutoRefreshEnabled) {
+                        icon.className = 'fas fa-pause';
+                        toggleBtn.title = 'Pause Auto-refresh';
+                        startCountdown();
+                    } else {
+                        icon.className = 'fas fa-play';
+                        toggleBtn.title = 'Start Auto-refresh';
+                        if (countdownTimer) {
+                            clearInterval(countdownTimer);
+                            countdownTimer = null;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Authentication functions
+        function initializeAuth() {
+            console.log('Initializing authentication...');
+            checkAuthStatus();
+            setupAuthListeners();
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/backends', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    console.log('User is authenticated');
+                    updateAuthUI(true);
+                    const userStatus = document.getElementById('user-status');
+                    const userEmail = userStatus.querySelector('#user-email');
+                    userEmail.textContent = 'Logged in';
+                } else if (response.status === 401) {
+                    console.log('User is not authenticated');
+                    updateAuthUI(false);
+                } else {
+                    console.log('Unexpected auth status:', response.status);
+                    updateAuthUI(false);
+                }
+            } catch (error) {
+                console.log('Auth check failed:', error);
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(isAuthenticated) {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userStatus = document.getElementById('user-status');
+
+            if (isAuthenticated) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'flex';
+                userStatus.classList.remove('not-logged-in');
+            } else {
+                loginBtn.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                userStatus.classList.add('not-logged-in');
+            }
+        }
+
+        function setupAuthListeners() {
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    window.location.href = '/auth';
+                });
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            console.log('Logged out successfully');
+                            window.location.href = '/auth';
+                        } else {
+                            console.error('Logout failed');
+                            alert('Logout failed. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        alert('Logout failed. Please try again.');
+                    }
+                });
+            }
+        }
+    </script>
+
+    <!-- Dashboard Initialization -->
+    <script>
+        // Global dashboard mode state
+        window.dashboardMode = 'ibm'; // Default to IBM mode
+
+        // Mode Toggle System
+        class DashboardModeManager {
+            constructor() {
+                this.currentMode = 'ibm';
+                this.isAnimating = false;
+                this.lastToggleTime = 0;
+                this.toggleCooldown = 100; // 100ms cooldown between toggles
+                this.init();
+            }
+
+            init() {
+                this.setupToggleEvents();
+                this.updateModeDisplay();
+                document.body.classList.add('dashboard-mode-ibm');
+            }
+
+            setupToggleEvents() {
+                const toggle = document.getElementById('mode-toggle');
+                if (toggle) {
+                    toggle.addEventListener('click', (e) => {
+                        if (this.isAnimating) return;
+
+                        const clickedOption = e.target.closest('.toggle-option');
+                        if (clickedOption) {
+                            const newMode = clickedOption.dataset.mode;
+                            if (newMode && newMode !== this.currentMode) {
+                                this.switchMode(newMode);
+                            }
+                        }
+                    });
+                }
+            }
+
+            async switchMode(newMode) {
+                const now = Date.now();
+
+                // Rapid-click protection
+                if (now - this.lastToggleTime < this.toggleCooldown) {
+                    console.log(`  RAPID CLICK: Ignoring toggle (cooldown: ${this.toggleCooldown}ms)`);
+                    return;
+                }
+
+                if (this.isAnimating || newMode === this.currentMode) return;
+
+                this.lastToggleTime = now;
+                console.log(`  Switching dashboard mode: ${this.currentMode} → ${newMode}`);
+                this.isAnimating = true;
+
+                // Update global state IMMEDIATELY for instant response
+                window.dashboardMode = newMode;
+                this.currentMode = newMode;
+
+                // Start toggle animation
+                this.animateToggle(newMode);
+
+                // Update interface text IMMEDIATELY
+                this.updateModeDisplay();
+
+                // Also trigger the global connection status update to ensure it respects the mode
+                if (typeof updateConnectionStatus === 'function') {
+                    updateConnectionStatus();
+                }
+
+                // Update body class for mode-specific styling IMMEDIATELY
+                document.body.classList.remove('dashboard-mode-ibm', 'dashboard-mode-local');
+                document.body.classList.add(`dashboard-mode-${newMode}`);
+
+                // Animate widgets with flip effect during mode switching
+                console.log(`🎬 FLIP ANIMATION: Starting widget flip animation for ${newMode} mode`);
+                await this.animateWidgets();
+
+                // Update all widgets with new data after animation
+                await this.updateAllWidgets(newMode);
+
+                // Update summary cards in background
+                this.updateSummaryCards(newMode);
+
+                this.isAnimating = false;
+                console.log(`  INSTANT: Dashboard mode switched to: ${newMode}`);
+            }
+
+            animateToggle(mode) {
+                const thumb = document.getElementById('toggle-thumb');
+                const ibmOption = document.querySelector('.ibm-option');
+                const localOption = document.querySelector('.local-option');
+                const toggle = document.getElementById('mode-toggle');
+
+                if (thumb && ibmOption && localOption && toggle) {
+                    toggle.classList.add('mode-switching');
+
+                    if (mode === 'local') {
+                        thumb.classList.add('local-active');
+                        ibmOption.classList.remove('active');
+                        localOption.classList.add('active');
+                    } else {
+                        thumb.classList.remove('local-active');
+                        localOption.classList.remove('active');
+                        ibmOption.classList.add('active');
+                    }
+
+                    setTimeout(() => {
+                        toggle.classList.remove('mode-switching');
+                    }, 400);
+                }
+            }
+
+            updateModeDisplay() {
+                const modeText = document.getElementById('interface-mode-text');
+                const connectionStatus = document.getElementById('connection-status');
+
+                if (modeText) {
+                    if (this.currentMode === 'ibm') {
+                        modeText.textContent = 'IBM Quantum Interface';
+                    } else {
+                        modeText.textContent = 'Local Simulator Interface';
+                    }
+                }
+
+                if (connectionStatus) {
+                    const statusIcon = connectionStatus.querySelector('i');
+                    const statusText = connectionStatus.querySelector('span');
+
+                    if (this.currentMode === 'ibm') {
+                        statusIcon.className = 'fas fa-cloud';
+                        statusText.textContent = 'Connected to IBM Quantum';
+                        connectionStatus.style.color = '#06b6d4';
+                    } else {
+                        statusIcon.className = 'fas fa-desktop';
+                        statusText.textContent = 'Local Simulator Active';
+                        connectionStatus.style.color = '#10b981';
+                    }
+                }
+            }
+
+            async animateWidgets() {
+                const widgets = document.querySelectorAll('.widget');
+                const staggerDelay = 150; // ms between each widget animation
+
+                // Animate widgets with stagger effect
+                for (let i = 0; i < widgets.length; i++) {
+                    setTimeout(() => {
+                        widgets[i].classList.add('flipping');
+                        setTimeout(() => {
+                            widgets[i].classList.remove('flipping');
+                        }, 800);
+                    }, i * staggerDelay);
+                }
+
+                // Wait for all animations to complete
+                return new Promise(resolve => {
+                    setTimeout(resolve, widgets.length * staggerDelay + 800);
+                });
+            }
+
+            updateSummaryCards(mode) {
+                // Update metric cards based on mode
+                const metricCards = document.querySelectorAll('.metric-card');
+                metricCards.forEach(card => {
+                    card.style.opacity = '0.7';
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                    }, 300);
+                });
+
+                // Update labels to reflect mode
+                const labels = {
+                    'active-backends': mode === 'ibm' ? 'IBM Backends' : 'Local Simulators',
+                    'total-jobs': mode === 'ibm' ? 'IBM Jobs' : 'Local Jobs',
+                    'running-jobs': mode === 'ibm' ? 'IBM Running' : 'Local Running',
+                    'success-rate': mode === 'ibm' ? 'IBM Success' : 'Local Success'
+                };
+
+                Object.entries(labels).forEach(([id, label]) => {
+                    const card = document.getElementById(id)?.closest('.metric-card');
+                    if (card) {
+                        const labelElement = card.querySelector('.metric-label');
+                        if (labelElement) {
+                            labelElement.textContent = label;
+                        }
+                    }
+                });
+            }
+
+            async updateAllWidgets(mode) {
+                console.log(`  Updating all widgets for ${mode} mode...`);
+
+                // INSTANT MODE SWITCHING - Use cached data for immediate response
+                console.log(`INSTANT MODE SWITCH: Using cached data for ${mode} mode`);
+
+                // Check if dashboard instance exists
+                if (window.hackathonDashboard && window.hackathonDashboard.widgetManager) {
+                    // Update each widget with mode-specific data using cached data
+                    const widgetTypes = ['backends', 'jobs', 'performance', 'results', 'entanglement', 'quantum-state'];
+
+                    // Update widgets in parallel for speed
+                    const updatePromises = widgetTypes.map(async (widgetType) => {
+                        try {
+                            console.log(`  INSTANT: Updating ${widgetType} widget for ${mode} mode...`);
+                            await window.hackathonDashboard.updateWidget(widgetType);
+                            console.log(`  INSTANT: Updated ${widgetType} widget for ${mode} mode`);
+                        } catch (error) {
+                            console.error(`  Error updating ${widgetType} widget:`, error);
+                        }
+                    });
+
+                    // Wait for all widgets to update in parallel
+                    await Promise.all(updatePromises);
+
+                } else if (window.quantumWidgets) {
+                    console.log('  INSTANT: Using direct widget manager fallback...');
+                    const widgetTypes = ['backends', 'jobs', 'performance', 'results'];
+
+                    // Update widgets in parallel for speed
+                    const updatePromises = widgetTypes.map(async (widgetType) => {
+                        try {
+                            switch (widgetType) {
+                                case 'backends':
+                                    await window.quantumWidgets.updateBackendsWidget();
+                                    break;
+                                case 'jobs':
+                                    await window.quantumWidgets.updateJobsWidget();
+                                    break;
+                                case 'performance':
+                                    await window.quantumWidgets.updatePerformanceWidget();
+                                    break;
+                                case 'results':
+                                    await window.quantumWidgets.updateResultsWidget();
+                                    break;
+                            }
+                            console.log(`  INSTANT: Updated ${widgetType} widget for ${mode} mode (fallback)`);
+                        } catch (error) {
+                            console.error(`  Error updating ${widgetType} widget (fallback):`, error);
+                        }
+                    });
+
+                    // Wait for all widgets to update in parallel
+                    await Promise.all(updatePromises);
+                }
+
+                // Update summary metrics after widgets finish (uses their cached data)
+                await this.updateSummaryMetrics(mode);
+            }
+
+            async updateSummaryMetrics(mode) {
+                try {
+                    console.log(`  Updating summary metrics for ${mode} mode...`);
+
+                    // Optimize loading with caching and timeout
+                    const fetchWithTimeout = (url, timeout = 5000) => {
+                        return Promise.race([
+                            fetch(url).then(r => r.json()),
+                            new Promise((_, reject) =>
+                                setTimeout(() => reject(new Error('Timeout')), timeout)
+                            )
+                        ]).catch(() => []);
+                    };
+
+                    // Fetch data using shared widget manager if available (better caching/consistency)
+                    let backendsData, jobsData, resultsData;
+
+                    if (window.quantumWidgets && typeof window.quantumWidgets.getSharedData === 'function') {
+                        try {
+                            [backendsData, jobsData, resultsData] = await Promise.all([
+                                window.quantumWidgets.getSharedData('backends'),
+                                window.quantumWidgets.getSharedData('jobs'),
+                                window.quantumWidgets.getSharedData('results')
+                            ]);
+                        } catch (e) {
+                            console.warn('Error fetching shared data, falling back to direct fetch', e);
+                            [backendsData, jobsData, resultsData] = await Promise.all([
+                                fetchWithTimeout('/api/backends'),
+                                fetchWithTimeout('/api/jobs'),
+                                fetchWithTimeout('/api/results')
+                            ]);
+                        }
+                    } else {
+                        // Fallback to direct fetch
+                        [backendsData, jobsData, resultsData] = await Promise.all([
+                            fetchWithTimeout('/api/backends'),
+                            fetchWithTimeout('/api/jobs'),
+                            fetchWithTimeout('/api/results')
+                        ]);
+                    }
+
+                    // Extract arrays
+                    const backends = Array.isArray(backendsData) ? backendsData : (backendsData.backends || backendsData.data || []);
+                    const jobs = Array.isArray(jobsData) ? jobsData : (jobsData.jobs || jobsData.data || []);
+                    const results = Array.isArray(resultsData) ? resultsData : (resultsData.results || resultsData.data || []);
+
+                    // Filter based on mode with improved logic
+                    const modeBackends = backends.filter(b => {
+                        const name = (b.name || b.backend_name || '').toLowerCase();
+                        const isSimulator = name.includes('simulator') || name.includes('local') || name.includes('aer');
+                        const isLocal = b.local_data === true || b.simulator === true;
+                        return mode === 'ibm' ? !isSimulator && !isLocal : (isSimulator || isLocal);
+                    });
+
+                    const modeJobs = jobs.filter(j => {
+                        const backend = (j.backend || j.backend_name || '').toLowerCase();
+                        const isLocal = j.local_data === true || j.simulator === true ||
+                            backend.includes('local') || backend.includes('simulator') ||
+                            backend.includes('aer');
+
+                        // IBM mode: include all non-local jobs (jobs from real IBM quantum hardware)
+                        // Local mode: include only local/simulator jobs
+                        if (mode === 'ibm') {
+                            return !isLocal;
+                        } else {
+                            return isLocal;
+                        }
+                    });
+
+                    const modeResults = results.filter(r => {
+                        const backend = (r.backend || r.backend_name || '').toLowerCase();
+                        const isLocal = r.local_data === true || backend.includes('local') || backend.includes('simulator');
+                        return mode === 'ibm' ? !isLocal && r.real_data !== false : isLocal;
+                    });
+
+                    // Calculate metrics - Fixed to include 'active' status
+                    const activeBackends = modeBackends.filter(b =>
+                        b.status === 'online' ||
+                        b.status === 'active' ||
+                        b.operational === true
+                    ).length;
+                    const totalJobs = modeJobs.length;
+                    const runningJobs = modeJobs.filter(j => j.status === 'RUNNING' || j.status === 'QUEUED').length;
+                    const completedJobs = modeJobs.filter(j =>
+                        j.status === 'COMPLETED' || j.status === 'DONE' || j.status === 'done' || j.status === 'completed'
+                    ).length;
+                    const successRate = totalJobs > 0 ? ((completedJobs / totalJobs) * 100).toFixed(1) : '0.0';
+
+                    // Update DOM - Fix: Show 0 instead of '-'
+                    document.getElementById('active-backends').textContent = activeBackends !== undefined ? activeBackends : '-';
+                    document.getElementById('total-jobs').textContent = totalJobs !== undefined ? totalJobs : '-';
+                    document.getElementById('running-jobs').textContent = runningJobs !== undefined ? runningJobs : '-';
+                    document.getElementById('success-rate').textContent = successRate + '%';
+
+                    console.log(`  Summary metrics updated: Backends=${activeBackends}, Jobs=${totalJobs}, Running=${runningJobs}, Success=${successRate}%`);
+                } catch (error) {
+                    console.error('Error updating summary metrics:', error);
+                    // Show fallback data on error
+                    this.showFallbackSummary(mode);
+                }
+            }
+
+            showFallbackSummary(mode) {
+                // Show fallback summary when data loading fails
+                const summaryCards = document.querySelectorAll('.summary-card');
+                summaryCards.forEach(card => {
+                    const title = card.querySelector('.summary-title');
+                    if (title) {
+                        title.textContent = `${mode.toUpperCase()} Mode - Loading...`;
+                    }
+                });
+            }
+        }
+
+        // Initialize the hackathon dashboard when DOM is loaded
+        // CRITICAL ORDER: Auth FIRST, then Dashboard
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log('📋 Modern Dashboard: DOM loaded, starting initialization...');
+            console.log('  Step 1: Setting up timer controls...');
+            setupTimerControls();
+
+            // STEP 2: AUTH FIRST - must complete before dashboard loads
+            console.log('  Step 2: 🔐 Authenticating (must complete before dashboard)...');
+            try {
+                await new Promise(async (resolve) => {
+                    try {
+                        const authResponse = await fetch('/api/backends', {
+                            method: 'GET',
+                            credentials: 'same-origin'
+                        });
+                        if (authResponse.ok) {
+                            console.log('  ✅ Auth successful');
+                            window.isAuthenticated = true;
+                        } else {
+                            console.log('  ⚠️ Auth returned:', authResponse.status);
+                            window.isAuthenticated = false;
+                        }
+                    } catch (e) {
+                        console.warn('  ⚠️ Auth check error:', e);
+                        window.isAuthenticated = false;
+                    }
+                    // Also run the full auth initialization
+                    initializeAuth();
+                    resolve();
+                });
+            } catch (e) {
+                console.error('  ❌ Auth initialization failed:', e);
+            }
+
+            // Tutorial Button Handler
+            const tutorialBtn = document.getElementById('tutorial-btn');
+            if (tutorialBtn) {
+                tutorialBtn.addEventListener('click', () => {
+                    if (window.quantumTutorial) {
+                        window.quantumTutorial.start();
+                    } else {
+                        console.log('Tutorial system not loaded yet');
+                    }
+                });
+            }
+
+            // Start the countdown timer
+            setTimeout(() => {
+                startCountdown();
+            }, 500);
+
+            // Initialize mode manager
+            window.dashboardModeManager = new DashboardModeManager();
+
+            // Check if widgets exist in DOM
+            const widgets = document.querySelectorAll('.widget');
+            console.log('  Found', widgets.length, 'widgets in DOM');
+            widgets.forEach((widget, index) => {
+                const widgetType = widget.getAttribute('data-widget');
+                console.log(`Widget ${index + 1}:`, widgetType, widget);
+
+                // Show widget content by default
+                const contentElement = widget.querySelector('[id$="-content"]');
+                if (contentElement) {
+                    contentElement.style.display = 'block';
+                    console.log(`  Showing content for widget: ${widgetType}`);
+                }
+
+                // Hide loading states
+                const loadingElement = widget.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                    console.log(`  Hiding loading for widget: ${widgetType}`);
+                }
+            });
+
+            // STEP 3: Initialize HackathonDashboard AFTER auth is complete
+            console.log('  Step 3: 🚀 Initializing HackathonDashboard (auth complete)...');
+            setTimeout(() => {
+                try {
+                    // Use the controlled initialization function from dashboard_new.js
+                    if (typeof window.initializeHackathonDashboard === 'function') {
+                        window.hackathonDashboard = window.initializeHackathonDashboard();
+                        console.log('  ✅ Modern Dashboard initialized via controlled function');
+                    } else if (typeof HackathonDashboard !== 'undefined') {
+                        // Fallback if function not available
+                        console.log('  ⚠️ Using direct HackathonDashboard instantiation (fallback)');
+                        window.hackathonDashboard = new HackathonDashboard();
+                        window.dashboard = window.hackathonDashboard;
+                    } else {
+                        console.error('  ❌ HackathonDashboard not available!');
+                        return;
+                    }
+
+                    // Test widget functionality
+                    setTimeout(() => {
+                        console.log('  Testing widget functionality...');
+                        if (window.hackathonDashboard && window.hackathonDashboard.widgets) {
+                            console.log('  Widgets registered:', window.hackathonDashboard.widgets.size);
+                            console.log('  Available widgets:', Array.from(window.hackathonDashboard.widgets.keys()));
+                        }
+                    }, 1000);
+
+                } catch (error) {
+                    console.error('  ❌ Error initializing modern dashboard:', error);
+                    console.error('Stack trace:', error.stack);
+                }
+            }, 500);
+        });
+
+        // ==================== CENTRALIZED AI SYSTEM ====================
+        // This is the main AI system that all dashboards should use
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const aiInput = document.getElementById('ai-input');
+            const aiSendBtn = document.getElementById('ai-send-btn');
+            const aiResponse = document.getElementById('ai-response');
+
+            if (aiInput && aiSendBtn && aiResponse) {
+                console.log('  Centralized AI system initialized');
+
+                // Set initial message
+                aiResponse.innerHTML = `
+                    <div style="color: #06b6d4; font-weight: bold; margin-bottom: 0.5rem;">  AI Quantum Assistant Ready!</div>
+                    <div style="color: #9ca3af; font-size: 0.9rem; line-height: 1.4;">
+                        I can help you with:<br>
+                        • <strong>Create quantum circuits</strong> - "Create a Bell state with 2 qubits"<br>
+                        • <strong>Explain concepts</strong> - "What is quantum superposition?"<br>
+                        • <strong>Generate code</strong> - "Make a 3-qubit entanglement circuit"<br>
+                        • <strong>Run on IBM hardware</strong> - All generated code can be executed<br><br>
+                        <em>Powered by Google Gemini AI </em>
+                    </div>
+                `;
+
+                const sendMessage = async () => {
+                    const message = aiInput.value.trim();
+                    if (!message) return;
+
+                    console.log('  Sending AI message:', message);
+
+                    // Show user message
+                    aiResponse.innerHTML += `
+                        <div style="margin: 1rem 0; padding: 0.8rem; background: rgba(6, 182, 212, 0.1); border-left: 3px solid #06b6d4; border-radius: 4px;">
+                            <strong>You:</strong> ${message}
+                        </div>
+                    `;
+
+                    // Show loading
+                    const loadingId = 'loading_' + Date.now();
+                    aiResponse.innerHTML += `
+                        <div id="${loadingId}" style="margin: 1rem 0; padding: 0.8rem; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; border-radius: 4px;">
+                            <strong>  AI:</strong> <span style="color: #10b981;">Thinking...</span>
+                        </div>
+                    `;
+
+                    aiInput.value = '';
+                    aiResponse.scrollTop = aiResponse.scrollHeight;
+
+                    try {
+                        // Use the same AI system as the widgets
+                        const response = await generateAIResponse(message);
+
+                        // Remove loading and show response
+                        const loadingElement = document.getElementById(loadingId);
+                        if (loadingElement) {
+                            loadingElement.innerHTML = `<strong>  AI:</strong> ${response}`;
+                        }
+
+                        aiResponse.scrollTop = aiResponse.scrollHeight;
+
+                    } catch (error) {
+                        console.error('  AI response error:', error);
+                        const loadingElement = document.getElementById(loadingId);
+                        if (loadingElement) {
+                            loadingElement.innerHTML = `<strong>  AI:</strong> <span style="color: #ef4444;">Sorry, I encountered an error. Please try again.</span>`;
+                        }
+                    }
+                };
+
+                // Event listeners
+                aiSendBtn.addEventListener('click', sendMessage);
+                aiInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+                console.log('  AI event listeners attached');
+            }
+        });
+
+        // Centralized AI response function (same as widgets.js)
+        async function generateAIResponse(query) {
+            try {
+                console.log('🤖 Processing AI query:', query);
+
+                // Refined circuit intent detection (action + object words)
+                const lowerQuery = query.toLowerCase();
+                const actionWords = ['create', 'generate', 'make', 'build', 'design', 'prepare', 'apply'];
+                const objectWords = ['circuit', 'bell', 'hadamard', 'cnot', 'gate', 'qubit', 'superposition', 'entanglement', 'grover', 'shor'];
+
+                const wantsCircuit =
+                    actionWords.some(word => lowerQuery.includes(word)) &&
+                    objectWords.some(word => lowerQuery.includes(word));
+
+                if (wantsCircuit) {
+                    console.log('🔧 Circuit creation detected');
+
+                    // Extract qubit count
+                    const qubitMatch = query.match(/(\d+)\s*qubit/i);
+                    const qubits = qubitMatch ? parseInt(qubitMatch[1]) : 2;
+
+                    const response = await fetch('/api/ai/generate_circuit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            description: query,
+                            qubits: qubits
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const circuitCode = data.circuit_code || data.code;
+
+                        if (data.success && circuitCode) {
+                            console.log('✅ Circuit generated');
+
+                            // If circuit_data is present, trigger 3D visualization
+                            if (data.circuit_data && typeof loadCircuitIn3D === 'function') {
+                                console.log('🎯 Loading circuit in 3D widget');
+                                try {
+                                    loadCircuitIn3D(data.circuit_data);
+                                } catch (e) {
+                                    console.warn('3D widget load failed:', e);
+                                }
+                            }
+
+                            // Create response with code and copy/run buttons
+                            return createCodeResponse(circuitCode, data.description || 'Generated quantum circuit code');
+                        } else {
+                            return `I generated some code but encountered an issue. Error: ${data.error || 'Unknown error'}`;
+                        }
+                    } else {
+                        return 'I encountered an error while generating the circuit. Please try again.';
+                    }
+                }
+
+                // For general quantum questions, use the Gemini AI quantum chat endpoint
+                console.log('💬 Using Gemini AI quantum chat endpoint');
+
+                try {
+                    const response = await fetch('/api/ai/quantum_chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: query
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const aiResponse = data.ai_response || data.response;
+                        if (aiResponse) {
+                            console.log(`✅ AI response from: ${data.ai_source || 'gemini_ai'}`);
+                            // Format the response with proper markdown rendering
+                            return formatMarkdownResponse(aiResponse);
+                        } else {
+                            return `I encountered an error: ${data.error || 'Unknown error'}`;
+                        }
+                    } else {
+                        console.error('❌ Chat API error:', response.status);
+                        return 'I apologize, but I encountered an error. Please try again.';
+                    }
+                } catch (error) {
+                    console.error('💥 Chat endpoint error:', error);
+                    // Fallback to basic response
+                    return generateBasicQuantumResponse(query);
+                }
+
+            } catch (error) {
+                console.error('❌ AI response generation error:', error);
+                return 'I apologize, but I encountered an error processing your request. Please try again or check the console for more details.';
+            }
+        }
+
+        // Format markdown-style response for display
+        function formatMarkdownResponse(text) {
+            // Simple markdown-like formatting
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+            text = text.replace(/\n\n/g, '<br><br>'); // Paragraphs
+            text = text.replace(/\n/g, '<br>'); // Line breaks
+
+            // Code blocks
+            text = text.replace(/```python\n([\s\S]*?)```/g, function (match, code) {
+                const codeId = 'code_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                return `<div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; padding: 1rem; margin: 0.5rem 0;">
+                    <pre id="${codeId}" style="color: #e5e7eb; font-size: 0.85rem; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${code.trim()}</pre>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button onclick="copyCodeToClipboard('${codeId}')" style="background: linear-gradient(45deg, #06b6d4, #0891b2); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            📋 Copy Code
+                        </button>
+                        <button onclick="runGeneratedCode('${codeId}')" style="background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            ▶️ Run Code
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            // Inline code
+            text = text.replace(/`([^`]+)`/g, '<code style="background: rgba(6, 182, 212, 0.2); padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace; color: #06b6d4;">$1</code>');
+
+            // Bullet lists
+            text = text.replace(/^[•-]\s+(.*)$/gm, '<div style="margin-left: 1rem;">• $1</div>');
+
+            return text;
+        }
+
+        // Create formatted response with executable code (same as widgets.js)
+        function createCodeResponse(code, explanation) {
+            const codeId = 'code_' + Date.now();
+            return `
+                <div style="margin: 1rem 0;">
+                    <div style="color: #06b6d4; font-weight: bold; margin-bottom: 0.5rem;">${explanation}</div>
+                    <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; padding: 1rem; margin: 0.5rem 0;">
+                        <pre id="${codeId}" style="color: #e5e7eb; font-size: 0.85rem; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${code}</pre>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button onclick="copyCodeToClipboard('${codeId}')" style="background: linear-gradient(45deg, #06b6d4, #0891b2); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                Copy Code
+                            </button>
+                            <button onclick="runGeneratedCode('${codeId}')" style="background: linear-gradient(45deg, #10b981, #059669); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                ▶Run Code
+                            </button>
+                            <button onclick="openInCircuitBuilder('${codeId}')" style="background: linear-gradient(45deg, #3b82f6, #1d4ed8); border: none; color: white; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                        Open in Builder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Generate basic quantum responses for fallback (same as widgets.js)
+        function generateBasicQuantumResponse(query) {
+            const lowerQuery = query.toLowerCase();
+
+            if (lowerQuery.includes('bell') || lowerQuery.includes('entanglement')) {
+                return `Bell states are maximally entangled quantum states. Here's how to create one:
+
+${createCodeResponse(`from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+
+# Create Bell state circuit
+qr = QuantumRegister(2, 'q')
+cr = ClassicalRegister(2, 'c')
+qc = QuantumCircuit(qr, cr)
+
+# Create Bell state |00⟩ + |11⟩
+qc.h(0)  # Hadamard on qubit 0
+qc.cx(0, 1)  # CNOT gate
+
+# Measure
+qc.measure_all()
+
+print("Bell state circuit created!")
+print(qc.draw())`, 'Bell State Circuit')}
+
+**Key Points:**
+• **Hadamard Gate** creates equal superposition: |0⟩ → (|0⟩ + |1⟩)/√2
+• **CNOT Gate** creates entanglement between qubits
+• **Measurement** collapses superposition to definite state
+
+Would you like to see more complex superposition states or learn about interference?`;
+            }
+
+            if (lowerQuery.includes('superposition')) {
+                return `Superposition allows quantum bits to exist in multiple states simultaneously:
+
+${createCodeResponse(`from qiskit import QuantumCircuit
+import numpy as np
+
+# Create superposition state
+qc = QuantumCircuit(1, 1)
+qc.h(0)  # Hadamard creates |+⟩ = (|0⟩ + |1⟩)/√2
+qc.measure(0, 0)
+
+print("Superposition results:")
+print(qc.draw())`, 'Superposition Example')}
+
+**Key Points:**
+• **Hadamard Gate** creates equal superposition: |0⟩ → (|0⟩ + |1⟩)/√2
+• **Measurement** collapses superposition to definite state
+• **Interference** allows constructive/destructive amplitude combination
+
+Would you like to see more complex superposition states or learn about interference?`;
+            }
+
+            // Default response
+            return `I'm your quantum computing AI assistant! I can help you with:
+
+• **Create quantum circuits** - Just ask "create a Bell state" or "make a 3-qubit circuit"
+• **Explain quantum concepts** - Ask about superposition, entanglement, interference
+• **Generate executable code** - I provide copy/run buttons for all code
+• **IBM Quantum integration** - Run circuits on real quantum hardware
+
+Try asking: "Create a Bell state with 2 qubits" or "Explain quantum superposition"
+
+What would you like to explore?`;
+        }
+
+        // Global functions for AI code buttons (same as widgets.js)
+        window.copyCodeToClipboard = function (codeId) {
+            const codeElement = document.getElementById(codeId);
+            if (codeElement) {
+                const code = codeElement.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    console.log('  Code copied to clipboard');
+                    // Show temporary success message
+                    const button = event.target;
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '  Copied!';
+                    button.style.background = '#10b981';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.background = 'linear-gradient(45deg, #06b6d4, #0891b2)';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy code:', err);
+                    alert('Failed to copy code to clipboard');
+                });
+            }
+        };
+
+        window.runGeneratedCode = async function (codeId) {
+            const codeElement = document.getElementById(codeId);
+            if (codeElement) {
+                const code = codeElement.textContent;
+                console.log('Running generated code:', code);
+
+                try {
+                    const response = await fetch('/api/ibm/submit-job', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                            backend: 'ibm_qasm_simulator',
+                            shots: 1024
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('Code executed successfully:', result);
+                        alert(`Code executed successfully! Job ID: ${result.job_id}`);
+
+                        // Refresh widgets to show new job
+                        if (window.quantumWidgets) {
+                            setTimeout(() => {
+                                window.quantumWidgets.updateAllWidgets();
+                            }, 1000);
+                        }
+                    } else {
+                        console.error('Code execution failed:', result.error);
+                        alert(`Code execution failed: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error('Error running code:', error);
+                    alert('Error running code. Please check the console for details.');
+                }
+            }
+        };
+
+        window.openInCircuitBuilder = function (codeId) {
+            const codeElement = document.getElementById(codeId);
+            if (codeElement) {
+                const code = codeElement.textContent;
+                console.log('  Opening code in circuit builder:', code);
+
+                // Store the code in sessionStorage for the circuit builder
+                sessionStorage.setItem('circuitBuilderCode', code);
+
+                // Open circuit builder in new tab/window
+                const circuitBuilderUrl = '/circuit-builder';
+                window.open(circuitBuilderUrl, '_blank');
+            }
+        };
+
+    </script>
+
+    <!-- Main Dashboard Scripts (loaded in correct order above) -->
+
+    <!-- Tutorial System Script -->
+    <script src="{{ url_for('static', filename='tutorial.js') }}"></script>
+
+    <!-- AI Key System Modal -->
+    <div id="ai-key-modal" class="modal" style="display: none;">
+        <div class="modal-content glassmorphism" style="max-width: 600px; margin: 5% auto;">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; color: #fff;">🤖 Unlock AI Features</h2>
+                <button class="close-btn"
+                    style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 1rem;">Paste any AI API key to unlock smart
+                    features:</p>
+
+                <div style="position: relative; margin-bottom: 1.5rem;">
+                    <input type="password" id="ai-key-input" placeholder="Paste your API key here..." autocomplete="off"
+                        style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff;" />
+                    <i class="fas fa-key"
+                        style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: rgba(255, 255, 255, 0.5);"></i>
+                </div>
+
+                <!-- Two-step verification result -->
+                <div id="key-detection-result" class="hidden" style="margin-bottom: 1.5rem;">
+                    <div class="stage-heuristic hidden"
+                        style="padding: 1rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; margin-bottom: 0.5rem;">
+                        <span id="provider-name" style="font-weight: bold; color: #fbbf24;"></span>
+                        <span style="color: rgba(255, 255, 255, 0.6); margin-left: 0.5rem;">Detected
+                            (verifying...)</span>
+                    </div>
+
+                    <div class="stage-verifying hidden" style="padding: 1rem; text-align: center;">
+                        <span style="color: rgba(255, 255, 255, 0.8);">Verifying key...</span>
+                    </div>
+
+                    <div class="stage-verified hidden"
+                        style="padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+                        <span id="provider-name-verified" style="font-weight: bold; color: #22c55e;"></span>
+                        <span style="color: #22c55e; margin-left: 0.5rem;">✓ Verified</span>
+                    </div>
+
+                    <div class="stage-error hidden"
+                        style="padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                        <span style="color: #ef4444;">✗</span>
+                        <span id="error-message" style="color: #ef4444; margin-left: 0.5rem;">Invalid API key</span>
+                    </div>
+                </div>
+
+                <!-- Provider cards -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div
+                        style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Google Gemini</h4>
+                        <span
+                            style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                        <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Fast, reliable
+                        </p>
+                        <a href="https://ai.google.dev" target="_blank" style="font-size: 0.75rem; color: #667eea;">Get
+                            Key →</a>
+                    </div>
+
+                    <div
+                        style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                        <h4 style="margin: 0 0  0.5rem 0; color: #fff; font-size: 0.9rem;">OpenAI</h4>
+                        <span
+                            style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                        <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">GPT-4, tools
+                        </p>
+                        <a href="https://platform.openai.com/api-keys" target="_blank"
+                            style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                    </div>
+
+                    <div
+                        style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Claude</h4>
+                        <span
+                            style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                        <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Advanced
+                            reasoning</p>
+                        <a href="https://console.anthropic.com" target="_blank"
+                            style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                    </div>
+
+                    <div
+                        style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(251, 191, 36, 0.3); border-radius: 12px; text-align: center;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Hugging Face</h4>
+                        <span
+                            style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-radius: 4px;">Experimental</span>
+                        <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Open models
+                        </p>
+                        <small style="display: block; font-size: 0.65rem; color: rgba(251, 191, 36, 0.8);">Quality may
+                            vary</small>
+                        <a href="https://huggingface.co/settings/tokens" target="_blank"
+                            style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button id="save-key-btn" disabled
+                    style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; color: #fff; font-weight: 500; cursor: pointer; opacity: 0.5;">
+                    Unlock AI Features
+                </button>
+                <button id="clear-key-btn"
+                    style="padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; color: #fff; cursor: pointer;">
+                    Clear
+                </button>
+            </div>
+
+            <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                <i class="fas fa-shield-alt" style="color: rgba(255, 255, 255, 0.5);"></i>
+                <small style="color: rgba(255, 255, 255, 0.6); display: block; margin-top: 0.5rem; line-height: 1.5;">
+                    🔒 Stored locally in browser • Sent only for API calls • Not in database
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Modal (Hidden Easter Egg) -->
+    <div id="team-modal" class="team-modal-overlay">
+        <div class="team-modal-content">
+            <button class="team-modal-close" id="team-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="team-modal-header">
+                <div class="team-modal-title">
+                    <i class="fas fa-users"></i>
+                    <h2>Development Team</h2>
+                </div>
+                <div class="team-modal-subtitle">Quantum Spark - Amravati Quantum Hackathon 2025</div>
+            </div>
+
+            <!-- Mentors Section -->
+            <div class="mentors-section">
+                <div class="mentors-header">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <h3>Our Mentors</h3>
+                </div>
+                <div class="mentors-subtitle">Guiding us to quantum excellence</div>
+
+                <div class="mentors-row">
+                    <!-- Mentor 1: Principal -->
+                    <div class="mentor-card" data-mentor="principal">
+                        <div class="mentor-avatar">
+                            <img src="/static/journey/principal_sir.jpg" alt="Principal T V J Rao Tammireddy">
+                        </div>
+                        <div class="mentor-name">Dr.T.VENKATA JANARDHANA RAO</div>
+                        <div class="mentor-role">Principal BVC College of Engineering</div>
+                    </div>
+
+                    <!-- Mentor 2: HOD -->
+                    <div class="mentor-card" data-mentor="hod">
+                        <div class="mentor-avatar">
+                            <img src="/static/journey/hod_sir.jpg" alt="Dr. Sirigineedi A VaraPrasad">
+                        </div>
+                        <div class="mentor-name">Dr. Sirigineedi A VaraPrasad</div>
+                        <div class="mentor-role">HOD ECE Department</div>
+                    </div>
+
+                    <!-- Mentor 3: Dr Jagadeesh -->
+                    <div class="mentor-card" data-mentor="jagadeesh">
+                        <div class="mentor-avatar">
+                            <img src="/static/journey/jagadeesh_sir.jpg" alt="Dr Jagadeesh Bodapati">
+                        </div>
+                        <div class="mentor-name">Dr Jagadeesh Bodapati</div>
+                        <div class="mentor-role">Mentor & Guide</div>
+                    </div>
+
+                    <!-- Mentor 4: Surendra Sir -->
+                    <div class="mentor-card" data-mentor="surendra">
+                        <div class="mentor-avatar">
+                            <img src="/static/journey/Surendra_sir.jpg" alt="Surendranath Kalagara">
+                        </div>
+                        <div class="mentor-name">Surendranath Kalagara</div>
+                        <div class="mentor-role">SPOC</div>
+                    </div>
+
+                    <!-- Mentor 5: Prasad Sir -->
+                    <div class="mentor-card" data-mentor="prasad">
+                        <div class="mentor-avatar">
+                            <img src="/static/journey/prasad_sir.jpg" alt="Prasad Maddula">
+                        </div>
+                        <div class="mentor-name">Dr. M. Prasad</div>
+                        <div class="mentor-role">Guidance</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-members-grid">
+                <!-- Team Lead -->
+                <div class="team-member-card team-lead">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar" style="padding: 0; overflow: hidden;">
+                            <img src="/static/journey/team lead satish kumar.jpeg" alt="Kadali Satish Kumar"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="team-member-role-badge">Team Lead</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">KADALI SATISH KUMAR</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            prakashkadali3723@gmail.com
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-code"></i> IBM Quantum Integration
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-paint-brush"></i> Flask API Development
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-cogs"></i> Backend Integration
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-tasks"></i> Team Coordination
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Member 1 -->
+                <div class="team-member-card">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar"
+                            style="padding: 0; overflow: hidden; background: rgba(255, 255, 255, 0.05);">
+                            <img src="/static/journey/GOLAKOTI DURGA PHANI KUMARI.jpg" alt="Golakoti Durga Phani Kumari"
+                                style="width: 100%; height: 100%; object-fit: contain; object-position: center;">
+                        </div>
+                        <div class="team-member-role-badge">Developer</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">GOLAKOTI DURGA PHANI KUMARI</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            durgaphanikumarigolakoti@gmail.com
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-atom"></i> Testing & QA
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-flask"></i> Circuit Testing
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-chart-line"></i> PPT & Documentation
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Member 2 -->
+                <div class="team-member-card">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar" style="padding: 0; overflow: hidden;">
+                            <img src="/static/journey/AKULA SIVA SRI RAM PAVAN.jpeg" alt="Akula Siva Sri Ram Pavan"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="team-member-role-badge">Developer</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">AKULA SIVA SRI RAM PAVAN</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            rampavan264@gmail.com
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-server"></i> UI/UX Design
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-database"></i> Themes & Tutorial Screen
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-shield-alt"></i> Frontend Development
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Member 3 -->
+                <div class="team-member-card">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar" style="padding: 0; overflow: hidden;">
+                            <img src="/static/journey/BACCHALA SIDDARDHA.jpeg" alt="Bacchala Siddardha"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="team-member-role-badge">Developer</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">BACCHALA SIDDARDHA</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            siddardha2105@gmail.com
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-cube"></i> 3D Visualizations
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-project-diagram"></i> Historic Data
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-magic"></i> Database
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Member 4 -->
+                <div class="team-member-card">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar" style="padding: 0; overflow: hidden;">
+                            <img src="/static/journey/BASU VIJAY BABU.jpeg" alt="Basu Vijay Babu"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="team-member-role-badge">Developer</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">BASU VIJAY BABU</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            246m5a0409@bvcr.edu.in
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-brain"></i> Quantum Providers (API's)
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-robot"></i> Google Gemini AI
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-plug"></i> AI Circuit Generator
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Member 5 -->
+                <div class="team-member-card">
+                    <div class="team-member-avatar-container">
+                        <div class="team-member-avatar" style="padding: 0; overflow: hidden;">
+                            <img src="/static/journey/annamneedi_trimurthulu.jpeg" alt="Annamneedi Trimurthulu"
+                                style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div class="team-member-role-badge">Developer</div>
+                    </div>
+                    <div class="team-member-info">
+                        <h3 class="team-member-name">ANNAMNEEDI TRIMURTHULU</h3>
+                        <div class="team-member-email">
+                            <i class="fas fa-envelope"></i>
+                            annamneedi.trimurthulu28@gmail.com
+                        </div>
+                        <div class="team-member-contributions">
+                            <div class="contribution-tag">
+                                <i class="fas fa-bug"></i> 3D Bloch Sphere
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-file-alt"></i> THREE.js Integration
+                            </div>
+                            <div class="contribution-tag">
+                                <i class="fas fa-comments"></i> PLOTLY, Matplotlib
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Journey Timeline -->
+            <div class="team-journey-section">
+                <div class="journey-header">
+                    <i class="fas fa-rocket"></i>
+                    <h3>Our Journey</h3>
+                </div>
+                <div class="journey-subtitle">From Innovation to Recognition</div>
+
+                <div class="journey-timeline">
+                    <!-- Journey Milestone 1 -->
+                    <div class="journey-milestone">
+                        <div class="milestone-marker">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="milestone-content">
+                            <div class="milestone-image-container">
+                                <!-- Image Carousel for SRKR College -->
+                                <div class="milestone-image-carousel has-images" id="srkr-carousel">
+                                    <div class="carousel-track">
+                                        <img src="/static/journey/1st price in srkr .jpeg"
+                                            alt="1st Place at SRKR College Bhimavaram"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/1st price emblems.jpeg" alt="1st Place Emblems"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/srkr visit2.jpeg" alt="SRKR College Visit"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/srkr1st price.jpeg" alt="SRKR 1st Place Celebration"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    <button class="carousel-btn carousel-prev" data-carousel="srkr-carousel">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="carousel-btn carousel-next" data-carousel="srkr-carousel">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <div class="carousel-dots" id="srkr-dots"></div>
+                                </div>
+                            </div>
+                            <div class="milestone-info">
+                                <div class="milestone-badge">🏆 Achievement Unlocked</div>
+                                <h4 class="milestone-title">1st Place - SRKR College Bhimavaram</h4>
+                                <p class="milestone-description">
+                                    Secured first place in the Semi-Finals at SRKR College, Bhimavaram!
+                                    Our quantum algorithms and innovative approach impressed the judges,
+                                    earning us a spot in the finals and validation of our hard work.
+                                </p>
+                                <div class="milestone-stats">
+                                    <div class="stat-item">
+                                        <i class="fas fa-users"></i>
+                                        <span>30+ Teams Competed</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-medal"></i>
+                                        <span>1st Position</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Journey Milestone 2 -->
+                    <div class="journey-milestone">
+                        <div class="milestone-marker">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="milestone-content">
+                            <div class="milestone-image-container">
+                                <!-- Image Carousel for IBM Bangalore -->
+                                <div class="milestone-image-carousel has-images" id="ibm-carousel">
+                                    <div class="carousel-track">
+                                        <img src="/static/journey/ibm visit .jpeg" alt="IBM Bangalore Visit"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/IBM visit quantum qiskit scientists .jpeg"
+                                            alt="Meeting IBM Quantum Scientists"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/ibm visit2.jpeg" alt="IBM Visit - Team Learning"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/ibm visit3.jpeg" alt="IBM Visit - Quantum Lab"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/journey/ibm visit4.jpeg" alt="IBM Visit - Qiskit Workshop"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    <button class="carousel-btn carousel-prev" data-carousel="ibm-carousel">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <button class="carousel-btn carousel-next" data-carousel="ibm-carousel">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <div class="carousel-dots" id="ibm-dots"></div>
+                                </div>
+                            </div>
+                            <div class="milestone-info">
+                                <div class="milestone-badge">🚀 Learning Experience</div>
+                                <h4 class="milestone-title">IBM Bangalore - Qiskit Masterclass</h4>
+                                <p class="milestone-description">
+                                    Visited IBM Bangalore to dive deep into Qiskit and quantum computing.
+                                    Learned from industry experts, explored real quantum hardware, and
+                                    gained insights that shaped our project's technical foundation.
+                                </p>
+                                <div class="milestone-stats">
+                                    <div class="stat-item">
+                                        <i class="fas fa-laptop-code"></i>
+                                        <span>Hands-on Qiskit Training</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-building"></i>
+                                        <span>IBM Bangalore</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-modal-footer">
+                <i class="fas fa-heart" style="color: #ff6b6b;"></i>
+                Built with passion for quantum computing
+            </div>
+        </div>
+    </div>
+
+
+    <!-- AI Key System CSS -->
+    
+
+    <!-- Team Modal CSS -->
+    
+
+    <!-- Journey Timeline Styles -->
+    
+
+    <!-- Scroll Performance Optimization Script -->
+    <script>
+        // Minimal scroll detection for animation pausing
+        (function () {
+            let scrolling;
+            window.addEventListener("scroll", function () {
+                document.documentElement.classList.add("scrolling");
+                clearTimeout(scrolling);
+                scrolling = setTimeout(function () {
+                    document.documentElement.classList.remove("scrolling");
+                }, 120);
+            }, { passive: true });
+        })();
+    </script>
+
+    <!-- AI Key Manager Script -->
+    <script src="/static/ai_key_manager.js"></script>
+
+    <!-- Team Modal Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const quantumSparkTitle = document.getElementById('quantum-spark-title');
+            const teamModal = document.getElementById('team-modal');
+            const teamModalClose = document.getElementById('team-modal-close');
+
+            // Easter egg: Open team modal when clicking on "Quantum Spark" title
+            if (quantumSparkTitle) {
+                quantumSparkTitle.addEventListener('click', function () {
+                    if (teamModal) {
+                        teamModal.classList.add('active');
+                        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+                        // Add a small pulse animation to the title
+                        this.style.transform = 'scale(1.05)';
+                        setTimeout(() => {
+                            this.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                });
+
+                // Add subtle hover hint
+                quantumSparkTitle.addEventListener('mouseenter', function () {
+                    this.style.transform = 'scale(1.02)';
+                    this.style.transition = 'all 0.3s ease';
+                });
+
+                quantumSparkTitle.addEventListener('mouseleave', function () {
+                    this.style.transform = 'scale(1)';
+                });
+            }
+
+            // Close modal when clicking the close button
+            if (teamModalClose) {
+                teamModalClose.addEventListener('click', function () {
+                    if (teamModal) {
+                        teamModal.classList.remove('active');
+                        document.body.style.overflow = ''; // Restore scrolling
+                    }
+                });
+            }
+
+            // Close modal when clicking outside the modal content
+            if (teamModal) {
+                teamModal.addEventListener('click', function (e) {
+                    if (e.target === teamModal) {
+                        teamModal.classList.remove('active');
+                        document.body.style.overflow = ''; // Restore scrolling
+                    }
+                });
+            }
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && teamModal && teamModal.classList.contains('active')) {
+                    teamModal.classList.remove('active');
+                    document.body.style.overflow = ''; // Restore scrolling
+                }
+            });
+
+            // Add staggered animation to team member cards when modal opens
+            const observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.target.classList.contains('active')) {
+                        const cards = document.querySelectorAll('.team-member-card');
+                        cards.forEach((card, index) => {
+                            card.style.opacity = '0';
+                            card.style.transform = 'translateY(20px)';
+                            setTimeout(() => {
+                                card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                                card.style.opacity = '1';
+                                card.style.transform = 'translateY(0)';
+                            }, 100 + (index * 80));
+                        });
+                    }
+                });
+            });
+
+            if (teamModal) {
+                observer.observe(teamModal, { attributes: true, attributeFilter: ['class'] });
+            }
+
+            console.log('✨ Team modal easter egg activated! Click "Quantum Spark" to reveal the team.');
+        });
+    </script>
+
+    <!-- Journey Timeline Carousel Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Journey Timeline Carousel Functionality
+            function initCarousel(carouselId) {
+                const carousel = document.getElementById(carouselId);
+                if (!carousel || !carousel.classList.contains('has-images')) return;
+
+                const track = carousel.querySelector('.carousel-track');
+                const images = track.querySelectorAll('img');
+                if (images.length <= 1) return; // No need for carousel with single image
+
+                const prevBtn = carousel.querySelector('.carousel-prev');
+                const nextBtn = carousel.querySelector('.carousel-next');
+                const dotsContainer = document.getElementById(carouselId.replace('-carousel', '-dots'));
+
+                let currentIndex = 0;
+
+                // Create dots
+                if (dotsContainer) {
+                    dotsContainer.innerHTML = '';
+                    images.forEach((_, index) => {
+                        const dot = document.createElement('div');
+                        dot.classList.add('carousel-dot');
+                        if (index === 0) dot.classList.add('active');
+                        dot.addEventListener('click', () => goToSlide(index));
+                        dotsContainer.appendChild(dot);
+                    });
+                }
+
+                function updateCarousel() {
+                    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+                    // Update dots
+                    if (dotsContainer) {
+                        const dots = dotsContainer.querySelectorAll('.carousel-dot');
+                        dots.forEach((dot, index) => {
+                            dot.classList.toggle('active', index === currentIndex);
+                        });
+                    }
+                }
+
+                function goToSlide(index) {
+                    currentIndex = index;
+                    updateCarousel();
+                }
+
+                function nextSlide() {
+                    currentIndex = (currentIndex + 1) % images.length;
+                    updateCarousel();
+                }
+
+                function prevSlide() {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    updateCarousel();
+                }
+
+                if (prevBtn) prevBtn.addEventListener('click', prevSlide);
+                if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+
+                // Auto-advance carousel every 5 seconds for multi-image carousels
+                if (images.length > 1) {
+                    setInterval(nextSlide, 5000);
+                }
+
+                console.log(`✅ Carousel initialized: ${carouselId} with ${images.length} images`);
+            }
+
+            // Initialize all carousels
+            initCarousel('srkr-carousel');
+            initCarousel('ibm-carousel');
+        });
+    </script>
+
+    <!-- Provider Dropdown Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ========== CHECK LOGIN STATUS AND UPDATE UI ==========
+            const userEmailEl = document.getElementById('user-email');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            async function checkLoginStatus() {
+                try {
+                    const response = await fetch('/api/user');
+                    const data = await response.json();
+
+                    if (data.success && data.user) {
+                        // User is logged in
+                        if (userEmailEl) {
+                            userEmailEl.textContent = data.user.email || 'Logged in';
+                        }
+                        if (loginBtn) loginBtn.style.display = 'none';
+                        if (logoutBtn) logoutBtn.style.display = '';
+                        console.log('✅ User logged in:', data.user.email);
+                    } else {
+                        // Not logged in
+                        if (userEmailEl) userEmailEl.textContent = 'Not logged in';
+                        if (loginBtn) loginBtn.style.display = '';
+                        if (logoutBtn) logoutBtn.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.warn('Could not check login status:', error);
+                }
+            }
+
+            // Check login status on page load
+            checkLoginStatus();
+
+            // Handle logout button
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        await fetch('/api/logout', { method: 'POST' });
+                        window.location.href = '/auth';
+                    } catch (error) {
+                        console.error('Logout failed:', error);
+                    }
+                });
+            }
+
+            // Handle login button
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    window.location.href = '/auth';
+                });
+            }
+            // =======================================================
+
+            const providerDropdown = document.getElementById('provider-dropdown');
+            const providerSelected = document.getElementById('provider-selected');
+            const providerOptions = document.getElementById('provider-options');
+            const connectionStatus = document.getElementById('connection-status');
+            const statusText = connectionStatus?.querySelector('.status-text');
+
+            // Provider configuration with display info AND colors
+            const providerConfig = {
+                ibm: { name: 'IBM Quantum', icon: 'fa-cloud', iconClass: 'ibm-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#06b6d4', colorRgb: '6, 182, 212' },
+                local: { name: 'Local Simulator', icon: 'fa-laptop', iconClass: 'local-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#10b981', colorRgb: '16, 185, 129' },
+                ionq: { name: 'IonQ', icon: 'fa-atom', iconClass: 'ionq-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#8b5cf6', colorRgb: '139, 92, 246' },
+                aws_braket: { name: 'AWS Braket', icon: 'fa-aws', iconClass: 'aws-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#f59e0b', colorRgb: '245, 158, 11' },
+                azure: { name: 'Azure Quantum', icon: 'fa-microsoft', iconClass: 'azure-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#3b82f6', colorRgb: '59, 130, 246' },
+                rigetti: { name: 'Rigetti', icon: 'fa-microchip', iconClass: 'rigetti-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#ec4899', colorRgb: '236, 72, 153' },
+                google: { name: 'Google', icon: 'fa-google', iconClass: 'google-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#4285f4', colorRgb: '66, 133, 244' },
+                quantinuum: { name: 'Quantinuum', icon: 'fa-bolt', iconClass: 'quantinuum-icon', model: 'gate', modelLabel: '⚛️ Gate', color: '#6366f1', colorRgb: '99, 102, 241' },
+                dwave: { name: 'D-Wave', icon: 'fa-wave-square', iconClass: 'dwave-icon', model: 'annealing', modelLabel: '🔶 Annealing', color: '#f97316', colorRgb: '249, 115, 22' },
+                xanadu: { name: 'Xanadu', icon: 'fa-lightbulb', iconClass: 'xanadu-icon', model: 'photonic', modelLabel: '🟢 Photonic', color: '#22c55e', colorRgb: '34, 197, 94' }
+            };
+
+            // Load saved provider from localStorage
+            let currentProvider = localStorage.getItem('quantum_dashboard_provider') || 'ibm';
+
+            // Validate provider
+            if (!providerConfig[currentProvider]) {
+                currentProvider = 'ibm';
+            }
+
+            // Apply provider colors to widgets
+            function applyProviderColors(provider) {
+                const config = providerConfig[provider];
+                if (!config) return;
+
+                const color = config.color;
+                const colorRgb = config.colorRgb;
+
+                // Update widgets
+                document.querySelectorAll('.widget').forEach(widget => {
+                    widget.style.borderColor = `rgba(${colorRgb}, 0.3)`;
+                });
+
+                // Update widget headers - icons
+                document.querySelectorAll('.widget h3 i, .widget-header i').forEach(icon => {
+                    icon.style.color = color;
+                });
+
+                // Update metric values
+                document.querySelectorAll('.metric-value, .metric-card .value').forEach(val => {
+                    val.style.color = color;
+                });
+
+                // Update connection status
+                const connStatus = document.getElementById('connection-status');
+                if (connStatus) {
+                    connStatus.style.background = `rgba(${colorRgb}, 0.1)`;
+                    connStatus.style.borderColor = `rgba(${colorRgb}, 0.2)`;
+                    connStatus.style.color = color;
+                }
+
+                // Update backend status indicators
+                document.querySelectorAll('.status.online, .backend-status.online').forEach(status => {
+                    status.style.color = color;
+                });
+
+                console.log(`🎨 Applied ${config.name} colors: ${color}`);
+            }
+
+            function updateSelectedUI(provider) {
+                const config = providerConfig[provider];
+                if (!config || !providerSelected) return;
+
+                // Update selected display
+                const iconDiv = providerSelected.querySelector('.provider-icon');
+                const nameSpan = providerSelected.querySelector('.provider-name');
+                const badgeSpan = providerSelected.querySelector('.computation-badge');
+
+                if (iconDiv) {
+                    iconDiv.className = `provider-icon ${config.iconClass}`;
+                    const prefixClass = config.icon.startsWith('fa-') && ['fa-aws', 'fa-microsoft', 'fa-google'].includes(config.icon) ? 'fab' : 'fas';
+                    iconDiv.innerHTML = `<i class="${prefixClass} ${config.icon}"></i>`;
+                }
+                if (nameSpan) nameSpan.textContent = config.name;
+                if (badgeSpan) {
+                    badgeSpan.textContent = config.modelLabel;
+                    badgeSpan.className = `computation-badge ${config.model}-badge`;
+                }
+
+                // Update body data attribute for theming
+                document.body.setAttribute('data-provider', provider);
+
+                // Apply colors via inline styles
+                applyProviderColors(provider);
+
+                // Update connection status text
+                if (statusText) {
+                    statusText.textContent = `CONNECTED TO ${config.name.toUpperCase()}`;
+                }
+
+                // Mark selected option
+                const options = providerOptions?.querySelectorAll('.provider-option');
+                options?.forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.provider === provider);
+                });
+            }
+
+            async function switchProvider(newProvider) {
+                if (newProvider === currentProvider || !providerConfig[newProvider]) return;
+
+                console.log(`🔄 Switching to provider: ${newProvider}`);
+
+                // Add switching animation
+                document.body.classList.add('provider-switching');
+
+                // Animate widgets with flip effect
+                const widgets = document.querySelectorAll('.widget');
+                const metricCards = document.querySelectorAll('.metric-card');
+
+                widgets.forEach((widget, index) => {
+                    setTimeout(() => {
+                        widget.classList.add('flipping');
+                        setTimeout(() => widget.classList.remove('flipping'), 800);
+                    }, index * 100);
+                });
+
+                metricCards.forEach((card, index) => {
+                    setTimeout(() => {
+                        card.classList.add('flipping');
+                        setTimeout(() => card.classList.remove('flipping'), 800);
+                    }, index * 50);
+                });
+
+                // Check if provider requires API key (not IBM or Local)
+                const requiresApiKey = !['ibm', 'local'].includes(newProvider);
+
+                if (requiresApiKey) {
+                    // Call the provider_isolation.js switchProvider which handles API key modal
+                    if (typeof window.ProviderIsolation?.switchProvider === 'function') {
+                        try {
+                            await window.ProviderIsolation.switchProvider(newProvider);
+                            // If we get here, connection was successful
+                        } catch (error) {
+                            console.log(`❌ Provider switch cancelled or failed: ${error}`);
+                            document.body.classList.remove('provider-switching');
+                            return; // Don't complete the switch
+                        }
+                    } else {
+                        console.warn('ProviderIsolation not available');
+                    }
+                }
+
+                // Update provider
+                currentProvider = newProvider;
+                localStorage.setItem('quantum_dashboard_provider', currentProvider);
+                localStorage.setItem('selectedProvider', currentProvider); // Sync with provider_isolation.js
+                updateSelectedUI(currentProvider);
+
+                // Close dropdown
+                providerDropdown?.classList.remove('open');
+
+                // Remove switching class
+                setTimeout(() => {
+                    document.body.classList.remove('provider-switching');
+                }, 600);
+
+                // Dispatch custom event for other scripts to react
+                window.dispatchEvent(new CustomEvent('providerChanged', {
+                    detail: {
+                        provider: currentProvider,
+                        model: providerConfig[currentProvider].model
+                    }
+                }));
+
+                // Get provider object from ProviderIsolation
+                const providerObj = window.ProviderIsolation?.getProvider?.(currentProvider) || {
+                    id: currentProvider,
+                    displayName: providerConfig[currentProvider]?.name || currentProvider,
+                    backends: [],
+                    color: providerConfig[currentProvider]?.color || '#06b6d4'
+                };
+
+                // Reload widgets for ALL providers (including IBM and Local)
+                if (window.ProviderIsolation) {
+                    console.log(`📊 [${currentProvider.toUpperCase()}] Reloading widgets...`);
+                    await window.ProviderIsolation.reloadBackendsWidget(providerObj);
+                    await window.ProviderIsolation.reloadJobsWidget(providerObj);
+                    window.ProviderIsolation.updateAllDropdowns(providerObj);
+                    window.ProviderIsolation.toggleWidgetsByProvider(providerObj);
+                }
+
+                // Update summary cards via DashboardMetrics
+                if (window.dashboardMetrics) {
+                    window.dashboardMetrics.onModeChange(currentProvider);
+                }
+
+                console.log(`✅ Provider switched to: ${providerConfig[currentProvider].name} (${providerConfig[currentProvider].model})`);
+            }
+
+            // Initialize UI with saved provider
+            updateSelectedUI(currentProvider);
+
+            // Toggle dropdown on click
+            providerSelected?.addEventListener('click', function (e) {
+                e.stopPropagation();
+                providerDropdown?.classList.toggle('open');
+            });
+
+            // Handle option selection
+            providerOptions?.addEventListener('click', function (e) {
+                const option = e.target.closest('.provider-option');
+                if (option) {
+                    const newProvider = option.dataset.provider;
+                    switchProvider(newProvider);
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!providerDropdown?.contains(e.target)) {
+                    providerDropdown?.classList.remove('open');
+                }
+            });
+
+            // Keyboard accessibility
+            providerSelected?.setAttribute('tabindex', '0');
+            providerSelected?.setAttribute('role', 'combobox');
+            providerSelected?.setAttribute('aria-expanded', 'false');
+
+            providerSelected?.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    providerDropdown?.classList.toggle('open');
+                    providerSelected.setAttribute('aria-expanded', providerDropdown?.classList.contains('open'));
+                }
+                if (e.key === 'Escape') {
+                    providerDropdown?.classList.remove('open');
+                    providerSelected.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            console.log(`✅ Provider dropdown initialized. Current: ${providerConfig[currentProvider].name}`);
+        });
+    </script>
+
+    <!-- ==================== MULTI-PROVIDER SYSTEM ==================== -->
+    <!-- Strict Provider Data Isolation - Phase 1 Integration -->
+    <script src="{{ url_for('static', filename='quantum_providers.js') }}"></script>
+    <script src="{{ url_for('static', filename='provider_isolation.js') }}"></script>
+    <!-- ============================================================== -->
+
+</body>
+
+</html>

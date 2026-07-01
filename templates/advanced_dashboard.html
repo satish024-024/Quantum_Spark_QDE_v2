@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://r2cdn.perplexity.ai; img-src 'self' data: https:; connect-src 'self' https://api.quantum-computing.ibm.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com;">
+    <title>Quantum Jobs Tracker - Advanced Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="static/enhanced_quantum_style.css">
+    <link rel="stylesheet" href="static/3d_circuit_style.css">
+    <link rel="stylesheet" href="/static/bloch_sphere/main.css">
+
+    <!-- Tutorial System Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tutorial.css') }}">
+
+    <!-- API Utilities with Retry Logic -->
+    <script src="/static/api_utils.js"></script>
+
+    <!-- Database Integration Styles -->
+    <style>
+        .timeframe-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+
+        /* Header Enhancement Styles */
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .primary-actions {
+            margin-right: 1rem;
+        }
+
+        .secondary-actions {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.25rem;
+        }
+
+        .btn-text {
+            display: none;
+        }
+
+        /* Auto-refresh Panel */
+        .auto-refresh-panel {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.5rem;
+            margin-left: 1rem;
+        }
+
+        .refresh-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .countdown-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-width: 45px;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .refresh-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: refreshPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes refreshPulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .interval-selector {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .interval-selector:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            color: #667eea;
+            padding: 0.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+        }
+
+        .toggle-btn.paused {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Authentication Controls */
+        .auth-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            color: #10b981;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .user-status.not-logged-in {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Responsive Header Improvements */
+        .logo-text h1 {
+            font-size: 1.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .logo-text span {
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .user-status span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100px;
+        }
+
+        .countdown-display {
+            min-width: 40px;
+            font-size: 0.75rem;
+        }
+
+        .interval-selector {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.4rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-right {
+                gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+
+            .logo-text h1 {
+                font-size: 1.1rem;
+                max-width: 180px;
+            }
+
+            .logo-text span {
+                font-size: 0.7rem;
+                max-width: 120px;
+            }
+
+            .user-status span {
+                max-width: 80px;
+            }
+
+            .countdown-display {
+                min-width: 35px;
+                font-size: 0.7rem;
+            }
+
+            .auto-refresh-panel {
+                gap: 0.5rem;
+                padding: 0.4rem;
+            }
+
+            .auth-controls {
+                gap: 0.5rem;
+                margin-left: 0.5rem;
+                padding-left: 0.5rem;
+            }
+
+            .interval-selector {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.3rem;
+            }
+        }
+
+        .historical-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-container canvas {
+            max-height: 200px;
+        }
+
+        .historical-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .offline-banner {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .offline-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .offline-banner i {
+            font-size: 18px;
+        }
+
+        .retry-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .connection-status.offline {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .connection-status.offline .status-indicator {
+            color: #fff;
+        }
+
+        .offline-indicator {
+            color: #f39c12;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .offline-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+            display: none;
+            color: white;
+        }
+
+        .offline-notification.show {
+            display: block;
+        }
+
+        .offline-notification.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .offline-notification.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .offline-notification.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .offline-notification .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* AI Button Styles */
+        .btn-ai {
+            background: var(--ai-gradient);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ai::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-ai:hover::before {
+            left: 100%;
+        }
+
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ai-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-ai:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .backend-item.offline {
+            border-left: 4px solid #f39c12;
+        }
+
+        .jobs-table.offline {
+            border: 1px solid #f39c12;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .historical-charts {
+                grid-template-columns: 1fr;
+            }
+
+            .historical-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body class="light-theme">
+    <!-- Real Quantum Data Status Indicator -->
+
+
+
+    <!-- Header Section -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="logo-container">
+                <i class="fas fa-atom logo-icon"></i>
+                <div class="logo-text">
+                    <h1>Quantum Jobs Tracker</h1>
+                    <span>Advanced Dashboard</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="connection-status" id="connection-status">
+                <i class="fas fa-circle status-indicator"></i>
+                <span>Connected to IBM Quantum</span>
+            </div>
+            <div class="hackathon-info">
+                <div class="hackathon-badge">
+                    <i class="fas fa-trophy"></i>
+                    <span>Amaravathi Quantum Hackathon</span>
+                </div>
+                <div class="team-info">
+                    <span class="team-name">Quantum Spark</span>
+                    <span class="designer-name">by Satish Kumar</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- Primary Actions -->
+            <div class="action-group primary-actions">
+                <button class="btn btn-primary" id="refresh-all-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="btn-text">Refresh</span>
+                </button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="action-group secondary-actions">
+                <!-- IBM/Local Mode Toggle -->
+                <div class="mode-toggle-container">
+                    <div class="mode-toggle" id="mode-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-thumb" id="toggle-thumb"></div>
+                            <div class="toggle-option ibm-option active" data-mode="ibm">
+                                <i class="fas fa-cloud"></i>
+                                <span>IBM</span>
+                            </div>
+                            <div class="toggle-option local-option" data-mode="local">
+                                <i class="fas fa-desktop"></i>
+                                <span>Local</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary theme-switcher-btn" id="theme-switcher-btn">
+                    <i class="fas fa-palette"></i>
+                </button>
+
+                <!-- AI Feature Buttons -->
+                <button class="btn btn-ai" id="ai-circuit-gen-btn" title="AI Circuit Generator">
+                    <i class="fas fa-magic"></i>
+                </button>
+                <button class="btn btn-ai" id="ai-concept-search-btn" title="Find Related Concepts">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn btn-ai" id="ai-chat-btn" title="AI Quantum Assistant">
+                    <i class="fas fa-brain"></i>
+                </button>
+                <button class="btn btn-ai" id="ai-cloud-config-btn" title="Cloud AI Configuration">
+                    <i class="fas fa-cloud"></i>
+                </button>
+
+                <button class="btn btn-secondary" id="customize-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button class="btn btn-secondary" id="api-config-btn">
+                    <i class="fas fa-key"></i>
+                </button>
+            </div>
+
+            <!-- Auto-refresh Controls -->
+            <div class="auto-refresh-panel" id="auto-refresh-controls">
+                <div class="refresh-status">
+                    <div class="countdown-display" id="hack-countdown">5:00</div>
+                    <div class="refresh-indicator" id="refresh-indicator"></div>
+                </div>
+                <select class="interval-selector" id="refresh-interval-select">
+                    <option value="30">30s</option>
+                    <option value="60">1m</option>
+                    <option value="120">2m</option>
+                    <option value="300" selected>5m</option>
+                    <option value="600">10m</option>
+                    <option value="900">15m</option>
+                </select>
+                <button class="toggle-btn" id="auto-refresh-toggle" title="Toggle Auto-refresh">
+                    <i class="fas fa-pause"></i>
+                </button>
+            </div>
+
+            <!-- Authentication Controls -->
+            <div class="auth-controls" id="auth-controls">
+                <button class="btn btn-secondary" id="login-btn" style="display: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </button>
+                <button class="btn btn-secondary" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+                <div class="user-status" id="user-status">
+                    <i class="fas fa-user"></i>
+                    <span id="user-email">Not logged in</span>
+                </div>
+            </div>
+
+            <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="notification-btn" id="notification-btn" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+            </button>
+        </div>
+
+    </header>
+
+    <!-- Simple API Input -->
+    <div class="api-input-container" id="api-input-container" style="display: none;">
+        <div class="api-input-group">
+            <input type="password" id="api-token" placeholder="Enter IBM Quantum API Token (Optional)" class="api-input"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="128"
+                pattern="[A-Za-z0-9\-_]{20,128}"
+                title="API token must be 20-128 characters long and contain only letters, numbers, hyphens, and underscores"
+                required>
+            <button type="button" id="toggle-token-visibility" class="toggle-btn" aria-label="Toggle token visibility">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button type="button" id="save-api" class="save-api-btn" aria-label="Save API token">
+                <i class="fas fa-check"></i>
+            </button>
+            <button type="button" id="skip-api" class="skip-api-btn" aria-label="Skip API token">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="api-input-info">
+            <p><i class="fas fa-info-circle"></i> You can skip this step to use the dashboard in demo mode</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <main class="dashboard-main">
+        <!-- Metrics Row -->
+        <section class="metrics-section">
+            <div class="metric-card" data-metric="active-backends">
+                <div class="metric-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Active Backends</h3>
+                    <div class="metric-value" id="active-backends">-</div>
+                    <div class="metric-trend">
+                        <span>Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card" data-metric="total-jobs">
+                <div class="metric-icon">
+                    <i class="fas fa-list-ul"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Total Jobs</h3>
+                    <div class="metric-value" id="total-jobs">-</div>
+                    <div class="metric-trend">
+                        <span>Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card" data-metric="running-jobs">
+                <div class="metric-icon">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Running Jobs</h3>
+                    <div class="metric-value" id="running-jobs">-</div>
+                    <div class="metric-trend">
+                        <span>Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card" data-metric="success-rate">
+                <div class="metric-icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Success Rate</h3>
+                    <div class="metric-value" id="success-rate">-</div>
+                    <div class="metric-trend">
+                        <span>Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Widgets Grid -->
+        <section class="widgets-grid">
+            <!-- Quantum Backends Widget -->
+            <div class="widget-container backends-widget widget" data-widget="backends">
+                <div class="widget-header">
+                    <h2><i class="fas fa-server"></i> Quantum Backends</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh-backends">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="add-backend">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="widget-btn" data-action="backend-settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backends-loading">
+                        <div class="spinner"></div><span>Loading quantum backends...</span>
+                    </div>
+                    <div class="backends-list" id="backends-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Active Jobs Widget -->
+            <div class="widget-container jobs-widget widget" data-widget="jobs">
+                <div class="widget-header">
+                    <h2><i class="fas fa-tasks"></i> Active Jobs</h2>
+                    <div class="widget-controls">
+                        <div class="search-container" style="display:none"></div>
+                        <button class="widget-btn" data-action="export">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="widget-btn" data-action="clear-jobs">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="jobs-loading">
+                        <div class="spinner"></div><span>Loading quantum jobs...</span>
+                    </div>
+                    <div class="table-container" id="jobs-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- 3D Quantum Circuit Widget -->
+            <div class="widget-container circuit-widget widget" data-widget="circuit">
+                <div class="widget-header">
+                    <h2><i class="fas fa-cube"></i> 3D Quantum Circuit</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="play-pause" id="circuit-play">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="widget-btn" data-action="step">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button class="widget-btn" data-action="reset">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="widget-btn" data-action="expand-circuit" id="expand-circuit-btn">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="circuit-loading">
+                        <div class="spinner"></div><span>Loading 3D circuit...</span>
+                    </div>
+                    <div class="circuit-container" id="circuit-content"
+                        style="min-height: 300px; position: relative; display: none;">
+                        <div id="3d-quantum-circuit" style="width: 100%; height: 300px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entanglement Widget -->
+            <div class="widget-container entanglement-widget widget" data-widget="entanglement">
+                <div class="widget-header">
+                    <h2><i class="fas fa-link"></i> Entanglement</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh-entanglement">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="calculate-entanglement">
+                            <i class="fas fa-calculator"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="entanglement-loading">
+                        <div class="spinner"></div><span>Loading entanglement data...</span>
+                    </div>
+                    <div class="entanglement-visualization" id="entanglement-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Results Widget -->
+            <div class="widget-container results-widget widget" data-widget="results">
+                <div class="widget-header">
+                    <h2><i class="fas fa-chart-bar"></i> Results</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh-results">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="export-results">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="widget-btn" data-action="clear-results">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="results-loading">
+                        <div class="spinner"></div><span>Loading measurement results...</span>
+                    </div>
+                    <div class="results-visualization" id="results-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Bloch Sphere Widget -->
+            <div class="widget-container bloch-widget widget" data-widget="bloch-sphere">
+                <div class="widget-header">
+                    <h2><i class="fas fa-globe"></i> 3D Bloch Sphere</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="reset-bloch">
+                            <i class="fas fa-home"></i>
+                        </button>
+                        <button class="widget-btn" data-action="rotate-bloch">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="widget-btn" data-action="expand-bloch" id="expand-bloch-btn">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="bloch-loading">
+                        <div class="spinner"></div><span>Loading Advanced Bloch Sphere...</span>
+                    </div>
+                    <div class="bloch-container" id="bloch-content" style="display: none;">
+                        <div class="visualization-container">
+                            <!-- Updated ID for compatibility with bloch_ui.js -->
+                            <div id="bloch-3d-container" style="width: 100%; height: 300px; position: relative;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum State Widget -->
+            <div class="widget-container quantum-state-widget widget" data-widget="quantum-state">
+                <div class="widget-header">
+                    <h2><i class="fas fa-atom"></i> Quantum State</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh-quantum-state">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="calculate-state">
+                            <i class="fas fa-calculator"></i>
+                        </button>
+                        <button class="widget-btn" data-action="export-state">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="quantum-state-loading">
+                        <div class="spinner"></div><span>Loading quantum state...</span>
+                    </div>
+                    <div class="quantum-state-display" id="quantum-state-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Performance Widget -->
+            <div class="widget-container performance-widget widget" data-widget="performance">
+                <div class="widget-header">
+                    <h2><i class="fas fa-chart-line"></i> Performance</h2>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh-performance">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="export-performance">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="widget-btn" data-action="performance-settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="performance-loading">
+                        <div class="spinner"></div><span>Loading performance data...</span>
+                    </div>
+                    <div class="performance-metrics" id="performance-content" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Historical Data Widget -->
+            <div class="widget-container historical-widget widget" data-widget="historical">
+                <div class="widget-header">
+                    <h2><i class="fas fa-history"></i> Historical Data</h2>
+                    <div class="widget-controls">
+                        <select id="historical-timeframe" class="timeframe-select">
+                            <option value="1">Last Hour</option>
+                            <option value="6">Last 6 Hours</option>
+                            <option value="24" selected>Last 24 Hours</option>
+                            <option value="168">Last Week</option>
+                        </select>
+                        <button class="widget-btn" data-action="refresh-historical">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="export-historical">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="historical-loading">
+                        <div class="spinner"></div><span>Loading historical data...</span>
+                    </div>
+                    <div class="historical-charts" id="historical-content" style="display: none;">
+                        <div class="chart-container">
+                            <canvas id="backends-history-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="jobs-history-chart"></canvas>
+                        </div>
+                        <div class="historical-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Data Points:</span>
+                                <span class="stat-value" id="data-points-count">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Last Update:</span>
+                                <span class="stat-value" id="last-update-time">-</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Database Size:</span>
+                                <span class="stat-value" id="database-size">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notification-panel">
+        <div class="notification-header">
+            <h3>Notifications</h3>
+            <button class="close-btn" id="close-notifications">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-list" id="notification-list">
+            <!-- Notifications will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Notifications container used by HackathonDashboard -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <!-- Modal content will be dynamically inserted -->
+        </div>
+    </div>
+
+    <!-- Scroll indicators removed -->
+
+    <!-- Scripts -->
+    <!-- Direct CDN fallback for THREE.js r128 - Same version as modern dashboard -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"
+        onload="console.log('✅ THREE.js r128 loaded successfully')"
+        onerror="console.warn('❌ Direct CDN THREE.js failed')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous" referrerpolicy="no-referrer"
+        defer></script>
+
+    <!-- Math.js for quantum calculations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer" defer></script>
+
+    <!-- Plotly (optional); keep for other widgets -->
+    <script src="static/plotly-2.16.1.min.js" defer></script>
+
+    <!-- Full-Screen Bloch Sphere Overlay -->
+    <div id="fullscreen-bloch-overlay" class="fullscreen-bloch-overlay" style="display: none;">
+        <div class="fullscreen-bloch-header">
+            <div class="fullscreen-bloch-title">
+                <i class="fas fa-globe"></i>
+                <h1>3D Bloch Sphere</h1>
+            </div>
+            <div class="fullscreen-bloch-controls">
+                <button class="fullscreen-btn" data-action="reset-bloch-view">
+                    <i class="fas fa-home"></i>
+                </button>
+                <button class="fullscreen-btn" data-action="toggle-fullscreen-bloch">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="fullscreen-bloch-content">
+            <div class="fullscreen-bloch-visualization">
+                <div id="fullscreen-bloch-3d-container" style="width: 100%; height: 100%;"></div>
+            </div>
+
+            <div class="fullscreen-bloch-sidebar">
+                <div class="control-section">
+                    <h3>Quantum State Info</h3>
+                    <div class="quantum-state-fullscreen">
+                        <span class="state-equation-fullscreen">|ψ⟩ = 1.000|0⟩ + 0.000e^{i3.14}|1⟩</span>
+                    </div>
+                    <div class="state-details-fullscreen">
+                        <div class="detail-item-fullscreen">
+                            <span class="label">θ:</span>
+                            <span class="value">π/2</span>
+                        </div>
+                        <div class="detail-item-fullscreen">
+                            <span class="label">φ:</span>
+                            <span class="value">0.000π</span>
+                        </div>
+                        <div class="detail-item-fullscreen">
+                            <span class="label">Fidelity:</span>
+                            <span class="value">1.000π</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Rotations</h3>
+                    <div class="axis-control">
+                        <label>X axis:</label>
+                        <div class="rotation-buttons">
+                            <button class="gate-btn" data-action="rotate-x" data-angle="1.5708">+90°</button>
+                            <button class="gate-btn" data-action="rotate-x" data-angle="-1.5708">-90°</button>
+                            <button class="gate-btn" data-action="rotate-x" data-angle="3.1416">+180°</button>
+                        </div>
+                        <div class="custom-angle">
+                            <input type="number" id="x_angle_fullscreen" placeholder="45" value="45">°
+                            <button class="gate-btn apply-btn" data-action="custom-rotate" data-axis="x">Apply</button>
+                        </div>
+                    </div>
+
+                    <div class="axis-control">
+                        <label>Y axis:</label>
+                        <div class="rotation-buttons">
+                            <button class="gate-btn" data-action="rotate-y" data-angle="1.5708">+90°</button>
+                            <button class="gate-btn" data-action="rotate-y" data-angle="-1.5708">-90°</button>
+                            <button class="gate-btn" data-action="rotate-y" data-angle="3.1416">+180°</button>
+                        </div>
+                        <div class="custom-angle">
+                            <input type="number" id="y_angle_fullscreen" placeholder="45">°
+                            <button class="gate-btn apply-btn" data-action="custom-rotate" data-axis="y">Apply</button>
+                        </div>
+                    </div>
+
+                    <div class="axis-control">
+                        <label>Z axis:</label>
+                        <div class="rotation-buttons">
+                            <button class="gate-btn" data-action="rotate-z" data-angle="1.5708">+90°</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="-1.5708">-90°</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="3.1416">+180°</button>
+                        </div>
+                        <div class="custom-angle">
+                            <input type="number" id="z_angle_fullscreen" placeholder="45" value="45">°
+                            <button class="gate-btn apply-btn" data-action="custom-rotate" data-axis="z">Apply</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Quantum Gates</h3>
+                    <div class="gate-controls-fullscreen">
+                        <div class="gate-row-fullscreen">
+                            <span>Pauli:</span>
+                            <button class="gate-btn" data-action="rotate-x" data-angle="3.1416">X</button>
+                            <button class="gate-btn" data-action="rotate-y" data-angle="3.1416">Y</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="3.1416">Z</button>
+                        </div>
+                        <div class="gate-row-fullscreen">
+                            <span>Hadamard:</span>
+                            <button class="gate-btn" data-action="hadamard">H</button>
+                        </div>
+                        <div class="gate-row-fullscreen">
+                            <span>Phase:</span>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="1.5708">S</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="-1.5708">S†</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="0.7854">T</button>
+                            <button class="gate-btn" data-action="rotate-z" data-angle="-0.7854">T†</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>Actions</h3>
+                    <div class="action-buttons-fullscreen">
+                        <button class="gate-btn" data-action="restart">Init</button>
+                        <button class="gate-btn" data-action="undo">Undo</button>
+                        <button class="gate-btn" data-action="export-png">Download PNG</button>
+                        <button class="gate-btn" data-action="download-state">Download JSON</button>
+                        <button class="gate-btn" data-action="toggle-phosphor">Toggle History</button>
+                        <button class="gate-btn" data-action="clear-history">Clear History</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bloch Sphere JavaScript Files - Load in correct dependency order -->
+    <script src="static/plotly-gl3d-2.16.1.min.js"></script>
+    <script src="static/enhanced_3d_circuit.js"></script>
+
+    <!-- Sortable for drag & drop (required by HackathonDashboard) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- Offline Manager for offline functionality -->
+    <script src="{{ url_for('static', filename='offline_manager.js') }}"></script>
+
+    <!-- Use Unified dashboard logic for data flow to power widgets -->
+    <script src="/static/dashboard_new.js"></script>
+
+    <!-- AI Chat Button Handler -->
+    <script>
+        // Timer and Auto-refresh functionality
+        let countdownTimer = null;
+        let currentInterval = 300; // 5 minutes default
+        let isAutoRefreshEnabled = true;
+        let timeRemaining = currentInterval;
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateCountdownDisplay() {
+            const countdownElement = document.getElementById('hack-countdown');
+            if (countdownElement) {
+                countdownElement.textContent = formatTime(timeRemaining);
+            }
+        }
+
+        function startCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            timeRemaining = currentInterval;
+            updateCountdownDisplay();
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                updateCountdownDisplay();
+
+                if (timeRemaining <= 0) {
+                    // Auto-refresh when timer expires
+                    if (isAutoRefreshEnabled && window.dashboard) {
+                        console.log('🔄 Auto-refreshing dashboard...');
+                        if (window.dashboard.updateAllWidgets) {
+                            window.dashboard.updateAllWidgets();
+                        } else if (window.dashboard.loadInitialData) {
+                            window.dashboard.loadInitialData();
+                        }
+                        if (window.dashboard.showNotification) {
+                            window.dashboard.showNotification('🔄 Dashboard auto-refreshed!', 'success');
+                        }
+                    }
+                    // Reset timer
+                    timeRemaining = currentInterval;
+                }
+            }, 1000);
+        }
+
+        function setupTimerControls() {
+            const intervalSelect = document.getElementById('refresh-interval-select');
+            const toggleBtn = document.getElementById('auto-refresh-toggle');
+
+            if (intervalSelect) {
+                intervalSelect.addEventListener('change', (e) => {
+                    currentInterval = parseInt(e.target.value);
+                    timeRemaining = currentInterval;
+                    updateCountdownDisplay();
+                    if (isAutoRefreshEnabled) {
+                        startCountdown();
+                    }
+                });
+            }
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    isAutoRefreshEnabled = !isAutoRefreshEnabled;
+                    const icon = toggleBtn.querySelector('i');
+
+                    if (isAutoRefreshEnabled) {
+                        icon.className = 'fas fa-pause';
+                        toggleBtn.title = 'Pause Auto-refresh';
+                        startCountdown();
+                    } else {
+                        icon.className = 'fas fa-play';
+                        toggleBtn.title = 'Start Auto-refresh';
+                        if (countdownTimer) {
+                            clearInterval(countdownTimer);
+                            countdownTimer = null;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Authentication functions
+        function initializeAuth() {
+            console.log('Initializing authentication...');
+            checkAuthStatus();
+            setupAuthListeners();
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/backends', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    console.log('User is authenticated');
+                    updateAuthUI(true);
+                    const userStatus = document.getElementById('user-status');
+                    const userEmail = userStatus.querySelector('#user-email');
+                    userEmail.textContent = 'Logged in';
+                } else if (response.status === 401) {
+                    console.log('User is not authenticated');
+                    updateAuthUI(false);
+                } else {
+                    console.log('Unexpected auth status:', response.status);
+                    updateAuthUI(false);
+                }
+            } catch (error) {
+                console.log('Auth check failed:', error);
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(isAuthenticated) {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userStatus = document.getElementById('user-status');
+
+            if (isAuthenticated) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'flex';
+                userStatus.classList.remove('not-logged-in');
+            } else {
+                loginBtn.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                userStatus.classList.add('not-logged-in');
+            }
+        }
+
+        function setupAuthListeners() {
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    window.location.href = '/auth';
+                });
+            }
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            console.log('Logged out successfully');
+                            window.location.href = '/auth';
+                        } else {
+                            console.error('Logout failed');
+                            alert('Logout failed. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        alert('Logout failed. Please try again.');
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize timer and auth
+            setupTimerControls();
+            initializeAuth();
+
+            // Tutorial Button Handler
+            const tutorialBtn = document.getElementById('tutorial-btn');
+            if (tutorialBtn) {
+                tutorialBtn.addEventListener('click', () => {
+                    if (window.quantumTutorial) {
+                        window.quantumTutorial.start();
+                    } else {
+                        console.log('Tutorial system not loaded yet');
+                    }
+                });
+            }
+
+            // Start the countdown timer
+            setTimeout(() => {
+                startCountdown();
+            }, 500);
+
+            // AI Feature Button Event Listeners
+            const aiCircuitGenBtn = document.getElementById('ai-circuit-gen-btn');
+            const aiConceptSearchBtn = document.getElementById('ai-concept-search-btn');
+            const aiChatBtn = document.getElementById('ai-chat-btn');
+            const aiCloudConfigBtn = document.getElementById('ai-cloud-config-btn');
+
+            // Wait for dashboard to be initialized, then add AI button handlers
+            const initAIButtons = () => {
+                if (window.dashboard && window.dashboard.createAISidePanel) {
+                    if (aiCircuitGenBtn) {
+                        aiCircuitGenBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiConceptSearchBtn) {
+                        aiConceptSearchBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiChatBtn) {
+                        aiChatBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiCloudConfigBtn) {
+                        aiCloudConfigBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+                } else {
+                    // Retry after a short delay
+                    setTimeout(initAIButtons, 100);
+                }
+            };
+
+            // Initialize AI buttons
+            initAIButtons();
+        });
+    </script>
+
+    <!-- Advanced Dashboard Script - DISABLED: Using shared dashboard_new.js + modern_dashboard.js instead -->
+    <!-- <script src="/static/advanced_script.js"></script> -->
+
+    <!-- Enhanced Notification System -->
+    <script src="static/enhanced_notifications.js"></script>
+
+    <!-- AI Integration with Google Gemini (Optional) -->
+    <!-- <script src="static/ai_integration.js"></script> -->
+
+    <!-- Backend Comparison System -->
+    <script src="static/backend_comparison.js"></script>
+
+    <!-- Database Integration for Offline Mode - DISABLED: Expects /api/status which doesn't exist -->
+    <!-- <script src="static/database_integration.js"></script> -->
+
+    <!-- Load OrbitControls from CDN (compatible with global THREE) -->
+    <script>
+        (function () {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+            s.onload = function () { console.log('OrbitControls loaded'); };
+            document.head.appendChild(s);
+        })();
+    </script>
+
+    <script>
+        // Add keyboard shortcut for fullscreen toggle (ESC key)
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                const overlay = document.getElementById('fullscreen-bloch-overlay');
+                if (overlay && overlay.style.display !== 'none') {
+                    toggleFullscreenBloch();
+                }
+            }
+        });
+    </script>
+
+    <!-- Initialize Enhanced Dashboard and Loading System -->
+    <script>
+        // Initialize dashboard - QuantumDashboard will handle HackathonDashboard integration
+        window.addEventListener('load', function () {
+            console.log('  Window loaded, Advanced Dashboard initialization handled by QuantumDashboard...');
+
+            // Initialize Enhanced 3D Quantum Circuit
+            if (typeof initEnhanced3DQuantumCircuit === 'function') {
+                console.log('  Initializing Enhanced 3D Quantum Circuit...');
+                try {
+                    initEnhanced3DQuantumCircuit();
+                } catch (error) {
+                    console.error('  Error initializing Enhanced 3D Quantum Circuit:', error);
+                }
+            } else if (typeof init3DQuantumCircuit === 'function') {
+                console.log('  Initializing 3D Quantum Circuit (fallback)...');
+                try {
+                    init3DQuantumCircuit();
+                } catch (error) {
+                    console.error('  Error initializing 3D Quantum Circuit:', error);
+                }
+            } else {
+                console.warn('  No 3D Quantum Circuit initialization function available');
+            }
+
+            // Initialize Bloch sphere
+            if (typeof init_bloch_sphere === 'function') {
+                console.log('  Initializing Bloch sphere...');
+                try {
+                    init_bloch_sphere();
+                } catch (error) {
+                    console.error('  Error initializing Bloch sphere:', error);
+                }
+            } else {
+                console.warn('  init_bloch_sphere function not available');
+            }
+
+            // Force Bloch sphere diagram rendering as fallback
+            if (typeof createSimpleBlochSphere === 'function') {
+                try {
+                    createSimpleBlochSphere();
+                } catch (error) {
+                    console.error('  Error creating fallback Bloch sphere:', error);
+                }
+            }
+
+            // Initialize Historical Data Widget
+            initializeHistoricalWidget();
+        });
+
+        // Historical Data Widget Functions
+        function initializeHistoricalWidget() {
+            const timeframeSelect = document.getElementById('historical-timeframe');
+            const refreshBtn = document.querySelector('[data-action="refresh-historical"]');
+            const exportBtn = document.querySelector('[data-action="export-historical"]');
+
+            if (timeframeSelect) {
+                timeframeSelect.addEventListener('change', loadHistoricalData);
+            }
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', loadHistoricalData);
+            }
+
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportHistoricalData);
+            }
+
+            // Load initial data
+            loadHistoricalData();
+        }
+
+        async function loadHistoricalData() {
+            const timeframe = document.getElementById('historical-timeframe')?.value || 24;
+            const loading = document.getElementById('historical-loading');
+            const content = document.getElementById('historical-content');
+
+            if (loading) loading.style.display = 'block';
+            if (content) content.style.display = 'none';
+
+            try {
+                // Load historical data
+                const response = await fetch(`/api/historical_data?hours=${timeframe}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHistoricalData(data.data);
+                    updateHistoricalStats(data.data);
+                } else {
+                    console.error('Failed to load historical data:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading historical data:', error);
+            } finally {
+                if (loading) loading.style.display = 'none';
+                if (content) content.style.display = 'block';
+            }
+        }
+
+        function displayHistoricalData(data) {
+            // Create backends history chart
+            createHistoryChart('backends-history-chart', 'active_backends', data);
+
+            // Create jobs history chart
+            createHistoryChart('jobs-history-chart', 'total_jobs', data);
+        }
+
+        function createHistoryChart(canvasId, metricName, data) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            // Clear existing chart
+            const existingChart = Chart.getChart(canvas);
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
+            // Get metric data
+            const metricData = data.metrics?.filter(m => m.metric_name === metricName) || [];
+
+            if (metricData.length === 0) {
+                canvas.parentElement.innerHTML = `<div class="no-data">No ${metricName} data available</div>`;
+                return;
+            }
+
+            // Create chart
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: metricData.map(d => new Date(d.timestamp).toLocaleTimeString()),
+                    datasets: [{
+                        label: metricName.replace('_', ' ').toUpperCase(),
+                        data: metricData.map(d => d.metric_value),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateHistoricalStats(data) {
+            const dataPointsCount = document.getElementById('data-points-count');
+            const lastUpdateTime = document.getElementById('last-update-time');
+            const databaseSize = document.getElementById('database-size');
+
+            if (dataPointsCount) {
+                const totalPoints = (data.metrics?.length || 0) + (data.backends?.length || 0) + (data.jobs?.length || 0);
+                dataPointsCount.textContent = totalPoints.toLocaleString();
+            }
+
+            if (lastUpdateTime) {
+                const lastUpdate = data.last_update || new Date().toISOString();
+                lastUpdateTime.textContent = new Date(lastUpdate).toLocaleString();
+            }
+
+            if (databaseSize) {
+                // Load database stats
+                fetch('/api/database_stats')
+                    .then(response => response.json())
+                    .then(stats => {
+                        if (stats.success) {
+                            const sizeMB = (stats.stats.database_size_bytes / 1024 / 1024).toFixed(2);
+                            databaseSize.textContent = `${sizeMB} MB`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading database stats:', error);
+                        databaseSize.textContent = 'Unknown';
+                    });
+            }
+        }
+
+        function exportHistoricalData() {
+            const timeframe = document.getElementById('historical-timeframe')?.value || 24;
+
+            fetch(`/api/historical_data?hours=${timeframe}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `quantum_historical_data_${timeframe}h.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error exporting historical data:', error);
+                });
+        }
+    </script>
+
+    <!-- Offline Status Management -->
+    <script>
+        // Offline status management for advanced dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            const connectionStatus = document.querySelector('.connection-status') || createConnectionStatus();
+            const statusIcon = connectionStatus.querySelector('i');
+            const statusText = connectionStatus.querySelector('span');
+
+            // Wait for offline manager to initialize
+            let offlineManager;
+            const checkOfflineManager = setInterval(() => {
+                if (window.offlineManager) {
+                    offlineManager = window.offlineManager;
+                    clearInterval(checkOfflineManager);
+                    initializeOfflineStatus();
+                }
+            }, 100);
+
+            function createConnectionStatus() {
+                // Create connection status if it doesn't exist
+                const header = document.querySelector('.header-center') || document.querySelector('header');
+                if (!header) return null;
+
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'connection-status';
+                statusDiv.innerHTML = '<i class="fas fa-circle"></i> <span>Checking connection...</span>';
+                header.appendChild(statusDiv);
+                return statusDiv;
+            }
+
+            function initializeOfflineStatus() {
+                updateConnectionStatus();
+                setupOfflineNotifications();
+
+                // Update status periodically
+                setInterval(updateConnectionStatus, 30000);
+            }
+
+            function updateConnectionStatus() {
+                if (!offlineManager || !connectionStatus) return;
+
+                const isOnline = offlineManager.isOnlineStatus();
+
+                if (isOnline) {
+                    connectionStatus.className = 'connection-status';
+                    if (statusIcon) statusIcon.className = 'fas fa-circle';
+                    if (statusText) statusText.textContent = 'Connected to IBM Quantum';
+                } else {
+                    connectionStatus.className = 'connection-status offline';
+                    if (statusIcon) statusIcon.className = 'fas fa-circle';
+                    if (statusText) statusText.textContent = 'Offline Mode - Using Cached Data';
+                }
+            }
+
+            function setupOfflineNotifications() {
+                if (offlineManager) {
+                    checkDataFreshness();
+                }
+            }
+
+            async function checkDataFreshness() {
+                try {
+                    const response = await fetch('/api/sync_status');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const isFresh15 = data.is_data_fresh_15min;
+                        const isFresh30 = data.is_data_fresh_30min;
+
+                        if (!isFresh15 && !isFresh30) {
+                            showOfflineNotification(
+                                'Data is stale',
+                                'Your cached data is more than 30 minutes old. Connect to internet for fresh data.',
+                                'warning'
+                            );
+                        } else if (!isFresh15) {
+                            showOfflineNotification(
+                                'Data is getting old',
+                                'Your cached data is more than 15 minutes old.',
+                                'info'
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not check data freshness:', error);
+                }
+            }
+
+            function showOfflineNotification(title, message, type = 'info') {
+                const existing = document.querySelectorAll('.offline-notification');
+                existing.forEach(el => el.remove());
+
+                const notification = document.createElement('div');
+                notification.className = `offline-notification ${type} show`;
+                notification.innerHTML = `
+                    <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+                    <h4 style="margin: 0 0 8px 0; color: var(--text-primary);">${title}</h4>
+                    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">${message}</p>
+                `;
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 10000);
+            }
+
+            // Add offline status button to header
+            // Offline status button removed for cleaner header
+        });
+
+    </script>
+
+    <!-- Theme Switcher -->
+    <script src="/static/theme_switcher.js"></script>
+
+    <!-- Shared Dashboard Core - Real IBM Quantum Data -->
+    <script src="/static/dashboard_new.js"></script>
+    <script src="/static/modern_dashboard.js"></script>
+
+    <!-- Tutorial System Script -->
+    <script src="{{ url_for('static', filename='tutorial.js') }}"></script>
+
+</body>
+
+</html>

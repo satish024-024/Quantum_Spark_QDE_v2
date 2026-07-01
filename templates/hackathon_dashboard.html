@@ -1,0 +1,3224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark - Amaravathi Quantum Hackathon Dashboard</title>
+
+    <!-- Professional Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;700;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Bloch Sphere Styles -->
+    <link rel="stylesheet" href="/static/bloch_sphere/main.css">
+
+    <!-- Dashboard Fix CSS -->
+    <link rel="stylesheet" href="/static/dashboard_fix.css">
+
+    <!-- Quantum AI Enhancement CSS -->
+    <link rel="stylesheet" href="/static/quantum_ai_enhancement.css">
+
+    <!-- Tutorial System Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tutorial.css') }}">
+
+    <!-- API Utilities with Retry Logic -->
+    <script src="/static/api_utils.js"></script>
+
+    <!-- Plotly for 3D visualizations -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <!-- Sortable.js for drag and drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- Google Gemini AI - Removed due to browser compatibility issues -->
+    <!-- <script src="https://unpkg.com/@google/generative-ai@0.1.3/dist/index.js"></script> -->
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --ocean-gradient: linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%);
+            --quantum-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+            --success-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            --warning-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+            --danger-gradient: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            --background-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            --surface-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-accent: #06b6d4;
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.3);
+            --shadow-deep: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            --border-radius: 12px;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --ai-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --ai-glow: 0 0 15px rgba(102, 126, 234, 0.4);
+            --font-display: 'Orbitron', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--background-gradient);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: var(--background-gradient);
+        }
+
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            33% {
+                transform: translateY(-20px) rotate(1deg);
+            }
+
+            66% {
+                transform: translateY(10px) rotate(-1deg);
+            }
+        }
+
+        /* Modern Header Design */
+        .header {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            padding: 1.25rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .header:hover {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Left Section: Logo & Branding */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: translateY(-1px);
+        }
+
+        .logo-icon {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            background: var(--quantum-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.6rem;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .logo-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.6);
+        }
+
+        .logo-glow {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: var(--quantum-gradient);
+            opacity: 0.3;
+            filter: blur(8px);
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+        }
+
+        .logo-text h1 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 900;
+            background: var(--quantum-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-accent);
+            font-weight: 600;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        /* Center Section: Status Cluster */
+        .header-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .status-cluster {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .hackathon-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hackathon-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: badgeShine 3s infinite;
+        }
+
+        @keyframes badgeShine {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .badge-text {
+            font-weight: 800;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .connection-status.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes statusPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2);
+            }
+        }
+
+        .status-text {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .timer-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 12px;
+            color: #06b6d4;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .timer-display:hover {
+            background: rgba(6, 182, 212, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Right Section: Controls & Actions */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .action-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .primary-actions {
+            margin-right: 1rem;
+        }
+
+        .secondary-actions {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.25rem;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--quantum-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-text {
+            display: none;
+        }
+
+        /* AI Button Styles */
+        .btn-ai {
+            background: var(--ai-gradient);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ai::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-ai:hover::before {
+            left: 100%;
+        }
+
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ai-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-ai:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Auto-refresh Panel */
+        .auto-refresh-panel {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.5rem;
+            margin-left: 1rem;
+        }
+
+        .refresh-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .countdown-display {
+            background: var(--quantum-gradient);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-width: 45px;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .refresh-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: refreshPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes refreshPulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .interval-selector {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .interval-selector:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .interval-selector:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        .toggle-btn {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 8px;
+            color: #06b6d4;
+            padding: 0.25rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(6, 182, 212, 0.2);
+            transform: scale(1.05);
+        }
+
+        .toggle-btn.paused {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Authentication Controls */
+        .auth-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            color: #10b981;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .user-status.not-logged-in {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .header {
+                padding: 1rem 1.5rem;
+            }
+
+            .status-cluster {
+                gap: 0.75rem;
+                padding: 0.5rem 1rem;
+            }
+
+            .hackathon-badge,
+            .connection-status,
+            .timer-display {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.75rem;
+            }
+
+            .btn {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            .auto-refresh-panel {
+                gap: 0.5rem;
+                padding: 0.4rem;
+                margin-left: 0.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .header-center {
+                order: -1;
+                max-width: none;
+            }
+
+            .status-cluster {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+
+            .header-right {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.75rem;
+            }
+
+            .secondary-actions {
+                order: -1;
+            }
+
+            .logo-text h1 {
+                font-size: 1.6rem;
+            }
+
+            .logo-text .subtitle {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Notifications */
+        .notification-container {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: var(--shadow-deep);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .notification.info {
+            border-left: 4px solid #06b6d4;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        .notification-close:hover {
+            color: var(--text-primary);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 100vw;
+            overflow-x: hidden;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Metrics Overview */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-deep);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--quantum-gradient);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(6, 182, 212, 0.2);
+        }
+
+        .metric-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+        }
+
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Widget Grid */
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .widget {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-deep);
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--quantum-gradient);
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(6, 182, 212, 0.2);
+        }
+
+        .widget-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-bg);
+            cursor: grab;
+        }
+
+        .widget-header:active {
+            cursor: grabbing;
+        }
+
+        .widget-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .widget-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .widget-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            border: 1px solid var(--glass-border);
+        }
+
+        .widget-btn:hover {
+            background: var(--glass-border);
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        .widget-content {
+            padding: 1.5rem;
+            height: calc(100% - 80px);
+            overflow: hidden;
+        }
+
+        /* Visualization Container */
+        .visualization-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .visualization-container>div {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+        }
+
+        /* 3D Circuit specific styling */
+        #circuit-3d-plot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin: 0 auto;
+        }
+
+        .circuit-3d-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .circuit-3d-view {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+        }
+
+        /* Popup Modal */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-modal {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-deep);
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .popup-overlay.active .popup-modal {
+            transform: scale(1);
+        }
+
+        .popup-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--danger-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .popup-close:hover {
+            transform: scale(1.1);
+        }
+
+        .popup-content {
+            padding: 1.5rem;
+            height: calc(100% - 80px);
+            overflow: auto;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary);
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--glass-border);
+            border-top: 3px solid var(--text-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Sortable Drag and Drop Styles */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--glass-border);
+        }
+
+        .sortable-chosen {
+            cursor: grabbing;
+        }
+
+        .sortable-drag {
+            opacity: 0.8;
+            transform: rotate(2deg);
+        }
+
+        /* Customization Panel */
+        .customization-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-deep);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .customization-panel.open {
+            right: 0;
+        }
+
+        .customization-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .customization-content {
+            padding: 2rem;
+        }
+
+        .widget-list {
+            list-style: none;
+        }
+
+        .widget-item {
+            padding: 1rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            margin-bottom: 0.75rem;
+            cursor: move;
+            background: var(--glass-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .widget-item:hover {
+            background: var(--glass-border);
+            transform: translateX(5px);
+        }
+
+        /* AI Integration Panel */
+        .ai-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-deep);
+        }
+
+        .ai-panel h3 {
+            font-family: var(--font-display);
+            color: var(--text-accent);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-input {
+            width: 100%;
+            padding: 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .ai-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* AI Circuit Generation Styles */
+        .ai-circuit-response {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+
+        .ai-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .ai-action-btn {
+            background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+        }
+
+        .ai-action-btn:active {
+            transform: translateY(0);
+        }
+
+        .ai-loading {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-accent);
+            font-style: italic;
+        }
+
+        .ai-error {
+            color: var(--danger-color);
+            background: rgba(239, 68, 68, 0.1);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-center {
+                order: -1;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .widget-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .customization-panel {
+                width: 100vw;
+                right: -100vw;
+            }
+
+            .popup-modal {
+                width: 95vw;
+                height: 95vh;
+            }
+        }
+
+        /* Chat Interface Styles */
+        .chat-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* AI Chat widget specific overrides */
+        [data-widget="ai-chat"] .widget-content {
+            overflow: visible;
+            height: auto;
+            max-height: 500px;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 450px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 1rem;
+            max-height: 350px;
+            scroll-behavior: smooth;
+            height: 350px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(6, 182, 212, 0.3) transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.3);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.5);
+        }
+
+        .chat-input-container {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            flex-shrink: 0;
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .message {
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .ai-message {
+            justify-content: flex-start;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.75rem;
+            max-width: 80%;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .ai-message .message-content {
+            background: var(--quantum-gradient);
+            color: white;
+        }
+
+        .user-message .message-content {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-btn {
+            padding: 0.75rem;
+            background: var(--quantum-gradient);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Animation Classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Emergency fix to show widget content */
+        .widget [id$="-content"] {
+            display: block !important;
+        }
+
+        .widget .loading {
+            display: none !important;
+        }
+
+        .widget-content-placeholder {
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--glass-border);
+            border-top: 2px solid var(--text-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Bloch Sphere Widget Fixes */
+        .bloch-sphere-widget {
+            height: 100% !important;
+            max-height: 500px;
+        }
+
+        .bloch-main-view {
+            min-width: 0 !important;
+            position: relative !important;
+        }
+
+        #bloch-sphere {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        #bloch-sphere canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+        }
+
+        .bloch-toolbox {
+            flex-shrink: 0 !important;
+            min-width: 250px !important;
+            max-width: 250px !important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .bloch-toolbox {
+                width: 200px !important;
+                min-width: 200px !important;
+                max-width: 200px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bloch-sphere-widget {
+                flex-direction: column !important;
+                height: auto !important;
+                min-height: 600px !important;
+            }
+
+            .bloch-toolbox {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                height: 200px !important;
+                border-left: none !important;
+                border-top: 1px solid #333 !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <!-- Left Section: Logo & Branding -->
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-atom"></i>
+                    <div class="logo-glow"></div>
+                </div>
+                <div class="logo-text">
+                    <h1>Quantum Spark</h1>
+                    <div class="subtitle">Amaravathi Quantum Hackathon</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Section: Status & Info -->
+        <div class="header-center">
+            <div class="status-cluster">
+                <div class="hackathon-badge">
+                    <i class="fas fa-trophy"></i>
+                    <span class="badge-text">2025</span>
+                </div>
+                <div class="connection-status" id="connection-status">
+                    <div class="status-indicator">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <span class="status-text">IBM Quantum</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Controls & Actions -->
+        <div class="header-right">
+            <!-- Primary Actions -->
+            <div class="action-group primary-actions">
+                <button class="btn btn-primary" id="refresh-all-btn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="btn-text">Refresh</span>
+                </button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="action-group secondary-actions">
+                <button class="btn btn-secondary" id="tutorial-btn">
+                    <i class="fas fa-graduation-cap"></i>
+                </button>
+                <button class="btn btn-secondary" id="theme-switcher-btn">
+                    <i class="fas fa-palette"></i>
+                </button>
+
+                <button class="btn btn-secondary" id="customize-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+
+            <!-- Auto-refresh Controls -->
+            <div class="auto-refresh-panel" id="auto-refresh-controls">
+                <div class="refresh-status">
+                    <div class="countdown-display" id="hack-countdown">5:00</div>
+                    <div class="refresh-indicator" id="refresh-indicator"></div>
+                </div>
+                <select class="interval-selector" id="refresh-interval-select">
+                    <option value="30">30s</option>
+                    <option value="60">1m</option>
+                    <option value="120">2m</option>
+                    <option value="300" selected>5m</option>
+                    <option value="600">10m</option>
+                    <option value="900">15m</option>
+                </select>
+                <button class="toggle-btn" id="auto-refresh-toggle" title="Toggle Auto-refresh">
+                    <i class="fas fa-pause"></i>
+                </button>
+            </div>
+
+            <!-- Authentication Controls -->
+            <div class="auth-controls" id="auth-controls">
+                <button class="btn btn-secondary" id="login-btn" style="display: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </button>
+                <button class="btn btn-secondary" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+                <div class="user-status" id="user-status">
+                    <i class="fas fa-user"></i>
+                    <span id="user-email">Not logged in</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Required Modal -->
+    <div id="login-required-modal"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; display: none; align-items: center; justify-content: center;">
+        <div
+            style="background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 2rem; max-width: 500px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+            <div class="logo-icon"
+                style="width: 60px; height: 60px; margin: 0 auto 1.5rem; background: var(--quantum-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                <i class="fas fa-atom" style="font-size: 1.8rem;"></i>
+            </div>
+            <h2 style="color: var(--text-primary); margin-bottom: 1rem; font-size: 1.5rem;">Authentication Required</h2>
+            <p style="color: var(--text-accent); margin-bottom: 2rem; line-height: 1.6;">
+                You need to log in to access the IBM Quantum dashboard and run quantum circuits.
+                <br><br>
+                <strong>Test Credentials:</strong><br>
+                Email: <code
+                    style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">test3@example.com</code><br>
+                Password: <code
+                    style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">testpass123</code>
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="window.location.href='/auth'"
+                    style="background: var(--quantum-gradient); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>Login
+                </button>
+                <button onclick="window.location.href='/debug-login'"
+                    style="background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.2); padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-bug" style="margin-right: 0.5rem;"></i>Debug Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--background-gradient); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-primary);">
+        <div class="logo-icon" style="width: 80px; height: 80px; margin-bottom: 2rem;">
+            <i class="fas fa-atom" style="font-size: 3rem;"></i>
+        </div>
+        <div class="spinner" style="width: 60px; height: 60px; margin-bottom: 1rem;"></div>
+        <h2 style="margin-bottom: 1rem; font-family: var(--font-display);">Quantum Spark Dashboard</h2>
+        <p id="loading-status" style="color: var(--text-secondary);">Initializing quantum systems...</p>
+        <button id="quick-start-btn" class="btn btn-primary" style="margin-top: 2rem;">
+            <i class="fas fa-rocket"></i>
+            Quick Start (Skip Loading)
+        </button>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- AI Integration Panel -->
+        <div class="ai-panel fade-in">
+            <h3>
+                <i class="fas fa-robot"></i>
+                Google Gemini AI Assistant
+            </h3>
+            <input type="text" class="ai-input" id="ai-input"
+                placeholder="Ask Gemini AI about quantum states, circuits, or any quantum computing topic...">
+            <div id="ai-response" style="color: var(--text-secondary); font-size: 0.875rem;"></div>
+        </div>
+
+
+        <!-- Metrics Overview -->
+        <section class="metrics-grid slide-up">
+            <div class="metric-card">
+                <div class="metric-label">Active Backends</div>
+                <div class="metric-value" id="active-backends">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Jobs</div>
+                <div class="metric-value" id="total-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Running Jobs</div>
+                <div class="metric-value" id="running-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Success Rate</div>
+                <div class="metric-value" id="success-rate">-</div>
+            </div>
+        </section>
+
+        <!-- Widget Grid -->
+        <div class="widget-grid" id="widget-grid">
+            <!-- Quantum Backends Widget -->
+            <div class="widget fade-in" data-widget="backends">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-server"></i>
+                        Quantum Backends
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backends-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum backends...</span>
+                    </div>
+                    <div id="backends-content" style="display: none;">
+                        <!-- Backends content will be loaded here -->
+                        <div class="widget-content-placeholder">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-server"
+                                    style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-accent);"></i>
+                                <h4>Quantum Backends</h4>
+                                <p>Loading IBM Quantum backend information...</p>
+                                <div class="loading-spinner" style="margin: 1rem auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum Jobs Widget -->
+            <div class="widget fade-in" data-widget="jobs">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-tasks"></i>
+                        Quantum Jobs
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="jobs-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum jobs...</span>
+                    </div>
+                    <div id="jobs-content" style="display: none;">
+                        <!-- Jobs content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Bloch Sphere Widget (Advanced Implementation) -->
+            <div class="widget fade-in" data-widget="bloch-sphere">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-globe"></i>
+                        3D Bloch Sphere (Advanced)
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="bloch-loading">
+                        <div class="spinner"></div>
+                        <span>Loading Advanced Bloch Sphere...</span>
+                    </div>
+                    <div class="visualization-container" id="bloch-content" style="display: block;">
+                        <div class="bloch-sphere-widget"
+                            style="display: flex; height: 500px; background: #000; border-radius: 8px; overflow: hidden; width: 100%; position: relative;">
+                            <!-- Main Bloch Sphere View -->
+                            <div class="bloch-main-view"
+                                style="flex: 1; position: relative; background: #000; min-width: 0;">
+                                <div id="bloch-sphere"
+                                    style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;">
+                                </div>
+
+                                <!-- State Display (Bottom Left) -->
+                                <div id="bloch-sphere-state"
+                                    style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; line-height: 1.4; z-index: 10;">
+                                    <div>Theta: <span id="bloch-sphere-state-theta">+0.0000</span></div>
+                                    <div>Phi: <span id="bloch-sphere-state-phi">+90.0000</span></div>
+                                    <div>Alpha: <span id="bloch-sphere-state-alpha">+1.0000</span></div>
+                                    <div>Beta: <span id="bloch-sphere-state-beta">+0.0000 + i * 0.0000</span></div>
+                                    <div style="margin-top: 5px; border-top: 1px solid #333; padding-top: 5px;">
+                                        <div>X: <span id="bloch-sphere-state-x">+0.0000</span></div>
+                                        <div>Y: <span id="bloch-sphere-state-y">+0.0000</span></div>
+                                        <div>Z: <span id="bloch-sphere-state-z">+1.0000</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Toolbox Sidebar -->
+                            <div class="bloch-toolbox"
+                                style="width: 250px; background: #1a1a1a; padding: 15px; overflow-y: auto; border-left: 1px solid #333; flex-shrink: 0;">
+                                <h4
+                                    style="color: #fff; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 16px;">
+                                    Toolbox</h4>
+
+                                <!-- Half-turn Gates -->
+                                <div style="margin-bottom: 20px;">
+                                    <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">Half-turn Gates</h5>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                        <button class="quantum-gate" id="px-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>x</sub></button>
+                                        <button class="quantum-gate" id="py-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>y</sub></button>
+                                        <button class="quantum-gate" id="pz-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>z</sub></button>
+                                        <button class="quantum-gate" id="h-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">H</button>
+                                    </div>
+                                </div>
+
+                                <!-- Quarter-turn Gates -->
+                                <div style="margin-bottom: 20px;">
+                                    <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">Quarter-turn Gates
+                                    </h5>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                        <button class="quantum-gate" id="px-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>x</sub><sup>1/2</sup></button>
+                                        <button class="quantum-gate" id="py-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>y</sub><sup>1/2</sup></button>
+                                        <button class="quantum-gate" id="pz-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>z</sub><sup>1/2</sup></button>
+                                        <button class="quantum-gate" id="pxi-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>x</sub><sup>-1/2</sup></button>
+                                        <button class="quantum-gate" id="pyi-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>y</sub><sup>-1/2</sup></button>
+                                        <button class="quantum-gate" id="pzi-12-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>z</sub><sup>-1/2</sup></button>
+                                        <button class="quantum-gate" id="s-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">S</button>
+                                        <button class="quantum-gate" id="si-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">S<sup>-1</sup></button>
+                                    </div>
+                                </div>
+
+                                <!-- Eighth-turn Gates -->
+                                <div style="margin-bottom: 20px;">
+                                    <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">Eighth-turn Gates
+                                    </h5>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                        <button class="quantum-gate" id="px-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>x</sub><sup>1/4</sup></button>
+                                        <button class="quantum-gate" id="py-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>y</sub><sup>1/4</sup></button>
+                                        <button class="quantum-gate" id="pz-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>z</sub><sup>1/4</sup></button>
+                                        <button class="quantum-gate" id="pxi-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>x</sub><sup>-1/4</sup></button>
+                                        <button class="quantum-gate" id="pyi-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>y</sub><sup>-1/4</sup></button>
+                                        <button class="quantum-gate" id="pzi-14-builtInGate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">P<sub>z</sub><sup>-1/4</sup></button>
+                                    </div>
+                                </div>
+
+                                <!-- Custom Gates -->
+                                <div style="margin-bottom: 20px;">
+                                    <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">Custom Gates</h5>
+                                    <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 5px;">
+                                        <button class="quantum-gate" id="custom-gate"
+                                            style="background: #3b82f6; color: white; border: none; padding: 8px; border-radius: 3px; font-size: 12px; cursor: pointer;">+</button>
+                                    </div>
+                                </div>
+
+                                <!-- Lambda Gates -->
+                                <div style="margin-bottom: 20px;">
+                                    <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">Lambda Gates</h5>
+                                    <div style="margin-bottom: 10px;">
+                                        <label
+                                            style="color: #fff; font-size: 12px; display: block; margin-bottom: 5px;">Polar
+                                            angle: <span id="polar-angle-value">0°</span></label>
+                                        <input type="range" id="polar-angle" min="0" max="360" value="0"
+                                            style="width: 100%; height: 4px; border-radius: 2px; background: #333; outline: none;">
+                                    </div>
+                                    <button id="apply-lambda"
+                                        style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 3px; width: 100%; font-size: 12px; cursor: pointer;">APPLY</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Quantum Circuit Widget -->
+            <div class="widget fade-in" data-widget="circuit">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-cube"></i>
+                        3D Quantum Circuit
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="circuit-loading">
+                        <div class="spinner"></div>
+                        <span>Loading 3D circuit...</span>
+                    </div>
+                    <div class="visualization-container" id="circuit-content" style="display: none;">
+                        <!-- 3D Circuit visualization will be rendered here -->
+                        <div id="3d-quantum-circuit" style="width: 100%; height: 300px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entanglement Analysis Widget -->
+            <div class="widget fade-in" data-widget="entanglement">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-link"></i>
+                        Entanglement Analysis
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="entanglement-loading">
+                        <div class="spinner"></div>
+                        <span>Loading entanglement data...</span>
+                    </div>
+                    <div id="entanglement-content" style="display: none;">
+                        <!-- Entanglement analysis will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Widget -->
+            <div class="widget fade-in" data-widget="results">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Measurement Results
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="results-loading">
+                        <div class="spinner"></div>
+                        <span>Loading measurement results...</span>
+                    </div>
+                    <div id="results-content" style="display: none;">
+                        <!-- Results will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum State Widget -->
+            <div class="widget fade-in" data-widget="quantum-state">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-atom"></i>
+                        Quantum State
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="quantum-state-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum state...</span>
+                    </div>
+                    <div id="quantum-state-content" style="display: none;">
+                        <!-- Quantum state will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Widget -->
+            <div class="widget fade-in" data-widget="performance">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-line"></i>
+                        Performance
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="performance-loading">
+                        <div class="spinner"></div>
+                        <span>Loading performance data...</span>
+                    </div>
+                    <div id="performance-content" style="display: none;">
+                        <!-- Performance charts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Widget -->
+            <div class="widget fade-in" data-widget="ai-chat">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-robot"></i>
+                        AI Assistant
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="ai-chat-loading">
+                        <div class="spinner"></div>
+                        <span>Initializing AI assistant...</span>
+                    </div>
+                    <div id="ai-chat-content" style="display: none;">
+                        <!-- AI Chat interface will be loaded here -->
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chat-messages">
+                                <div class="message ai-message">
+                                    <div class="message-content">
+                                        <i class="fas fa-robot"></i>
+                                        Hello! I'm your quantum computing AI assistant. Ask me anything about quantum
+                                        states, circuits, or quantum computing concepts!
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chat-input" placeholder="Ask about quantum computing..."
+                                    class="chat-input">
+                                <button id="send-message" class="send-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Data Widget -->
+            <div class="widget fade-in" data-widget="historical-data">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-history"></i>
+                        Historical Data
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="historical-data-loading">
+                        <div class="spinner"></div>
+                        <span>Loading historical data...</span>
+                    </div>
+                    <div id="historical-data-content" style="display: none;">
+                        <!-- Historical data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend Comparison Widget -->
+            <div class="widget fade-in" data-widget="backend-comparison">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-balance-scale"></i>
+                        Backend Comparison
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backend-comparison-loading">
+                        <div class="spinner"></div>
+                        <span>Loading backend comparison...</span>
+                    </div>
+                    <div id="backend-comparison-content" style="display: none;">
+                        <!-- Backend comparison will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Popup Modal -->
+    <div class="popup-overlay" id="popup-overlay">
+        <div class="popup-modal">
+            <div class="popup-header">
+                <h3 id="popup-title">Widget View</h3>
+                <button class="popup-close" id="popup-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-content" id="popup-content">
+                <!-- Popup content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial System will be dynamically created by tutorial.js -->
+
+    <!-- API Configuration Modal -->
+    <div class="popup-overlay" id="api-config-modal">
+        <div class="popup-modal" style="max-width: 500px;">
+            <div class="popup-header">
+                <h3>IBM Quantum API Configuration</h3>
+                <button class="popup-close" id="close-api-config">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-content">
+                <div style="margin-bottom: 1rem;">
+                    <label for="api-token"
+                        style="display: block; margin-bottom: 0.5rem; color: var(--text-primary);">API Token:</label>
+                    <input type="password" id="api-token" placeholder="Enter your IBM Quantum API token"
+                        style="width: 100%; padding: 0.75rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="api-name"
+                        style="display: block; margin-bottom: 0.5rem; color: var(--text-primary);">Instance
+                        Name:</label>
+                    <input type="text" id="api-name" placeholder="My Quantum Instance"
+                        style="width: 100%; padding: 0.75rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="api-crn" style="display: block; margin-bottom: 0.5rem; color: var(--text-primary);">CRN
+                        (Optional):</label>
+                    <input type="text" id="api-crn" placeholder="Enter your IBM Quantum CRN"
+                        style="width: 100%; padding: 0.75rem; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-primary);">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-secondary" id="cancel-api-config">Cancel</button>
+                    <button class="btn btn-primary" id="save-api-config">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customization Panel -->
+    <div class="customization-panel" id="customization-panel">
+        <div class="customization-header">
+            <h3>Customize Dashboard</h3>
+            <button class="widget-btn" id="close-customization">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="customization-content">
+            <h4>Available Widgets</h4>
+            <ul class="widget-list" id="available-widgets">
+                <li class="widget-item" data-widget="backends">
+                    <span><i class="fas fa-server"></i> Quantum Backends</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="jobs">
+                    <span><i class="fas fa-tasks"></i> Quantum Jobs</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="bloch-sphere">
+                    <span><i class="fas fa-globe"></i> 3D Bloch Sphere (Blochy)</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="circuit">
+                    <span><i class="fas fa-cube"></i> 3D Quantum Circuit</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="entanglement">
+                    <span><i class="fas fa-link"></i> Entanglement Analysis</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="results">
+                    <span><i class="fas fa-chart-bar"></i> Measurement Results</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="quantum-state">
+                    <span><i class="fas fa-atom"></i> Quantum State</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="performance">
+                    <span><i class="fas fa-chart-line"></i> Performance</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="ai-chat">
+                    <span><i class="fas fa-robot"></i> AI Assistant</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="historical-data">
+                    <span><i class="fas fa-history"></i> Historical Data</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="backend-comparison">
+                    <span><i class="fas fa-balance-scale"></i> Backend Comparison</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Math.js for quantum calculations -->
+    <script src="https://unpkg.com/mathjs@11.11.0/lib/browser/math.min.js"></script>
+
+    <!-- Blochy Integration -->
+    <script src="/static/quantum.js"></script>
+    <script src="/static/plot.js"></script>
+    <script src="/static/ui.js"></script>
+    <script src="/static/helper.js"></script>
+
+    <!-- 3D Circuit -->
+    <script src="/static/3d_quantum_circuit.js"></script>
+
+    <!-- Enhanced Bloch Integration -->
+    <script src="/static/bloch_quantum.js"></script>
+    <script src="/static/bloch_ui.js"></script>
+
+    <!-- Three.js Scripts -->
+    <script src="/static/bloch_sphere/src/libs/three/three.min.js"></script>
+
+    <!-- Load CSS2DRenderer separately -->
+    <script src="/static/bloch-sphere-reference/src/libs/three/jsm/renderers/CSS2DRenderer.js"></script>
+
+    <!-- Load Three.js Controls -->
+    <script src="/static/orbitcontrols_fixed.js"></script>
+
+    <!-- Enhanced Bloch Sphere Integration -->
+    <script src="/static/enhanced_bloch_integration.js"></script>
+
+    <!-- Quantum Results Integration -->
+    <script src="/static/quantum_results_integration.js"></script>
+    <script>
+        // Set OrbitControls loaded flag
+        window.OrbitControlsLoaded = true;
+        console.log('OrbitControls loaded');
+    </script>
+
+    <!-- Theme Switcher -->
+    <script src="/static/theme_switcher.js"></script>
+
+    <!-- Enhanced AI Assistant -->
+    <script src="/static/enhanced_ai_assistant.js"></script>
+
+    <!-- Quantum AI Enhancement Script -->
+    <script src="/static/quantum_ai_enhancement.js"></script>
+
+    <!-- Backend Comparison System -->
+    <script src="/static/backend_comparison.js?v=2.0"></script>
+
+    <!-- Quantum Widgets -->
+    <script src="/static/widgets.js?v=2.0"></script>
+    <script src="/static/enhanced_quantum_script.js"></script>
+
+    <!-- Main Dashboard Script -->
+    <script src="/static/dashboard_new.js"></script>
+    <script src="/static/modern_dashboard.js"></script>
+
+    <!-- Emergency Fix Script -->
+    <script>
+        // Emergency fix to hide loading screen
+        setTimeout(() => {
+            console.log('Emergency loading screen fix activated');
+            const loadingElements = document.querySelectorAll('.loading, .loading-screen, #loading-screen, .quantum-loading');
+            loadingElements.forEach(el => {
+                el.style.display = 'none';
+                el.style.opacity = '0';
+                el.classList.add('hidden');
+            });
+
+            // Show main content
+            const mainContent = document.querySelector('.dashboard, .main-content, .quantum-container, .widgets-container');
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.style.opacity = '1';
+            }
+
+            console.log('Emergency fix applied - loading screen hidden');
+
+            // Add force refresh button
+            const header = document.querySelector('.header, .dashboard-header');
+            if (header && !document.getElementById('force-refresh-btn')) {
+                const refreshBtn = document.createElement('button');
+                refreshBtn.id = 'force-refresh-btn';
+                refreshBtn.innerHTML = '🔄 Force Refresh Data';
+                refreshBtn.style.cssText = `
+                    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-left: 20px;
+                    transition: all 0.3s ease;
+                `;
+                refreshBtn.onclick = () => {
+                    if (window.dashboard && window.dashboard.forceLoadData) {
+                        window.dashboard.forceLoadData();
+                    } else {
+                        location.reload();
+                    }
+                };
+                header.appendChild(refreshBtn);
+            }
+        }, 3000);
+    </script>
+
+    <!-- Additional JavaScript for enhanced functionality -->
+    <script>
+        // Authentication functions
+        function initializeAuth() {
+            console.log('Initializing authentication...');
+
+            // Check authentication status
+            checkAuthStatus();
+
+            // Setup auth event listeners
+            setupAuthListeners();
+        }
+
+        async function checkAuthStatus() {
+            try {
+                // Try to access a protected endpoint to check auth status
+                const response = await fetch('/api/backends', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    // User is authenticated
+                    console.log('User is authenticated');
+                    updateAuthUI(true);
+
+                    // Get user info from session (this would need a dedicated endpoint)
+                    const userStatus = document.getElementById('user-status');
+                    const userEmail = userStatus.querySelector('#user-email');
+                    // For now, just show "Logged in"
+                    userEmail.textContent = 'Logged in';
+                } else if (response.status === 401) {
+                    // User is not authenticated
+                    console.log('User is not authenticated');
+                    updateAuthUI(false);
+
+                    // Show login required modal
+                    const modal = document.getElementById('login-required-modal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                    }
+                } else {
+                    console.log('Unexpected auth status:', response.status);
+                    updateAuthUI(false);
+                }
+            } catch (error) {
+                console.log('Auth check failed:', error);
+                updateAuthUI(false);
+            }
+        }
+
+        function updateAuthUI(isAuthenticated) {
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userStatus = document.getElementById('user-status');
+
+            if (isAuthenticated) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'flex';
+                userStatus.classList.remove('not-logged-in');
+            } else {
+                loginBtn.style.display = 'flex';
+                logoutBtn.style.display = 'none';
+                userStatus.classList.add('not-logged-in');
+            }
+        }
+
+        function setupAuthListeners() {
+            // Login button
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    window.location.href = '/auth';
+                });
+            }
+
+            // Logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            console.log('Logged out successfully');
+                            // Redirect to auth page
+                            window.location.href = '/auth';
+                        } else {
+                            console.error('Logout failed');
+                            alert('Logout failed. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        alert('Logout failed. Please try again.');
+                    }
+                });
+            }
+        }
+
+        // Initialize dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Quantum Spark Dashboard...');
+
+            // Initialize authentication
+            initializeAuth();
+
+            // Initialize the dashboard - use HackathonDashboard which is in dashboard_new.js
+            if (typeof HackathonDashboard !== 'undefined') {
+                window.dashboard = new HackathonDashboard();
+                try {
+                    // Initialize the dashboard (synchronous)
+                    window.dashboard.init();
+                    console.log('Hackathon Dashboard initialized successfully');
+                } catch (error) {
+                    console.error('Error during dashboard initialization:', error);
+                }
+            } else {
+                console.error('HackathonDashboard class not found');
+            }
+
+            // Setup additional event listeners
+            setupAdditionalEventListeners();
+        });
+
+        function setupAdditionalEventListeners() {
+            // API Configuration Modal
+            const apiConfigBtn = document.getElementById('api-config-btn');
+            const apiConfigModal = document.getElementById('api-config-modal');
+            const closeApiConfig = document.getElementById('close-api-config');
+            const cancelApiConfig = document.getElementById('cancel-api-config');
+            const saveApiConfig = document.getElementById('save-api-config');
+
+            if (apiConfigBtn && apiConfigModal) {
+                apiConfigBtn.addEventListener('click', () => {
+                    apiConfigModal.classList.add('active');
+                });
+            }
+
+            if (closeApiConfig && apiConfigModal) {
+                closeApiConfig.addEventListener('click', () => {
+                    apiConfigModal.classList.remove('active');
+                });
+            }
+
+            if (cancelApiConfig && apiConfigModal) {
+                cancelApiConfig.addEventListener('click', () => {
+                    apiConfigModal.classList.remove('active');
+                });
+            }
+
+            if (saveApiConfig) {
+                saveApiConfig.addEventListener('click', () => {
+                    if (window.dashboardInstance) {
+                        window.dashboardInstance.addApiInstance();
+                    }
+                });
+            }
+
+            // Theme Switcher
+            const themeBtn = document.getElementById('theme-switcher-btn');
+            if (themeBtn) {
+                themeBtn.addEventListener('click', () => {
+                    if (window.dashboard && window.dashboard.toggleTheme) {
+                        window.dashboard.toggleTheme();
+                    } else {
+                        // Fallback theme toggle
+                        document.body.classList.toggle('dark-theme');
+                        const isDark = document.body.classList.contains('dark-theme');
+                        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    }
+                });
+            }
+
+            // Customize Button - Now handled by dashboard.setupEventListeners()
+            // No duplicate listeners needed here
+
+            // Refresh All Button
+            const refreshAllBtn = document.getElementById('refresh-all-btn');
+            if (refreshAllBtn) {
+                refreshAllBtn.addEventListener('click', () => {
+                    if (window.dashboard && window.dashboard.updateAllWidgets) {
+                        window.dashboard.updateAllWidgets();
+                        if (window.dashboard.showNotification) {
+                            window.dashboard.showNotification('🔄 Refreshing all widgets...', 'info');
+                        }
+                    }
+                });
+            }
+
+            // AI Input Handler
+            const aiInput = document.getElementById('ai-input');
+            if (aiInput) {
+                aiInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = aiInput.value.trim();
+                        if (query && window.dashboard && window.dashboard.processAIQuery) {
+                            window.dashboard.processAIQuery(query);
+                            aiInput.value = '';
+                        }
+                    }
+                });
+            }
+
+            // Chat Input Handler
+            const chatInput = document.getElementById('chat-input');
+            const sendMessage = document.getElementById('send-message');
+
+            if (chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendChatMessage();
+                    }
+                });
+            }
+
+            if (sendMessage) {
+                sendMessage.addEventListener('click', sendChatMessage);
+            }
+
+            function sendChatMessage() {
+                const message = chatInput.value.trim();
+                if (message) {
+                    // Add user message to chat
+                    const chatMessages = document.getElementById('chat-messages');
+                    if (chatMessages) {
+                        const userMessage = document.createElement('div');
+                        userMessage.className = 'message user-message';
+                        userMessage.innerHTML = `
+                            <div class="message-content">
+                                <i class="fas fa-user"></i>
+                                ${message}
+                            </div>
+                        `;
+                        chatMessages.appendChild(userMessage);
+
+                        // Auto-scroll to bottom with multiple fallback methods
+                        const scrollToBottom = () => {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                            try {
+                                chatMessages.scrollTo({
+                                    top: chatMessages.scrollHeight,
+                                    behavior: 'auto'
+                                });
+                            } catch (e) {
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                        };
+
+                        setTimeout(scrollToBottom, 10);
+                        setTimeout(scrollToBottom, 50);
+                        setTimeout(() => {
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }, 100);
+                    }
+
+                    // Process with AI
+                    if (window.dashboard && window.dashboard.processAIQuery) {
+                        window.dashboard.processAIQuery(message);
+                    }
+
+                    chatInput.value = '';
+                }
+            }
+        }
+
+        // Global functions for widget interactions
+        window.viewJobDetails = function (jobId) {
+            if (window.dashboard && window.dashboard.viewJobDetails) {
+                window.dashboard.viewJobDetails(jobId);
+            }
+        };
+
+        window.applyQuantumGate = function (gate) {
+            if (window.dashboard && window.dashboard.applyQuantumGate) {
+                window.dashboard.applyQuantumGate(gate);
+            }
+        };
+
+        // AI Circuit Execution Function
+        window.executeCircuitCode = function (circuitCode) {
+            console.log('Executing AI-generated circuit...');
+
+            try {
+                // Try to execute using the quantum manager
+                if (window.quantumManager && window.quantumManager.executeCircuit) {
+                    window.quantumManager.executeCircuit(circuitCode);
+                    console.log('Circuit executed via quantum manager');
+                    return;
+                }
+
+                // Try using the execution API
+                fetch('/api/execute-circuit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: circuitCode,
+                        shots: 1024
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Circuit executed successfully:', data);
+                            alert('Circuit executed successfully! Check results in the execution history.');
+                        } else {
+                            console.error('Circuit execution failed:', data.error);
+                            alert('Circuit execution failed: ' + (data.error || 'Unknown error'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Circuit execution error:', error);
+                        alert('Circuit execution failed. Check console for details.');
+                    });
+
+            } catch (error) {
+                console.error('Error executing circuit:', error);
+                alert('Error executing circuit. Check console for details.');
+            }
+        };
+
+        // AI Circuit Loading Function
+        window.loadCircuitFromAI = function (circuitData) {
+            console.log('Loading circuit from AI:', typeof circuitData === 'string' ? circuitData.substring(0, 100) + '...' : 'structured data');
+
+            try {
+                // Show the circuit widget if it's not visible
+                const circuitWidget = document.querySelector('[data-widget="circuit"]');
+                if (circuitWidget) {
+                    circuitWidget.style.display = 'block';
+                    circuitWidget.scrollIntoView({ behavior: 'smooth' });
+                }
+
+                // Create or update AI circuit display overlay
+                const circuitContainer = document.getElementById('3d-quantum-circuit');
+                if (circuitContainer) {
+                    // Clear any existing AI overlay
+                    const existingOverlay = circuitContainer.querySelector('.ai-circuit-overlay');
+                    if (existingOverlay) {
+                        existingOverlay.remove();
+                    }
+
+                    // Create AI circuit overlay (positioned over the 3D visualization)
+                    const overlay = document.createElement('div');
+                    overlay.className = 'ai-circuit-overlay';
+                    overlay.style.cssText = `
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        background: rgba(0, 212, 255, 0.9);
+                        color: black;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        z-index: 100;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    `;
+                    overlay.innerHTML = '🤖 AI Circuit Loaded';
+                    overlay.title = typeof circuitData === 'string' ? 'Click to view generated code' : 'AI Generated Circuit';
+
+                    // Add click handler to show code or circuit info
+                    overlay.onclick = function () {
+                        if (typeof circuitData === 'string') {
+                            // Show Qiskit code
+                            const codeModal = document.createElement('div');
+                            codeModal.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0,0,0,0.8);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                z-index: 10000;
+                            `;
+                            codeModal.innerHTML = `
+                                <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; max-width: 800px; max-height: 80vh; overflow-y: auto; position: relative;">
+                                    <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+                                    <h3 style="color: #00d4ff; margin: 0 0 15px 0;">🤖 AI Generated Circuit Code</h3>
+                                    <div style="background: #2a2a2a; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #00ff88; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto;">
+                                        ${circuitData.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                                    </div>
+                                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                        <button onclick="navigator.clipboard.writeText(\`${circuitData.replace(/`/g, '\\`')}\`); this.innerHTML='Copied!'; setTimeout(() => this.innerHTML='Copy Code', 2000);" style="background: #00d4ff; color: black; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Code</button>
+                                        <button onclick="if(window.executeCircuitCode) { window.executeCircuitCode(\`${circuitData.replace(/`/g, '\\`')}\`); } this.parentElement.parentElement.remove();" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Execute Circuit</button>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(codeModal);
+                        } else {
+                            // Show structured circuit info
+                            const infoModal = document.createElement('div');
+                            infoModal.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0,0,0,0.8);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                z-index: 10000;
+                            `;
+                            infoModal.innerHTML = `
+                                <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; max-width: 600px; position: relative;">
+                                    <button onclick="this.parentElement.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: #ff4444; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+                                    <h3 style="color: #00d4ff; margin: 0 0 15px 0;">🤖 AI Generated Circuit</h3>
+                                    <div style="color: white; font-size: 14px;">
+                                        <p><strong>Name:</strong> ${circuitData.name || 'Unnamed'}</p>
+                                        <p><strong>Qubits:</strong> ${circuitData.qubits || circuitData.num_qubits || 'N/A'}</p>
+                                        <p><strong>Depth:</strong> ${circuitData.depth || 'N/A'}</p>
+                                        <p><strong>Gates:</strong> ${circuitData.gates ? circuitData.gates.length : 'N/A'}</p>
+                                        <p><strong>Description:</strong> ${circuitData.description || 'No description'}</p>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(infoModal);
+                        }
+                    };
+
+                    circuitContainer.style.position = 'relative';
+                    circuitContainer.appendChild(overlay);
+
+                    // Handle both string (Qiskit code) and structured data
+                    if (typeof circuitData === 'string') {
+                        // This is Qiskit code, use the old method
+                        if (window.loadAICircuitCode) {
+                            window.loadAICircuitCode(circuitData);
+                        } else if (window.init3DQuantumCircuit) {
+                            window.aiGeneratedCircuitCode = circuitData;
+                            window.init3DQuantumCircuit();
+                        }
+                    } else {
+                        // This is structured circuit data, use setCircuitData directly
+                        if (window.setCircuitData) {
+                            window.setCircuitData(circuitData);
+                        } else if (window.init3DQuantumCircuit) {
+                            window.init3DQuantumCircuit();
+                        }
+                    }
+
+                    console.log('✅ AI circuit loaded into 3D visualizer');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error loading AI circuit:', error);
+            }
+
+            // Fallback: show error
+            console.error('❌ Failed to load circuit into 3D visualizer');
+            return false;
+        };
+
+        // Initialize 3D circuit when dashboard loads
+        function initializeCircuitVisualizer() {
+            console.log('🚀 Initializing circuit visualizer on page load...');
+            if (window.init3DQuantumCircuit) {
+                window.init3DQuantumCircuit();
+            } else {
+                // Wait for script to load and try again with multiple retries
+                let retries = 0;
+                const maxRetries = 10;
+
+                function retryInitialization() {
+                    retries++;
+                    if (window.init3DQuantumCircuit) {
+                        console.log('✅ 3D circuit visualizer found on retry', retries);
+                        window.init3DQuantumCircuit();
+                    } else if (retries < maxRetries) {
+                        console.log(`⏳ Retrying 3D circuit initialization (${retries}/${maxRetries})...`);
+                        setTimeout(retryInitialization, 500);
+                    } else {
+                        console.error('❌ 3D circuit visualizer failed to initialize after', maxRetries, 'retries');
+                        // Try to show a basic fallback message in the circuit widget
+                        const circuitWidget = document.querySelector('[data-widget="circuit"]');
+                        if (circuitWidget) {
+                            const contentElement = circuitWidget.querySelector('[id$="-content"]');
+                            if (contentElement) {
+                                contentElement.innerHTML = `
+                                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
+                                        <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+                                        <p>3D Circuit Visualizer</p>
+                                        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Loading visualization...</p>
+                                        <button onclick="initializeCircuitVisualizer()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                            Retry
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        }
+                    }
+                }
+
+                setTimeout(retryInitialization, 500);
+            }
+        }
+
+        // Load saved theme and initialize circuit
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+            }
+
+            // Initialize the 3D circuit visualizer
+            initializeCircuitVisualizer();
+        });
+    </script>
+
+    <!-- Dashboard Initialization -->
+    <script>
+        // Timer and Auto-refresh functionality
+        let countdownTimer = null;
+        let currentInterval = 300; // 5 minutes default
+        let isAutoRefreshEnabled = true;
+        let timeRemaining = currentInterval;
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateCountdownDisplay() {
+            const countdownElement = document.getElementById('hack-countdown');
+            if (countdownElement) {
+                countdownElement.textContent = formatTime(timeRemaining);
+            }
+        }
+
+        function startCountdown() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+            }
+
+            timeRemaining = currentInterval;
+            updateCountdownDisplay();
+
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                updateCountdownDisplay();
+
+                if (timeRemaining <= 0) {
+                    // Auto-refresh when timer expires
+                    if (isAutoRefreshEnabled && window.dashboard) {
+                        console.log('🔄 Auto-refreshing dashboard...');
+                        if (window.dashboard.updateAllWidgets) {
+                            window.dashboard.updateAllWidgets();
+                        } else if (window.dashboard.loadInitialData) {
+                            window.dashboard.loadInitialData();
+                        }
+                        if (window.dashboard.showNotification) {
+                            window.dashboard.showNotification('🔄 Dashboard auto-refreshed!', 'success');
+                        }
+                    }
+                    // Reset timer
+                    timeRemaining = currentInterval;
+                }
+            }, 1000);
+        }
+
+        function setupTimerControls() {
+            const intervalSelect = document.getElementById('refresh-interval-select');
+            const toggleBtn = document.getElementById('auto-refresh-toggle');
+
+            if (intervalSelect) {
+                intervalSelect.addEventListener('change', (e) => {
+                    currentInterval = parseInt(e.target.value);
+                    timeRemaining = currentInterval;
+                    updateCountdownDisplay();
+                    if (isAutoRefreshEnabled) {
+                        startCountdown();
+                    }
+                });
+            }
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    isAutoRefreshEnabled = !isAutoRefreshEnabled;
+                    const icon = toggleBtn.querySelector('i');
+
+                    if (isAutoRefreshEnabled) {
+                        icon.className = 'fas fa-pause';
+                        toggleBtn.title = 'Pause Auto-refresh';
+                        startCountdown();
+                    } else {
+                        icon.className = 'fas fa-play';
+                        toggleBtn.title = 'Start Auto-refresh';
+                        if (countdownTimer) {
+                            clearInterval(countdownTimer);
+                            countdownTimer = null;
+                        }
+                    }
+                });
+            }
+
+            // AI Feature Button Event Listeners
+            const aiCircuitGenBtn = document.getElementById('ai-circuit-gen-btn');
+            const aiConceptSearchBtn = document.getElementById('ai-concept-search-btn');
+            const aiChatBtn = document.getElementById('ai-chat-btn');
+            const aiCloudConfigBtn = document.getElementById('ai-cloud-config-btn');
+
+            if (aiCircuitGenBtn) {
+                aiCircuitGenBtn.addEventListener('click', () => {
+                    if (window.quantumAIEnhancement) {
+                        window.quantumAIEnhancement.showCircuitGenerator();
+                    } else {
+                        alert('AI Circuit Generator is initializing. Please wait...');
+                    }
+                });
+            }
+
+            if (aiConceptSearchBtn) {
+                aiConceptSearchBtn.addEventListener('click', () => {
+                    if (window.quantumAIEnhancement) {
+                        window.quantumAIEnhancement.showConceptSimilarity();
+                    } else {
+                        alert('AI Concept Search is initializing. Please wait...');
+                    }
+                });
+            }
+
+            if (aiChatBtn) {
+                aiChatBtn.addEventListener('click', () => {
+                    // Create or show AI side panel with tabs
+                    if (window.hackathonDashboard && window.hackathonDashboard.createAISidePanel) {
+                        window.hackathonDashboard.createAISidePanel();
+                    } else {
+                        alert('AI Quantum Chat is initializing. Please wait...');
+                    }
+                });
+            }
+
+            if (aiCloudConfigBtn) {
+                aiCloudConfigBtn.addEventListener('click', () => {
+                    if (window.quantumAIEnhancement) {
+                        window.quantumAIEnhancement.showCloudConfig();
+                    } else {
+                        alert('AI Cloud Configuration is initializing. Please wait...');
+                    }
+                });
+            }
+        }
+
+        // Bloch sphere initialization fix
+        function initializeBlochSphere() {
+            setTimeout(() => {
+                const blochContainer = document.getElementById('bloch-sphere');
+                if (blochContainer && window.GlobalContext) {
+                    console.log('🔧 Initializing Bloch sphere...');
+
+                    // Force resize and reposition
+                    if (window.GlobalContext.onresize) {
+                        window.GlobalContext.onresize();
+                    }
+
+                    // Update renderer size to match container
+                    const rect = blochContainer.getBoundingClientRect();
+                    if (window.GlobalContext.renderer) {
+                        window.GlobalContext.renderer.setSize(rect.width, rect.height);
+                    }
+                    if (window.GlobalContext.labelRenderer) {
+                        window.GlobalContext.labelRenderer.setSize(rect.width, rect.height);
+                    }
+
+                    // Update camera aspect ratio
+                    if (window.GlobalContext.camera) {
+                        window.GlobalContext.camera.aspect = rect.width / rect.height;
+                        window.GlobalContext.camera.updateProjectionMatrix();
+                    }
+
+                    // Ensure canvas is properly positioned
+                    const canvas = blochContainer.querySelector('canvas');
+                    if (canvas) {
+                        canvas.style.position = 'absolute';
+                        canvas.style.top = '0';
+                        canvas.style.left = '0';
+                        canvas.style.width = '100%';
+                        canvas.style.height = '100%';
+                        canvas.style.zIndex = '1';
+                    }
+
+                    console.log('✅ Bloch sphere initialized successfully');
+                } else if (blochContainer) {
+                    // Try again if GlobalContext is not ready
+                    console.log('⏳ Waiting for Bloch sphere to load...');
+                    setTimeout(initializeBlochSphere, 500);
+                }
+            }, 1000);
+        }
+
+        // Initialize the hackathon dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('🚀 Initializing Hackathon Dashboard...');
+            console.log('🔍 DOM loaded, checking for widgets...');
+
+            // Setup timer controls
+            setupTimerControls();
+
+            // Check if widgets exist in DOM
+            const widgets = document.querySelectorAll('.widget');
+            console.log('📊 Found', widgets.length, 'widgets in DOM');
+            widgets.forEach((widget, index) => {
+                const widgetType = widget.getAttribute('data-widget');
+                console.log(`Widget ${index + 1}:`, widgetType, widget);
+
+                // Show widget content by default
+                const contentElement = widget.querySelector('[id$="-content"]');
+                if (contentElement) {
+                    contentElement.style.display = 'block';
+                    console.log(`✅ Showing content for widget: ${widgetType}`);
+                }
+
+                // Hide loading states
+                const loadingElement = widget.querySelector('.loading');
+                if (loadingElement) {
+                    loadingElement.style.display = 'none';
+                    console.log(`✅ Hiding loading for widget: ${widgetType}`);
+                }
+            });
+
+            // Removed duplicate initialization - now handled in DOMContentLoaded above
+            // Start the countdown timer
+            setTimeout(() => {
+                startCountdown();
+                // Initialize Bloch sphere
+                initializeBlochSphere();
+            }, 500);
+
+            // Add global function to refresh Bloch sphere
+            window.refreshBlochSphere = function () {
+                console.log('Refreshing Bloch sphere...');
+                const blochContent = document.getElementById('bloch-content');
+                const blochLoading = document.getElementById('bloch-loading');
+
+                if (blochLoading) blochLoading.style.display = 'flex';
+                if (blochContent) blochContent.style.display = 'none';
+
+                setTimeout(() => {
+                    if (blochLoading) blochLoading.style.display = 'none';
+                    if (blochContent) blochContent.style.display = 'block';
+                    initializeBlochSphere();
+                }, 500);
+            };
+        });
+
+        // Add widget refresh listener for Bloch sphere
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('[data-action="refresh"]')) {
+                const widget = e.target.closest('.widget');
+                if (widget && widget.getAttribute('data-widget') === 'bloch-sphere') {
+                    setTimeout(() => {
+                        window.refreshBlochSphere();
+                    }, 100);
+                }
+            }
+        });
+
+    </script>
+
+    <!-- Tutorial System Script -->
+    <script src="{{ url_for('static', filename='tutorial.js') }}"></script>
+</body>
+
+</html>

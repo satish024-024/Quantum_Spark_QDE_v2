@@ -1,0 +1,230 @@
+<!-- 
+  AI Key System Integration for modern_dashboard.html
+  Add these components to enable universal AI key functionality
+-->
+
+<!-- 1. ADD THIS IN HEADER (after mode toggle, before user icon) -->
+<!-- Location: Find the header section around line 2200-2300 -->
+<button id="ai-key-btn" class="header-icon-btn" style="
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+">
+    <i class="fas fa-key"></i>
+    <span class="ai-status-badge locked" id="ai-status" style="
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 8px;
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    ">Locked</span>
+</button>
+
+<!-- 2. ADD THIS MODAL BEFORE CLOSING </body> TAG -->
+<div id="ai-key-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="
+        background: rgba(30, 30, 50, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 600px;
+        margin: 5% auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    ">
+        <div class="modal-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; color: #fff;">🤖 Unlock AI Features</h2>
+            <button class="close-btn" style="
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 1.5rem;
+                cursor: pointer;
+                opacity: 0.7;
+                transition: opacity 0.3s;
+            ">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 1rem;">Paste any AI API key to unlock smart
+                features:</p>
+
+            <div style="position: relative; margin-bottom: 1.5rem;">
+                <input type="password" id="ai-key-input" placeholder="Paste your API key here..." autocomplete="off"
+                    style="
+                        width: 100%;
+                        padding: 0.75rem;
+                        padding-left: 2.5rem;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 12px;
+                        color: #fff;
+                        font-size: 0.9rem;
+                    " />
+                <i class="fas fa-key" style="
+                    position: absolute;
+                    left: 1rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: rgba(255, 255, 255, 0.5);
+                "></i>
+            </div>
+
+            <!-- Two-step verification result -->
+            <div id="key-detection-result" class="hidden" style="margin-bottom: 1.5rem;">
+                <div class="stage-heuristic hidden"
+                    style="padding: 1rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; margin-bottom: 0.5rem;">
+                    <span id="provider-name" style="font-weight: bold; color: #fbbf24;"></span>
+                    <span style="color: rgba(255, 255, 255, 0.6); margin-left: 0.5rem;">Detected (verifying...)</span>
+                </div>
+
+                <div class="stage-verifying hidden" style="padding: 1rem; text-align: center;">
+                    <div class="spinner"
+                        style="display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite;">
+                    </div>
+                    <span style="color: rgba(255, 255, 255, 0.8); margin-left: 0.5rem;">Verifying key...</span>
+                </div>
+
+                <div class="stage-verified hidden"
+                    style="padding: 1rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+                    <span id="provider-name-verified" style="font-weight: bold; color: #22c55e;"></span>
+                    <span style="color: #22c55e; margin-left: 0.5rem;">✓ Verified</span>
+                </div>
+
+                <div class="stage-error hidden"
+                    style="padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                    <span style="color: #ef4444;">✗</span>
+                    <span id="error-message" style="color: #ef4444; margin-left: 0.5rem;">Invalid API key</span>
+                </div>
+            </div>
+
+            <!-- Provider cards -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div
+                    style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Google Gemini</h4>
+                    <span
+                        style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                    <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Fast, reliable</p>
+                    <a href="https://ai.google.dev" target="_blank" style="font-size: 0.75rem; color: #667eea;">Get Key
+                        →</a>
+                </div>
+
+                <div
+                    style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">OpenAI</h4>
+                    <span
+                        style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                    <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">GPT-4, tools</p>
+                    <a href="https://platform.openai.com/api-keys" target="_blank"
+                        style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                </div>
+
+                <div
+                    style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Claude</h4>
+                    <span
+                        style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(34, 197, 94, 0.2); color: #22c55e; border-radius: 4px;">Production</span>
+                    <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Advanced reasoning
+                    </p>
+                    <a href="https://console.anthropic.com" target="_blank"
+                        style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                </div>
+
+                <div
+                    style="padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(251, 191, 36, 0.3); border-radius: 12px; text-align: center;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 0.9rem;">Hugging Face</h4>
+                    <span
+                        style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-radius: 4px;">Experimental</span>
+                    <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); margin: 0.5rem 0;">Open models</p>
+                    <small
+                        style="display: block; font-size: 0.65rem; color: rgba(251, 191, 36, 0.8); margin-top: 0.25rem;">Response
+                        quality may vary</small>
+                    <a href="https://huggingface.co/settings/tokens" target="_blank"
+                        style="font-size: 0.75rem; color: #667eea;">Get Key →</a>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <button id="save-key-btn" disabled style="
+                flex: 1;
+                padding: 0.75rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                border-radius: 12px;
+                color: #fff;
+                font-weight: 500;
+                cursor: pointer;
+                opacity: 0.5;
+                transition: opacity 0.3s;
+            ">
+                Unlock AI Features
+            </button>
+            <button id="clear-key-btn" style="
+                padding: 0.75rem 1.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                color: #fff;
+                cursor: pointer;
+                transition: all 0.3s;
+            ">
+                Clear
+            </button>
+        </div>
+
+        <div style="text-align: center; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+            <i class="fas fa-shield-alt" style="color: rgba(255, 255, 255, 0.5);"></i>
+            <small style="color: rgba(255, 255, 255, 0.6); display: block; margin-top: 0.5rem; line-height: 1.5;">
+                🔒 Your key is stored locally in browser (localStorage)<br>
+                Sent to server only for AI API calls • Not stored in our database
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- 3. ADD THIS SCRIPT INCLUDE BEFORE CLOSING </body> TAG -->
+<script src="/static/ai_key_manager.js"></script>
+
+<!-- 4. ADD THIS CSS FOR UNLOCKED STATE -->
+<style>
+    .ai-status-badge.unlocked {
+        background: rgba(34, 197, 94, 0.2) !important;
+        color: #22c55e !important;
+    }
+
+    #ai-key-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .modal {
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+</style>

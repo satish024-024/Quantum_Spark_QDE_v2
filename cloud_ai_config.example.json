@@ -1,0 +1,14 @@
+{
+  "huggingface": "",
+  "openai": "",
+  "anthropic": "",
+  "together": "",
+  "replicate": "",
+  "_instructions": "Add your API keys here to enable AI features",
+  "_get_huggingface_key": "FREE: Get your key at https://huggingface.co/settings/tokens",
+  "_get_openai_key": "PAID: Get your key at https://platform.openai.com/api-keys",
+  "_get_anthropic_key": "PAID: Get your key at https://console.anthropic.com/",
+  "_get_together_key": "PAID: Get your key at https://api.together.xyz/",
+  "_get_replicate_key": "PAID: Get your key at https://replicate.com/account/api-tokens",
+  "_note": "Never commit this file with real API keys. Use cloud_ai_config.example.json as a template."
+}

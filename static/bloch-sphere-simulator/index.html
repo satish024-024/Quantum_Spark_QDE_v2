@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloch Sphere Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        #bloch-sphere {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .loading-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(6, 182, 212, 0.2);
+            border-top: 4px solid #06b6d4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toolbox {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 16px;
+            min-width: 220px;
+            max-width: 250px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .toolbox::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .toolbox::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .toolbox::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.5);
+            border-radius: 10px;
+        }
+
+        .gate-section {
+            margin-bottom: 24px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .gate-section h4 {
+            margin: 0 0 12px 0;
+            color: #06b6d4;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gate-section h4::before {
+            content: '';
+            width: 3px;
+            height: 14px;
+            background: linear-gradient(180deg, #06b6d4, #8b5cf6);
+            border-radius: 2px;
+        }
+
+        .gate-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .gate-btn {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2));
+            color: white;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            padding: 10px 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .gate-btn:hover {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(139, 92, 246, 0.4));
+            border-color: #06b6d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+        }
+
+        .gate-btn:hover::before {
+            left: 100%;
+        }
+
+        .gate-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(6, 182, 212, 0.3);
+        }
+
+        .angle-controls {
+            margin-top: 24px;
+        }
+
+        .angle-control {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .angle-control label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #06b6d4;
+            font-weight: 500;
+        }
+
+        .angle-control input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(6, 182, 212, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .angle-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.5);
+        }
+
+        .angle-control button {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .angle-control button:hover {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .state-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .state-display div {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .state-display div:last-child {
+            margin-bottom: 0;
+        }
+
+        .state-display strong {
+            color: #06b6d4;
+            min-width: 60px;
+        }
+
+        .state-display span {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .navbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar h1::before {
+            content: '⚛️';
+            font-size: 24px;
+        }
+
+        .navbar-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .navbar-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .navbar-btn.exit {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-color: #dc2626;
+        }
+
+        .navbar-btn.exit:hover {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>Bloch sphere simulator</h1>
+        <div class="navbar-buttons">
+            <button class="navbar-btn">EXPORT</button>
+            <button class="navbar-btn">REPORT BUG</button>
+            <button class="navbar-btn exit" onclick="exitFullscreen()">Exit Fullscreen</button>
+        </div>
+    </div>
+
+    <div id="bloch-sphere">
+        <div class="loading-screen" id="loading-screen">
+            <div class="spinner"></div>
+            <p>Loading Bloch Sphere Simulator...</p>
+        </div>
+    </div>
+
+    <!-- Beautiful Welcome Overlay -->
+    <div id="welcome-overlay"
+        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15), transparent); backdrop-filter: blur(10px); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.5s ease;">
+        <div
+            style="text-align: center; max-width: 600px; padding: 40px; background: rgba(0, 0, 0, 0.8); border-radius: 20px; border: 2px solid rgba(6, 182, 212, 0.5); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(6, 182, 212, 0.3); animation: slideUp 0.5s ease;">
+            <div style="font-size: 48px; margin-bottom: 20px; animation: pulse 2s infinite;">⚛️</div>
+            <h2
+                style="background: linear-gradient(135deg, #06b6d4, #8b5cf6, #10b981); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-size: 32px; margin-bottom: 16px; font-weight: 700;">
+                Quantum Bloch Sphere</h2>
+            <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 24px; font-size: 16px; line-height: 1.6;">
+                Visualize and manipulate quantum states in 3D space
+            </p>
+
+            <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; text-align: left;">
+                <div
+                    style="background: rgba(6, 182, 212, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                    <div style="color: #06b6d4; font-weight: 600; margin-bottom: 4px; font-size: 14px;">🎯 Quick States
+                    </div>
+                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Click |0⟩, |1⟩, |+⟩, |−⟩</div>
+                </div>
+                <div
+                    style="background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                    <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 4px; font-size: 14px;">🔧 Apply Gates
+                    </div>
+                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Pauli, Hadamard, Custom</div>
+                </div>
+                <div
+                    style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <div style="color: #10b981; font-weight: 600; margin-bottom: 4px; font-size: 14px;">📊 Live
+                        Probabilities</div>
+                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Real-time P(|0⟩) & P(|1⟩)</div>
+                </div>
+                <div
+                    style="background: rgba(245, 158, 11, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <div style="color: #f59e0b; font-weight: 600; margin-bottom: 4px; font-size: 14px;">💾 Export</div>
+                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Copy to Qiskit code</div>
+                </div>
+            </div>
+
+            <button onclick="document.getElementById('welcome-overlay').style.display='none'"
+                style="padding: 14px 32px; background: linear-gradient(135deg, #06b6d4, #8b5cf6); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; font-size: 16px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4); transition: all 0.3s ease; animation: glowPulse 2s infinite;">
+                🚀 START EXPLORING
+            </button>
+
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <p style="color: rgba(255, 255, 255, 0.5); font-size: 12px;">
+                    💡 Tip: Rotate the sphere by dragging • Zoom with mouse wheel
+                </p>
+            </div>
+        </div>
+
+        <!-- Animated particles -->
+        <canvas id="particles-canvas"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+    </div>
+
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes glowPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 4px 30px rgba(6, 182, 212, 0.7), 0 0 40px rgba(139, 92, 246, 0.5);
+            }
+        }
+    </style>
+
+    <div class="toolbox">
+        <div class="gate-section">
+            <h4>Half-turn Gates</h4>
+            <div class="gate-buttons">
+                <button class="gate-btn" id="px-builtInGate">Pₓ</button>
+                <button class="gate-btn" id="py-builtInGate">Pᵧ</button>
+                <button class="gate-btn" id="pz-builtInGate">P₂</button>
+                <button class="gate-btn" id="h-builtInGate">H</button>
+            </div>
+        </div>
+
+        <div class="gate-section">
+            <h4>Quarter-turn Gates</h4>
+            <div class="gate-buttons">
+                <button class="gate-btn" id="px-12-builtInGate">Pₓ¹ᐟ²</button>
+                <button class="gate-btn" id="py-12-builtInGate">Pᵧ¹ᐟ²</button>
+                <button class="gate-btn" id="pz-12-builtInGate">P₂¹ᐟ²</button>
+                <button class="gate-btn" id="pxi-12-builtInGate">Pₓ⁻¹ᐟ²</button>
+                <button class="gate-btn" id="pyi-12-builtInGate">Pᵧ⁻¹ᐟ²</button>
+                <button class="gate-btn" id="pzi-12-builtInGate">P₂⁻¹ᐟ²</button>
+                <button class="gate-btn" id="s-builtInGate">S</button>
+                <button class="gate-btn" id="si-builtInGate">S⁻¹</button>
+            </div>
+        </div>
+
+        <div class="gate-section">
+            <h4>Eighth-turn Gates</h4>
+            <div class="gate-buttons">
+                <button class="gate-btn" id="px-14-builtInGate">Pₓ¹ᐟ⁴</button>
+                <button class="gate-btn" id="py-14-builtInGate">Pᵧ¹ᐟ⁴</button>
+                <button class="gate-btn" id="pz-14-builtInGate">P₂¹ᐟ⁴</button>
+                <button class="gate-btn" id="pxi-14-builtInGate">Pₓ⁻¹ᐟ⁴</button>
+                <button class="gate-btn" id="pyi-14-builtInGate">Pᵧ⁻¹ᐟ⁴</button>
+                <button class="gate-btn" id="pzi-14-builtInGate">P₂⁻¹ᐟ⁴</button>
+            </div>
+        </div>
+
+        <div class="gate-section">
+            <h4>Custom Gates</h4>
+            <div class="gate-buttons">
+                <button class="gate-btn" id="custom-gate-add">+</button>
+            </div>
+
+            <!-- Custom Gate Creation Form (collapsible) -->
+            <div id="custom-gate-form"
+                style="display: none; margin-top: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                <div style="margin-bottom: 12px;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <button class="tab-btn active" id="rotations-tab" onclick="switchTab('rotations')"
+                            style="flex: 1; padding: 6px; background: rgba(6, 182, 212, 0.3); border: 1px solid #06b6d4; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">Rotations</button>
+                        <button class="tab-btn" id="matrix-tab" onclick="switchTab('matrix')"
+                            style="flex: 1; padding: 6px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">Matrix</button>
+                    </div>
+
+                    <!-- Rotations Form -->
+                    <div id="rotations-form" style="display: block;">
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 11px; color: #06b6d4;">X:</label>
+                            <input type="number" id="using-rotations-custom-gate-x" step="0.1"
+                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 11px; color: #06b6d4;">Y:</label>
+                            <input type="number" id="using-rotations-custom-gate-y" step="0.1"
+                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 11px; color: #06b6d4;">Z:</label>
+                            <input type="number" id="using-rotations-custom-gate-z" step="0.1"
+                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 11px; color: #06b6d4;">Rotation (degrees):</label>
+                            <input type="number" id="using-rotations-custom-gate-rotation" step="1"
+                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
+                        </div>
+                    </div>
+
+                    <!-- Matrix Form -->
+                    <div id="matrix-form" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A11 Real:</label>
+                                <input type="number" id="using-matrix-custom-gate-a11-real" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A11 Img:</label>
+                                <input type="number" id="using-matrix-custom-gate-a11-img" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A12 Real:</label>
+                                <input type="number" id="using-matrix-custom-gate-a12-real" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A12 Img:</label>
+                                <input type="number" id="using-matrix-custom-gate-a12-img" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A21 Real:</label>
+                                <input type="number" id="using-matrix-custom-gate-a21-real" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A21 Img:</label>
+                                <input type="number" id="using-matrix-custom-gate-a21-img" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A22 Real:</label>
+                                <input type="number" id="using-matrix-custom-gate-a22-real" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 10px; color: #06b6d4;">A22 Img:</label>
+                                <input type="number" id="using-matrix-custom-gate-a22-img" step="0.01"
+                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="custom-gate-create" onclick="createCustomGate()"
+                        style="width: 100%; padding: 8px; background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600;">CREATE
+                        GATE</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="angle-controls">
+            <h4>Lambda Gates</h4>
+            <div class="angle-control">
+                <label>Polar angle: <span id="polar-angle-value">0°</span></label>
+                <input type="range" id="polar-angle" min="0" max="180" value="0">
+                <button id="polar-lambdaGate">APPLY</button>
+            </div>
+            <div class="angle-control">
+                <label>Azimuth angle: <span id="azimuth-angle-value">0°</span></label>
+                <input type="range" id="azimuth-angle" min="0" max="360" value="0">
+                <button id="azimuth-lambdaGate">APPLY</button>
+            </div>
+        </div>
+
+        <!-- USEFUL QUANTUM FEATURES -->
+
+        <!-- Measurement Probabilities -->
+        <div
+            style="margin-top: 24px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px;">
+            <h4
+                style="margin: 0 0 12px 0; color: #10b981; font-size: 13px; font-weight: 600; text-transform: uppercase;">
+                📊 Measurement Probabilities</h4>
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: #06b6d4;">P(|0⟩):</span>
+                    <span id="prob-0" style="font-size: 13px; font-weight: 700; color: #10b981;">50.00%</span>
+                </div>
+                <div style="height: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; overflow: hidden;">
+                    <div id="prob-0-bar"
+                        style="width: 50%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: #06b6d4;">P(|1⟩):</span>
+                    <span id="prob-1" style="font-size: 13px; font-weight: 700; color: #8b5cf6;">50.00%</span>
+                </div>
+                <div style="height: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; overflow: hidden;">
+                    <div id="prob-1-bar"
+                        style="width: 50%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #7c3aed); transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick State Presets -->
+        <div style="margin-top: 20px;">
+            <h4
+                style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
+                ⚡ Quick States</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button onclick="setState('zero')"
+                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|0⟩</button>
+                <button onclick="setState('one')"
+                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|1⟩</button>
+                <button onclick="setState('plus')"
+                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|+⟩</button>
+                <button onclick="setState('minus')"
+                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|−⟩</button>
+            </div>
+        </div>
+
+        <!-- State Export -->
+        <div style="margin-top: 20px;">
+            <h4
+                style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
+                💾 Export State</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button onclick="copyStateVector()"
+                    style="padding: 8px; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 10px; font-weight: 600; transition: all 0.3s;">📋
+                    Copy Vector</button>
+                <button onclick="exportQiskit()"
+                    style="padding: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 10px; font-weight: 600; transition: all 0.3s;">🐍
+                    Qiskit Code</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="state-display">
+        <div><strong>Theta:</strong> <span id="theta-value">0.0000</span></div>
+        <div><strong>Phi:</strong> <span id="phi-value">90.0000</span></div>
+        <div><strong>Alpha:</strong> <span id="alpha-value">0.7071</span></div>
+        <div><strong>Beta:</strong> <span id="beta-value">0.7071i</span></div>
+        <div><strong>X:</strong> <span id="x-value">0.0000</span></div>
+        <div><strong>Y:</strong> <span id="y-value">0.0000</span></div>
+        <div><strong>Z:</strong> <span id="z-value">1.0000</span></div>
+    </div>
+
+    <!-- Load THREE.js -->
+    <!-- Load jQuery (required by event handlers) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Load THREE.js (using r128 for better compatibility with global scripts) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+
+    <!-- Load Bloch sphere modules -->
+    <script type="module">
+        import { GlobalContext } from './src/context.js';
+
+        // Initialize the Bloch sphere
+        window.addEventListener('load', function () {
+            try {
+                console.log('Initializing Bloch sphere simulator...');
+
+                // Hide loading screen after a short delay
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    if (loadingScreen) {
+                        loadingScreen.style.display = 'none';
+                    }
+                }, 1000);
+
+                // Initialize the context
+                GlobalContext.init();
+                GlobalContext.animate();
+
+                console.log('Bloch sphere simulator initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Bloch sphere:', error);
+
+                // Show error message
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.innerHTML = `
+                        <div style="color: #ef4444; text-align: center;">
+                            <h3>Failed to load Bloch Sphere</h3>
+                            <p>Error: ${error.message}</p>
+                            <button onclick="location.reload()" style="padding: 8px 16px; background: #06b6d4; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Retry
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        // Handle angle controls
+        window.applyPolarAngle = function () {
+            const angle = document.getElementById('polar-angle').value;
+            document.getElementById('polar-angle-value').textContent = angle + '°';
+            // Update Bloch sphere state
+            if (GlobalContext.blochSphere) {
+                GlobalContext.blochSphere.updateBlochSphereState('Y', angle * Math.PI / 180);
+            }
+        };
+
+        window.applyAzimuthAngle = function () {
+            const angle = document.getElementById('azimuth-angle').value;
+            document.getElementById('azimuth-angle-value').textContent = angle + '°';
+            // Update Bloch sphere state
+            if (GlobalContext.blochSphere) {
+                GlobalContext.blochSphere.updateBlochSphereState('Z', angle * Math.PI / 180);
+            }
+        };
+
+        // Update angle sliders when values change
+        document.getElementById('polar-angle').addEventListener('input', function () {
+            document.getElementById('polar-angle-value').textContent = this.value + '°';
+        });
+
+        document.getElementById('azimuth-angle').addEventListener('input', function () {
+            document.getElementById('azimuth-angle-value').textContent = this.value + '°';
+        });
+
+        // Exit fullscreen function
+        window.exitFullscreen = function () {
+            if (window.parent && window.parent !== window) {
+                // We're in an iframe, close the fullscreen
+                window.parent.postMessage('exit-fullscreen', '*');
+            } else {
+                // We're not in an iframe, just close the window
+                window.close();
+            }
+        };
+
+        // Custom gate form toggle
+        window.toggleCustomGateForm = function () {
+            const form = document.getElementById('custom-gate-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Tab switching
+        window.switchTab = function (tab) {
+            const rotationsForm = document.getElementById('rotations-form');
+            const matrixForm = document.getElementById('matrix-form');
+            const rotationsTab = document.getElementById('rotations-tab');
+            const matrixTab = document.getElementById('matrix-tab');
+
+            if (tab === 'rotations') {
+                rotationsForm.style.display = 'block';
+                matrixForm.style.display = 'none';
+                rotationsTab.style.background = 'rgba(6, 182, 212, 0.3)';
+                rotationsTab.style.borderColor = '#06b6d4';
+                matrixTab.style.background = 'rgba(255, 255, 255, 0.1)';
+                matrixTab.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            } else {
+                rotationsForm.style.display = 'none';
+                matrixForm.style.display = 'block';
+                matrixTab.style.background = 'rgba(6, 182, 212, 0.3)';
+                matrixTab.style.borderColor = '#06b6d4';
+                rotationsTab.style.background = 'rgba(255, 255, 255, 0.1)';
+                rotationsTab.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            }
+        };
+
+        // Create custom gate
+        window.createCustomGate = function () {
+            const rotationsForm = document.getElementById('rotations-form');
+            const matrixForm = document.getElementById('matrix-form');
+
+            if (rotationsForm.style.display !== 'none') {
+                // Using rotations
+                const x = parseFloat(document.getElementById('using-rotations-custom-gate-x').value) || 0;
+                const y = parseFloat(document.getElementById('using-rotations-custom-gate-y').value) || 0;
+                const z = parseFloat(document.getElementById('using-rotations-custom-gate-z').value) || 0;
+                const rotation = parseFloat(document.getElementById('using-rotations-custom-gate-rotation').value) || 0;
+
+                if (window.ToolboxEventsNamespace) {
+                    window.ToolboxEventsNamespace.createCustomQuantumGateUsingRotations(x, y, z, rotation);
+                    document.getElementById('custom-gate-form').style.display = 'none';
+                } else {
+                    console.log('Creating custom gate with rotations:', { x, y, z, rotation });
+                    alert('Custom gate created! (X:' + x + ', Y:' + y + ', Z:' + z + ', Rotation:' + rotation + '°)');
+                }
+            } else {
+                // Using matrix
+                const a11Real = parseFloat(document.getElementById('using-matrix-custom-gate-a11-real').value) || 0;
+                const a11Img = parseFloat(document.getElementById('using-matrix-custom-gate-a11-img').value) || 0;
+                const a12Real = parseFloat(document.getElementById('using-matrix-custom-gate-a12-real').value) || 0;
+                const a12Img = parseFloat(document.getElementById('using-matrix-custom-gate-a12-img').value) || 0;
+                const a21Real = parseFloat(document.getElementById('using-matrix-custom-gate-a21-real').value) || 0;
+                const a21Img = parseFloat(document.getElementById('using-matrix-custom-gate-a21-img').value) || 0;
+                const a22Real = parseFloat(document.getElementById('using-matrix-custom-gate-a22-real').value) || 0;
+                const a22Img = parseFloat(document.getElementById('using-matrix-custom-gate-a22-img').value) || 0;
+
+                if (window.ToolboxEventsNamespace) {
+                    const a11 = { real: a11Real, img: a11Img };
+                    const a12 = { real: a12Real, img: a12Img };
+                    const a21 = { real: a21Real, img: a21Img };
+                    const a22 = { real: a22Real, img: a22Img };
+                    window.ToolboxEventsNamespace.createCustomQuantumGateUsingMatrix(a11, a12, a21, a22);
+                    document.getElementById('custom-gate-form').style.display = 'none';
+                } else {
+                    console.log('Creating custom gate with matrix:', { a11Real, a11Img, a12Real, a12Img, a21Real, a21Img, a22Real, a22Img });
+                    alert('Custom gate created using matrix!');
+                }
+            }
+        };
+
+        // Add click handler to custom gate add button
+        document.getElementById('custom-gate-add').addEventListener('click', toggleCustomGateForm);
+
+        // ===== USEFUL QUANTUM FEATURES =====
+
+        // Set quick state presets
+        window.setState = function (stateName) {
+            if (!GlobalContext.blochSphere) return;
+
+            switch (stateName) {
+                case 'zero':  // |0⟩ state
+                    GlobalContext.blochSphereStateProperties.theta = 0;
+                    GlobalContext.blochSphereStateProperties.phi = 0;
+                    break;
+                case 'one':   // |1⟩ state
+                    GlobalContext.blochSphereStateProperties.theta = Math.PI;
+                    GlobalContext.blochSphereStateProperties.phi = 0;
+                    break;
+                case 'plus':  // |+⟩ = (|0⟩ + |1⟩)/√2
+                    GlobalContext.blochSphereStateProperties.theta = Math.PI / 2;
+                    GlobalContext.blochSphereStateProperties.phi = 0;
+                    break;
+                case 'minus': // |−⟩ = (|0⟩ − |1⟩)/√2
+                    GlobalContext.blochSphereStateProperties.theta = Math.PI / 2;
+                    GlobalContext.blochSphereStateProperties.phi = Math.PI;
+                    break;
+            }
+
+            // Update the visualization
+            GlobalContext.blochSphere.updateState(
+                GlobalContext.blochSphereStateProperties.theta,
+                GlobalContext.blochSphereStateProperties.phi
+            );
+            updateProbabilities();
+        };
+
+        // Update measurement probabilities
+        window.updateProbabilities = function () {
+            const theta = GlobalContext.blochSphereStateProperties.theta || 0;
+            const prob0 = Math.cos(theta / 2) ** 2;
+            const prob1 = Math.sin(theta / 2) ** 2;
+
+            document.getElementById('prob-0').textContent = (prob0 * 100).toFixed(2) + '%';
+            document.getElementById('prob-1').textContent = (prob1 * 100).toFixed(2) + '%';
+            document.getElementById('prob-0-bar').style.width = (prob0 * 100) + '%';
+            document.getElementById('prob-1-bar').style.width = (prob1 * 100) + '%';
+        };
+
+        // Copy state vector to clipboard
+        window.copyStateVector = function () {
+            const theta = GlobalContext.blochSphereStateProperties.theta || 0;
+            const phi = GlobalContext.blochSphereStateProperties.phi || 0;
+
+            const alpha = Math.cos(theta / 2);
+            const betaReal = Math.sin(theta / 2) * Math.cos(phi);
+            const betaImag = Math.sin(theta / 2) * Math.sin(phi);
+
+            const stateVector = `[${alpha.toFixed(4)}, ${betaReal.toFixed(4)}${betaImag >= 0 ? '+' : ''}${betaImag.toFixed(4)}i]`;
+
+            navigator.clipboard.writeText(stateVector).then(() => {
+                alert('✅ State vector copied!\n\n' + stateVector);
+            });
+        };
+
+        // Export as Qiskit code
+        window.exportQiskit = function () {
+            const theta = GlobalContext.blochSphereStateProperties.theta || 0;
+            const phi = GlobalContext.blochSphereStateProperties.phi || 0;
+
+            const qiskitCode = `from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
+
+# Create quantum circuit
+qc = QuantumCircuit(1)
+
+# Initialize to current Bloch sphere state
+# Theta: ${(theta).toFixed(4)}, Phi: ${(phi).toFixed(4)}
+qc.ry(${theta.toFixed(4)}, 0)  # Rotate around Y-axis
+qc.rz(${phi.toFixed(4)}, 0)    # Rotate around Z-axis
+
+# Get state vector
+state = Statevector.from_instruction(qc)
+print("State vector:", state)
+print("Probabilities:", state.probabilities())`;
+
+            navigator.clipboard.writeText(qiskitCode).then(() => {
+                alert('✅ Qiskit code copied to clipboard!\n\nPaste into your Python environment.');
+            });
+        };
+
+        // Update probabilities when state changes
+        setInterval(updateProbabilities, 500);
+
+        // ===== BEAUTIFUL PARTICLE ANIMATION =====
+        const canvas = document.getElementById('particles-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const particleCount = 50;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 1;
+                    this.speedX = (Math.random() - 0.5) * 0.5;
+                    this.speedY = (Math.random() - 0.5) * 0.5;
+                    this.color = ['#06b6d4', '#8b5cf6', '#10b981'][Math.floor(Math.random() * 3)];
+                }
+
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    if (this.x > canvas.width) this.x = 0;
+                    else if (this.x < 0) this.x = canvas.width;
+
+                    if (this.y > canvas.height) this.y = 0;
+                    else if (this.y < 0) this.y = canvas.height;
+                }
+
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let particle of particles) {
+                    particle.update();
+                    particle.draw();
+                }
+
+                // Draw connections
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 100) {
+                            ctx.strokeStyle = `rgba(6, 182, 212, ${1 - distance / 100})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                requestAnimationFrame(animateParticles);
+            }
+
+            animateParticles();
+        }
+
+
+        // Auto-hide welcome overlay if in iframe (Dashboard mode)
+        if (window.self !== window.top) {
+            const overlay = document.getElementById('welcome-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>

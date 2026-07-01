@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Visualizer Debug</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #ffffff;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .debug-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .debug-title {
+            color: #00ffff;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .status-good {
+            color: #00ff00;
+        }
+        .status-bad {
+            color: #ff4444;
+        }
+        .status-warning {
+            color: #ffaa00;
+        }
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00cccc;
+        }
+        #debug-output {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔧 Quantum Visualizer Debug Tool</h1>
+
+        <div class="debug-section">
+            <div class="debug-title">Quick Tests</div>
+            <button onclick="runQuickTest()">Run Quick Test</button>
+            <button onclick="runFullDiagnostic()">Full Diagnostic</button>
+            <button onclick="testThreeJS()">Test Three.js</button>
+            <button onclick="testCanvas()">Test Canvas</button>
+            <button onclick="clearOutput()">Clear Output</button>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">Test Results</div>
+            <div id="debug-output">Click a test button to begin debugging...</div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-title">Navigation</div>
+            <p><a href="index.html" style="color: #00ffff;">← Back to Main Application</a></p>
+            <p><a href="test.html" style="color: #00ffff;">Three.js Test Page →</a></p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <script>
+        const output = document.getElementById('debug-output');
+
+        function log(message, status = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const statusClass = status === 'good' ? 'status-good' :
+                               status === 'bad' ? 'status-bad' :
+                               status === 'warning' ? 'status-warning' : '';
+            output.innerHTML += `[${timestamp}] <span class="${statusClass}">${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        function clearOutput() {
+            output.innerHTML = 'Output cleared...\n';
+        }
+
+        async function runQuickTest() {
+            clearOutput();
+            log('🚀 Starting Quick Test...', 'info');
+
+            // Test 1: Three.js
+            log('Testing Three.js...', 'info');
+            if (typeof THREE === 'undefined') {
+                log('❌ Three.js not loaded', 'bad');
+                return;
+            }
+            log('✅ Three.js loaded (v' + THREE.REVISION + ')', 'good');
+
+            // Test 2: Canvas
+            log('Testing Canvas element...', 'info');
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) {
+                log('❌ WebGL not supported', 'bad');
+                return;
+            }
+            log('✅ WebGL supported', 'good');
+
+            // Test 3: Basic Three.js scene
+            log('Testing basic Three.js scene...', 'info');
+            try {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                renderer.setSize(100, 100);
+                log('✅ Basic Three.js scene created', 'good');
+            } catch (error) {
+                log('❌ Three.js scene creation failed: ' + error.message, 'bad');
+                return;
+            }
+
+            log('🎉 Quick test completed successfully!', 'good');
+        }
+
+        async function testThreeJS() {
+            clearOutput();
+            log('🔍 Testing Three.js specifically...', 'info');
+
+            if (typeof THREE === 'undefined') {
+                log('❌ Three.js is not loaded', 'bad');
+                log('💡 Check your internet connection or CDN availability', 'warning');
+                return;
+            }
+
+            log('✅ Three.js loaded successfully', 'good');
+            log('📋 Version: ' + THREE.REVISION, 'info');
+
+            // Test basic functionality
+            try {
+                const scene = new THREE.Scene();
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                log('✅ Basic Three.js objects created', 'good');
+
+                const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                camera.position.z = 5;
+                log('✅ Camera created', 'good');
+
+                const canvas = document.createElement('canvas');
+                const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                renderer.setSize(100, 100);
+                log('✅ Renderer created', 'good');
+
+                log('🎉 Three.js is working perfectly!', 'good');
+            } catch (error) {
+                log('❌ Three.js functionality test failed: ' + error.message, 'bad');
+            }
+        }
+
+        async function testCanvas() {
+            clearOutput();
+            log('🎨 Testing Canvas functionality...', 'info');
+
+            // Test DOM canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            log('✅ Canvas element created', 'good');
+
+            // Test WebGL context
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) {
+                log('❌ WebGL context not available', 'bad');
+                log('💡 Enable WebGL in your browser settings', 'warning');
+                return;
+            }
+            log('✅ WebGL context created', 'good');
+
+            // Test basic WebGL operations
+            try {
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                log('✅ Basic WebGL operations working', 'good');
+            } catch (error) {
+                log('❌ WebGL operations failed: ' + error.message, 'bad');
+            }
+
+            log('🎉 Canvas and WebGL tests completed!', 'good');
+        }
+
+        async function runFullDiagnostic() {
+            clearOutput();
+            log('🔬 Running full diagnostic suite...', 'info');
+
+            // This will load and run the main diagnostic script
+            try {
+                // Load diagnostic script dynamically
+                const script = document.createElement('script');
+                script.src = 'js/diagnostic.js';
+                script.onload = () => {
+                    log('✅ Diagnostic script loaded', 'good');
+                    setTimeout(() => {
+                        if (window.runDiagnostics) {
+                            log('🚀 Running comprehensive diagnostics...', 'info');
+                            window.runDiagnostics();
+                        } else {
+                            log('❌ Diagnostic function not available', 'bad');
+                        }
+                    }, 1000);
+                };
+                script.onerror = () => {
+                    log('❌ Failed to load diagnostic script', 'bad');
+                };
+                document.head.appendChild(script);
+            } catch (error) {
+                log('❌ Diagnostic setup failed: ' + error.message, 'bad');
+            }
+        }
+
+        // Auto-run quick test on page load
+        window.addEventListener('load', () => {
+            log('🔧 Debug page loaded successfully', 'good');
+            log('💡 Click "Run Quick Test" to start debugging', 'info');
+        });
+
+        // Error handling
+        window.addEventListener('error', (e) => {
+            log('❌ JavaScript Error: ' + e.message, 'bad');
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            log('❌ Unhandled Promise Rejection: ' + e.reason, 'bad');
+        });
+    </script>
+</body>
+</html>

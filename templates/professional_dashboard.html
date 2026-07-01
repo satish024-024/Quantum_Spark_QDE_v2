@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark - Professional Dashboard</title>
+
+    <!-- API Utilities with Retry Logic -->
+    <script src="/static/api_utils.js"></script>
+
+    <!-- Professional Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Plotly for 3D visualizations -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+    <!-- Sortable.js for drag and drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- Google Gemini AI -->
+    <script src="https://unpkg.com/@google/generative-ai@0.1.3/dist/index.js"></script>
+
+    <!-- Offline Manager for offline functionality -->
+    <script src="{{ url_for('static', filename='offline_manager.js') }}"></script>
+
+    <!-- Tutorial System Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tutorial.css') }}">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --professional-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #3498db 100%);
+            --success-gradient: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            --warning-gradient: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            --danger-gradient: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            --background-gradient: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+            --surface-gradient: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(52, 73, 94, 0.1);
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --text-accent: #3498db;
+            --shadow-glow: 0 0 20px rgba(52, 152, 219, 0.2);
+            --shadow-deep: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --border-radius: 8px;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-display: 'Playfair Display', serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--background-gradient);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: var(--background-gradient);
+        }
+
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(52, 152, 219, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(44, 62, 80, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(52, 73, 94, 0.05) 0%, transparent 50%);
+            animation: float 30s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            33% {
+                transform: translateY(-10px) rotate(0.5deg);
+            }
+
+            66% {
+                transform: translateY(5px) rotate(-0.5deg);
+            }
+        }
+
+        /* Header */
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-deep);
+            min-height: 85px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--professional-gradient);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: var(--shadow-glow);
+            flex-shrink: 0;
+        }
+
+        .logo-text h1 {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 600;
+            background: var(--professional-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .header-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .professional-badge {
+            background: var(--professional-gradient);
+            color: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            background: var(--glass-bg);
+            padding: 0.375rem 0.875rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .connection-status i {
+            color: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .connection-status.offline {
+            background: var(--danger-gradient);
+        }
+
+        .connection-status.offline i {
+            color: #fff;
+        }
+
+        .connection-status.offline span {
+            color: #fff;
+        }
+
+        .offline-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 15px 20px;
+            box-shadow: var(--shadow-deep);
+            z-index: 1000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+            display: none;
+        }
+
+        .offline-notification.show {
+            display: block;
+        }
+
+        .offline-notification.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .offline-notification.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .offline-notification.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .offline-notification .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--professional-gradient);
+            color: white;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: var(--glass-border);
+            transform: translateY(-2px);
+        }
+
+        /* AI Button Styles */
+        .btn-ai {
+            background: var(--ai-gradient);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ai::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-ai:hover::before {
+            left: 100%;
+        }
+
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ai-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-ai:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Notifications */
+        .notification-container {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: var(--shadow-deep);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+            position: relative;
+        }
+
+        .notification.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .notification.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3498db;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.2s ease;
+        }
+
+        .notification-close:hover {
+            color: var(--text-primary);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 100vw;
+            overflow-x: hidden;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Metrics Overview */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow-deep);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--professional-gradient);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(52, 152, 219, 0.15);
+        }
+
+        .metric-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: var(--professional-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0.5rem 0;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Widget Grid */
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .widget {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-deep);
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--professional-gradient);
+        }
+
+        .widget:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(52, 152, 219, 0.15);
+        }
+
+        .widget-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-bg);
+            cursor: grab;
+        }
+
+        .widget-header:active {
+            cursor: grabbing;
+        }
+
+        .widget-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .widget-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .widget-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--glass-bg);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            border: 1px solid var(--glass-border);
+        }
+
+        .widget-btn:hover {
+            background: var(--glass-border);
+            color: var(--text-primary);
+            transform: scale(1.05);
+        }
+
+        .widget-content {
+            padding: 1.5rem;
+            height: calc(100% - 80px);
+            overflow: hidden;
+        }
+
+        /* Popup Modal */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-modal {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-deep);
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .popup-overlay.active .popup-modal {
+            transform: scale(1);
+        }
+
+        .popup-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-close {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--danger-gradient);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .popup-close:hover {
+            transform: scale(1.1);
+        }
+
+        .popup-content {
+            padding: 1.5rem;
+            height: calc(100% - 80px);
+            overflow: auto;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-secondary);
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--glass-border);
+            border-top: 3px solid var(--text-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Sortable Drag and Drop Styles */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--glass-border);
+        }
+
+        .sortable-chosen {
+            cursor: grabbing;
+        }
+
+        .sortable-drag {
+            opacity: 0.8;
+            transform: rotate(2deg);
+        }
+
+        /* Customization Panel */
+        .customization-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-deep);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .customization-panel.open {
+            right: 0;
+        }
+
+        .customization-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .customization-content {
+            padding: 2rem;
+        }
+
+        .widget-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .widget-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+            background: var(--glass-bg);
+            transition: all 0.2s ease;
+        }
+
+        .widget-item:hover {
+            background: var(--glass-border);
+        }
+
+        /* AI Panel */
+        .ai-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-deep);
+        }
+
+        .ai-panel h3 {
+            font-family: var(--font-display);
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .ai-input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .ai-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .ai-input:focus {
+            outline: none;
+            border-color: var(--text-accent);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* Chat Styles */
+        .chat-container {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .message-content {
+            background: var(--glass-bg);
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--glass-border);
+            max-width: 80%;
+        }
+
+        .ai-message .message-content {
+            background: var(--professional-gradient);
+            color: white;
+        }
+
+        .chat-input-container {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+        }
+
+        .send-btn {
+            padding: 0.75rem;
+            background: var(--professional-gradient);
+            border: none;
+            border-radius: var(--border-radius);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .header {
+                padding: 1.25rem 1.5rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1.6rem;
+            }
+
+            .professional-badge {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .connection-status {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .header {
+                padding: 1rem 1.25rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-center {
+                gap: 0.75rem;
+            }
+
+            .header-right {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                gap: 0.75rem;
+                min-height: auto;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .header-center {
+                order: -1;
+                width: 100%;
+                justify-content: center;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: center;
+                gap: 0.25rem;
+                flex-wrap: wrap;
+            }
+
+            .logo {
+                gap: 0.5rem;
+            }
+
+            .logo-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1.3rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+
+            .professional-badge {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+                flex-shrink: 1;
+                min-width: 120px;
+            }
+
+            .connection-status {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+                flex-shrink: 1;
+                min-width: 120px;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                flex-shrink: 1;
+                min-width: 80px;
+            }
+
+            .btn span {
+                display: none;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .widget-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+                gap: 0.5rem;
+            }
+
+            .header-left,
+            .header-center,
+            .header-right {
+                gap: 0.25rem;
+            }
+
+            .logo-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1.1rem;
+            }
+
+            .subtitle {
+                font-size: 0.8rem;
+            }
+
+            .professional-badge {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.75rem;
+            }
+
+            .connection-status {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.75rem;
+                min-width: 100px;
+            }
+
+            .btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+                min-width: 70px;
+            }
+
+            .main-content {
+                padding: 0.75rem;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .header {
+                padding: 0.5rem;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 0.9rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1rem;
+            }
+
+            .subtitle {
+                font-size: 0.7rem;
+            }
+
+            .professional-badge {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.7rem;
+            }
+
+            .connection-status {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.7rem;
+                min-width: 80px;
+            }
+
+            .btn {
+                padding: 0.35rem 0.7rem;
+                font-size: 0.7rem;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-atom"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Quantum Spark</h1>
+                    <div class="subtitle">Professional Dashboard</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-center">
+            <div class="professional-badge">
+                <i class="fas fa-briefcase"></i>
+                Professional Analytics
+            </div>
+            <div class="connection-status" id="connection-status">
+                <i class="fas fa-circle"></i>
+                <span>Connected to IBM Quantum</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <button class="btn btn-secondary theme-switcher-btn" id="theme-switcher-btn">
+                <i class="fas fa-palette"></i>
+                <span>Theme</span>
+            </button>
+
+            <!-- AI Feature Buttons -->
+            <button class="btn btn-ai" id="ai-circuit-gen-btn" title="AI Circuit Generator">
+                <i class="fas fa-magic"></i>
+            </button>
+            <button class="btn btn-ai" id="ai-concept-search-btn" title="Find Related Concepts">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-ai" id="ai-chat-btn" title="AI Quantum Assistant">
+                <i class="fas fa-brain"></i>
+            </button>
+            <button class="btn btn-ai" id="ai-cloud-config-btn" title="Cloud AI Configuration">
+                <i class="fas fa-cloud"></i>
+            </button>
+
+            <button class="btn btn-secondary" id="customize-btn">
+                <i class="fas fa-cog"></i>
+                Customize
+            </button>
+            <button class="btn btn-secondary" id="tutorial-btn">
+                <i class="fas fa-graduation-cap"></i>
+                Tutorial
+            </button>
+            <button class="btn btn-primary" id="refresh-all-btn">
+                <i class="fas fa-sync-alt"></i>
+                Refresh All
+            </button>
+        </div>
+    </header>
+
+    <!-- Notifications Container -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- AI Integration Panel -->
+        <div class="ai-panel fade-in">
+            <h3>
+                <i class="fas fa-robot"></i>
+                Google Gemini AI Assistant
+            </h3>
+            <input type="text" class="ai-input" id="ai-input"
+                placeholder="Ask Gemini AI about quantum states, circuits, or any quantum computing topic...">
+            <div id="ai-response" style="color: var(--text-secondary); font-size: 0.875rem;"></div>
+        </div>
+
+
+        <!-- Metrics Overview -->
+        <section class="metrics-grid slide-up">
+            <div class="metric-card">
+                <div class="metric-label">Active Backends</div>
+                <div class="metric-value" id="active-backends">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Total Jobs</div>
+                <div class="metric-value" id="total-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Running Jobs</div>
+                <div class="metric-value" id="running-jobs">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Success Rate</div>
+                <div class="metric-value" id="success-rate">-</div>
+            </div>
+        </section>
+
+        <!-- Widget Grid -->
+        <div class="widget-grid" id="widget-grid">
+            <!-- Quantum Backends Widget -->
+            <div class="widget fade-in" data-widget="backends">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-server"></i>
+                        Quantum Backends
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backends-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum backends...</span>
+                    </div>
+                    <div id="backends-content" style="display: none;">
+                        <!-- Backends content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum Jobs Widget -->
+            <div class="widget fade-in" data-widget="jobs">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-tasks"></i>
+                        Quantum Jobs
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="jobs-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum jobs...</span>
+                    </div>
+                    <div id="jobs-content" style="display: none;">
+                        <!-- Jobs content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Bloch Sphere Widget (Blochy Integration) -->
+            <div class="widget fade-in" data-widget="bloch-sphere">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-globe"></i>
+                        3D Bloch Sphere (Blochy)
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="bloch-loading">
+                        <div class="spinner"></div>
+                        <span>Loading Blochy sphere...</span>
+                    </div>
+                    <div class="visualization-container" id="bloch-content" style="display: none;">
+                        <!-- Blochy 3D sphere will be rendered here -->
+                        <div id="bloch-3d-container" style="width: 100%; height: 300px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Quantum Circuit Widget -->
+            <div class="widget fade-in" data-widget="circuit">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-cube"></i>
+                        3D Quantum Circuit
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="circuit-loading">
+                        <div class="spinner"></div>
+                        <span>Loading 3D circuit...</span>
+                    </div>
+                    <div class="visualization-container" id="circuit-content" style="display: none;">
+                        <!-- 3D Circuit visualization will be rendered here -->
+                        <div id="3d-quantum-circuit" style="width: 100%; height: 300px; position: relative;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entanglement Analysis Widget -->
+            <div class="widget fade-in" data-widget="entanglement">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-link"></i>
+                        Entanglement Analysis
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="entanglement-loading">
+                        <div class="spinner"></div>
+                        <span>Loading entanglement data...</span>
+                    </div>
+                    <div id="entanglement-content" style="display: none;">
+                        <!-- Entanglement analysis will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Widget -->
+            <div class="widget fade-in" data-widget="results">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-bar"></i>
+                        Measurement Results
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="results-loading">
+                        <div class="spinner"></div>
+                        <span>Loading measurement results...</span>
+                    </div>
+                    <div id="results-content" style="display: none;">
+                        <!-- Results will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantum State Widget -->
+            <div class="widget fade-in" data-widget="quantum-state">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-atom"></i>
+                        Quantum State
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="quantum-state-loading">
+                        <div class="spinner"></div>
+                        <span>Loading quantum state...</span>
+                    </div>
+                    <div id="quantum-state-content" style="display: none;">
+                        <!-- Quantum state will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics Widget -->
+            <div class="widget fade-in" data-widget="performance">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-line"></i>
+                        Performance
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="performance-loading">
+                        <div class="spinner"></div>
+                        <span>Loading performance data...</span>
+                    </div>
+                    <div id="performance-content" style="display: none;">
+                        <!-- Performance charts will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Widget -->
+            <div class="widget fade-in" data-widget="ai-chat">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-robot"></i>
+                        AI Assistant
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="ai-chat-loading">
+                        <div class="spinner"></div>
+                        <span>Initializing AI assistant...</span>
+                    </div>
+                    <div id="ai-chat-content" style="display: none;">
+                        <!-- AI Chat interface will be loaded here -->
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chat-messages">
+                                <div class="message ai-message">
+                                    <div class="message-content">
+                                        <i class="fas fa-robot"></i>
+                                        Hello! I'm your quantum computing AI assistant. Ask me anything about quantum
+                                        states, circuits, or quantum computing concepts!
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chat-input" placeholder="Ask about quantum computing..."
+                                    class="chat-input">
+                                <button id="send-message" class="send-btn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historical Data Widget -->
+            <div class="widget fade-in" data-widget="historical-data">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-history"></i>
+                        Historical Data
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="historical-data-loading">
+                        <div class="spinner"></div>
+                        <span>Loading historical data...</span>
+                    </div>
+                    <div id="historical-data-content" style="display: none;">
+                        <!-- Historical data will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend Comparison Widget -->
+            <div class="widget fade-in" data-widget="backend-comparison">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-balance-scale"></i>
+                        Backend Comparison
+                    </h3>
+                    <div class="widget-controls">
+                        <button class="widget-btn" data-action="refresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="popup" title="Popup View">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="widget-btn" data-action="fullscreen" title="Fullscreen">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="widget-btn" data-action="remove" title="Remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="widget-content">
+                    <div class="loading" id="backend-comparison-loading">
+                        <div class="spinner"></div>
+                        <span>Loading backend comparison...</span>
+                    </div>
+                    <div id="backend-comparison-content" style="display: none;">
+                        <!-- Backend comparison will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Popup Modal -->
+    <div class="popup-overlay" id="popup-overlay">
+        <div class="popup-modal">
+            <div class="popup-header">
+                <h3 id="popup-title">Widget View</h3>
+                <button class="popup-close" id="popup-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-content" id="popup-content">
+                <!-- Popup content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Customization Panel -->
+    <div class="customization-panel" id="customization-panel">
+        <div class="customization-header">
+            <h3>Customize Dashboard</h3>
+            <button class="widget-btn" id="close-customization">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="customization-content">
+            <!-- Job Limit Selector -->
+            <h4><i class="fas fa-list-ol"></i> Job Display Limit</h4>
+            <div class="job-limit-selector"
+                style="margin-bottom: 1.5rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <label for="job-limit-select"
+                    style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                    How many jobs to fetch from IBM Quantum:
+                </label>
+                <select id="job-limit-select"
+                    style="width: 100%; padding: 0.5rem 0.75rem; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #f1f5f9; font-size: 0.9rem; cursor: pointer; -webkit-appearance: none; -moz-appearance: none; appearance: none;">
+                    <option value="5" style="background: #1e293b; color: #f1f5f9;">5 jobs (fastest)</option>
+                    <option value="10" style="background: #1e293b; color: #f1f5f9;">10 jobs</option>
+                    <option value="30" style="background: #1e293b; color: #f1f5f9;">30 jobs</option>
+                    <option value="50" style="background: #1e293b; color: #f1f5f9;">50 jobs</option>
+                    <option value="100" style="background: #1e293b; color: #f1f5f9;">100 jobs</option>
+                    <option value="all" selected style="background: #1e293b; color: #f1f5f9;">All jobs (complete data)
+                    </option>
+                </select>
+                <p style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                    ⚡ Fetching fewer jobs improves load time. "All" provides complete data for accurate totals.
+                </p>
+            </div>
+
+            <h4>Available Widgets</h4>
+            <ul class="widget-list" id="available-widgets">
+                <li class="widget-item" data-widget="backends">
+                    <span><i class="fas fa-server"></i> Quantum Backends</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="jobs">
+                    <span><i class="fas fa-tasks"></i> Quantum Jobs</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="bloch-sphere">
+                    <span><i class="fas fa-globe"></i> 3D Bloch Sphere (Blochy)</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="circuit">
+                    <span><i class="fas fa-cube"></i> 3D Quantum Circuit</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="entanglement">
+                    <span><i class="fas fa-link"></i> Entanglement Analysis</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="results">
+                    <span><i class="fas fa-chart-bar"></i> Measurement Results</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="quantum-state">
+                    <span><i class="fas fa-atom"></i> Quantum State</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="performance">
+                    <span><i class="fas fa-chart-line"></i> Performance</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+                <li class="widget-item" data-widget="ai-chat">
+                    <span><i class="fas fa-robot"></i> AI Assistant</span>
+                    <button class="widget-btn" data-action="add">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Math.js for quantum calculations -->
+    <script src="https://unpkg.com/mathjs@11.11.0/lib/browser/math.min.js"></script>
+
+    <!-- Blochy Integration - Dependencies -->
+    <script src="{{ url_for('static', filename='bloch-sphere-reference/src/libs/three/three.min.js') }}"></script>
+    <script
+        src="{{ url_for('static', filename='bloch-sphere-reference/src/libs/three/jsm/controls/OrbitControls.js') }}"></script>
+    <script
+        src="{{ url_for('static', filename='bloch-sphere-reference/src/libs/three/jsm/renderers/CSS2DRenderer.js') }}"></script>
+
+    <!-- Blochy Integration - Core -->
+    <script src="{{ url_for('static', filename='bloch-sphere-reference/src/quantum/bloch_sphere.js') }}"></script>
+    <script src="{{ url_for('static', filename='bloch-sphere-reference/src/quantum/bloch_sphere_state.js') }}"></script>
+    <script src="{{ url_for('static', filename='bloch-sphere-reference/src/quantum/quantum_gate.js') }}"></script>
+    <script src="{{ url_for('static', filename='bloch-sphere-reference/src/init.js') }}"></script>
+
+    <!-- 3D Circuit -->
+    <script src="static/3d_quantum_circuit.js"></script>
+
+    <!-- Enhanced Bloch Integration -->
+    <script src="static/bloch_quantum.js"></script>
+    <script src="static/bloch_ui.js"></script>
+
+    <!-- Theme Switcher -->
+    <script src="/static/theme_switcher.js"></script>
+
+    <!-- Main Dashboard Script (Unified) -->
+    <script src="/static/dashboard_new.js"></script>
+
+    <!-- AI Chat Button Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // AI Feature Button Event Listeners
+            const aiCircuitGenBtn = document.getElementById('ai-circuit-gen-btn');
+            const aiConceptSearchBtn = document.getElementById('ai-concept-search-btn');
+            const aiChatBtn = document.getElementById('ai-chat-btn');
+            const aiCloudConfigBtn = document.getElementById('ai-cloud-config-btn');
+
+            // Wait for dashboard to be initialized, then add AI button handlers
+            const initAIButtons = () => {
+                if (window.dashboard && window.dashboard.createAISidePanel) {
+                    if (aiCircuitGenBtn) {
+                        aiCircuitGenBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiConceptSearchBtn) {
+                        aiConceptSearchBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiChatBtn) {
+                        aiChatBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+
+                    if (aiCloudConfigBtn) {
+                        aiCloudConfigBtn.addEventListener('click', () => {
+                            window.dashboard.createAISidePanel();
+                        });
+                    }
+                } else {
+                    // Retry after a short delay
+                    setTimeout(initAIButtons, 100);
+                }
+            };
+
+            // Initialize AI buttons
+            initAIButtons();
+        });
+    </script>
+
+    <!-- Backend Comparison (Compare button + modal) -->
+    <script src="static/backend_comparison.js"></script>
+
+    <!-- Offline Status Management -->
+    <script>
+        // Offline status management for professional dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            const connectionStatus = document.querySelector('.connection-status') || createConnectionStatus();
+            const statusIcon = connectionStatus.querySelector('i');
+            const statusText = connectionStatus.querySelector('span');
+
+            // Wait for offline manager to initialize
+            let offlineManager;
+            const checkOfflineManager = setInterval(() => {
+                if (window.offlineManager) {
+                    offlineManager = window.offlineManager;
+                    clearInterval(checkOfflineManager);
+                    initializeOfflineStatus();
+                }
+            }, 100);
+
+            function createConnectionStatus() {
+                // Create connection status if it doesn't exist
+                const header = document.querySelector('.header-center') || document.querySelector('header');
+                if (!header) return null;
+
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'connection-status';
+                statusDiv.innerHTML = '<i class="fas fa-circle"></i> <span>Checking connection...</span>';
+                header.appendChild(statusDiv);
+                return statusDiv;
+            }
+
+            function initializeOfflineStatus() {
+                updateConnectionStatus();
+                setupOfflineNotifications();
+
+                // Update status periodically
+                setInterval(updateConnectionStatus, 30000);
+            }
+
+            function updateConnectionStatus() {
+                if (!offlineManager || !connectionStatus) return;
+
+                const isOnline = offlineManager.isOnlineStatus();
+
+                if (isOnline) {
+                    connectionStatus.className = 'connection-status';
+                    if (statusIcon) statusIcon.className = 'fas fa-circle';
+                    if (statusText) statusText.textContent = 'Connected to IBM Quantum';
+                } else {
+                    connectionStatus.className = 'connection-status offline';
+                    if (statusIcon) statusIcon.className = 'fas fa-circle';
+                    if (statusText) statusText.textContent = 'Offline Mode - Using Cached Data';
+                }
+            }
+
+            function setupOfflineNotifications() {
+                if (offlineManager) {
+                    checkDataFreshness();
+                }
+            }
+
+            async function checkDataFreshness() {
+                try {
+                    const response = await fetch('/api/sync_status');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const isFresh15 = data.is_data_fresh_15min;
+                        const isFresh30 = data.is_data_fresh_30min;
+
+                        if (!isFresh15 && !isFresh30) {
+                            showOfflineNotification(
+                                'Data is stale',
+                                'Your cached data is more than 30 minutes old. Connect to internet for fresh data.',
+                                'warning'
+                            );
+                        } else if (!isFresh15) {
+                            showOfflineNotification(
+                                'Data is getting old',
+                                'Your cached data is more than 15 minutes old.',
+                                'info'
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not check data freshness:', error);
+                }
+            }
+
+            function showOfflineNotification(title, message, type = 'info') {
+                const existing = document.querySelectorAll('.offline-notification');
+                existing.forEach(el => el.remove());
+
+                const notification = document.createElement('div');
+                notification.className = `offline-notification ${type} show`;
+                notification.innerHTML = `
+                    <button class="close-btn" onclick="this.parentElement.remove()">&times;</button>
+                    <h4 style="margin: 0 0 8px 0; color: var(--text-primary);">${title}</h4>
+                    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">${message}</p>
+                `;
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 10000);
+            }
+
+            // Add offline status button to header
+            const headerRight = document.querySelector('.header-right');
+            if (headerRight) {
+                const offlineBtn = document.createElement('button');
+                offlineBtn.className = 'btn btn-secondary';
+                offlineBtn.innerHTML = '<i class="fas fa-wifi"></i> <span>Offline Status</span>';
+                offlineBtn.onclick = () => {
+                    window.open('/offline_status', '_blank');
+                };
+                headerRight.appendChild(offlineBtn);
+            }
+        });
+
+    </script>
+
+    <!-- Shared Dashboard Core - Real IBM Quantum Data -->
+    <script src="/static/dashboard_new.js"></script>
+    <script src="/static/modern_dashboard.js"></script>
+
+    <!-- Tutorial System Script -->
+    <script src="{{ url_for('static', filename='tutorial.js') }}"></script>
+</body>
+
+</html>

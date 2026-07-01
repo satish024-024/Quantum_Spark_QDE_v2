@@ -1,0 +1,61 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Environment files
+.env
+.env.backup
+.venv
+env/
+venv/
+ENV/
+quantum_dashboard_env/
+
+# Configuration with sensitive data
+config.py
+core/config.py
+.secret_key
+.encryption_key
+.encryption_key.hint
+.startup_shown
+
+# Logs
+*.log
+app_output.log
+flask_output.log
+circuit_execution.log
+
+# Local development settings
+.idea/
+.vscode/
+.claude/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Vercel build cache (auto-regenerated on deploy)
+.vercel/cache/
+
+# Flask sessions
+flask_sessions/
+
+# SQLite WAL files
+*.db-shm
+*.db-wal
+
+# Large data cache files
+historical_data_cache.json
+
+# Runtime JSON outputs
+jobs_output.json
+ionq_test_results.json
+ibm_quantum_api_report_*.json
+
+# Cursor rules
+.cursorignore
+.cursorrules
+
+.vercel

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Debug - Quantum Dashboard</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        h2 { color: #06b6d4; }
+        .section {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 4px;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #10b981; }
+        button {
+            background: #06b6d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0891b2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Quantum Dashboard Data Debug</h1>
+    <button onclick="testAPIs()">Test All APIs</button>
+    <button onclick="testWithDemo()">Test with Demo Data</button>
+    <button onclick="location.href='/modern_dashboard'">Back to Dashboard</button>
+    
+    <div class="section">
+        <h2>Backends API (/api/backends)</h2>
+        <div id="backends-result">Click "Test All APIs" to check...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Jobs API (/api/jobs)</h2>
+        <div id="jobs-result">Click "Test All APIs" to check...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Results API (/api/results)</h2>
+        <div id="results-result">Click "Test All APIs" to check...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Console Logs</h2>
+        <pre id="console-logs"></pre>
+    </div>
+    
+    <script>
+        const logs = [];
+        function log(message) {
+            logs.push(`[${new Date().toLocaleTimeString()}] ${message}`);
+            document.getElementById('console-logs').textContent = logs.join('\n');
+        }
+        
+        async function testAPI(endpoint, elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '⏳ Testing...';
+            
+            try {
+                log(`Testing ${endpoint}...`);
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                
+                log(`✅ ${endpoint} - Status: ${response.status}`);
+                
+                let summary = '';
+                if (Array.isArray(data)) {
+                    summary = `<p class="success">✅ Array with ${data.length} items</p>`;
+                    if (data.length > 0) {
+                        summary += `<p>Sample item flags:</p>`;
+                        summary += `<pre>${JSON.stringify(data[0], null, 2)}</pre>`;
+                    }
+                } else if (typeof data === 'object') {
+                    const backends = data.backends || data.results || data.jobs || [];
+                    summary = `<p class="success">✅ Object response</p>`;
+                    summary += `<p>Keys: ${Object.keys(data).join(', ')}</p>`;
+                    if (Array.isArray(backends)) {
+                        summary += `<p>Items count: ${backends.length}</p>`;
+                        if (backends.length > 0) {
+                            summary += `<p>Sample item:</p>`;
+                            summary += `<pre>${JSON.stringify(backends[0], null, 2)}</pre>`;
+                        }
+                    }
+                }
+                
+                element.innerHTML = summary + `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                log(`✅ ${endpoint} completed`);
+            } catch (error) {
+                log(`❌ ${endpoint} error: ${error.message}`);
+                element.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testAPIs() {
+            log('Starting API tests...');
+            await testAPI('/api/backends', 'backends-result');
+            await testAPI('/api/jobs', 'jobs-result');
+            await testAPI('/api/results', 'results-result');
+            log('All tests completed!');
+        }
+        
+        async function testWithDemo() {
+            log('Testing with demo data enabled...');
+            await testAPI('/api/backends?demo=true', 'backends-result');
+            await testAPI('/api/jobs?demo=true', 'jobs-result');
+            await testAPI('/api/results?demo=true', 'results-result');
+            log('Demo data tests completed!');
+        }
+    </script>
+</body>
+</html>
+

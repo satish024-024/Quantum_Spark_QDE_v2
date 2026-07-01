@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark - Authentication</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #1e40af, #3b82f6, #06b6d4, #10b981);
+            background-size: 300% 300%;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.3);
+        }
+
+        .header h1 {
+            color: #0f172a;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .auth-toggle {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: white;
+            color: #1e40af;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-form {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 18px;
+            z-index: 2;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 16px 16px 50px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.3);
+        }
+
+        .auth-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status-message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .features {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .features h3 {
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .features li i {
+            color: #10b981;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .auth-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .logo {
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-atom"></i>
+            </div>
+            <h1>Quantum Spark</h1>
+            <p>Access Advanced Quantum Computing Dashboard</p>
+        </div>
+
+        <div class="features">
+            <h3><i class="fas fa-star"></i> Dashboard Features</h3>
+            <ul>
+                <li><i class="fas fa-check"></i> Real-time Quantum Backend Monitoring</li>
+                <li><i class="fas fa-check"></i> 3D Quantum Circuit Visualizations</li>
+                <li><i class="fas fa-check"></i> Interactive Bloch Sphere</li>
+                <li><i class="fas fa-check"></i> AI-Powered Quantum Assistance</li>
+            </ul>
+        </div>
+
+        <!-- Toggle between Login and Register -->
+        <div class="auth-toggle">
+            <button type="button" class="toggle-btn active" id="loginToggle">Login</button>
+            <button type="button" class="toggle-btn" id="registerToggle">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label for="login_email">Email Address</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="login_email" name="email" placeholder="Enter your email address" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="login_password">Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login_password" name="password" placeholder="Enter your password" required>
+                </div>
+            </div>
+            <button type="submit" class="auth-btn" id="loginBtn">
+                <span id="loginText">Login to Dashboard</span>
+            </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="registerForm" class="auth-form" style="display: none;">
+            <div class="form-group">
+                <label for="reg_email">Email Address</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="reg_email" name="email" placeholder="Enter your email address" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="reg_password">Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="reg_password" name="password" placeholder="Create a secure password" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="api_key">IBM Quantum API Key</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-key"></i>
+                    <input type="password" id="api_key" name="api_key" placeholder="Enter your IBM Quantum API key" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="crn">IBM Quantum CRN</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-id-card"></i>
+                    <input type="text" id="crn" name="crn" placeholder="Enter your IBM Quantum CRN" required>
+                </div>
+            </div>
+            <button type="submit" class="auth-btn" id="registerBtn">
+                <span id="registerText">Register & Access Dashboard</span>
+            </button>
+        </form>
+
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Processing...
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginToggle = document.getElementById('loginToggle');
+            const registerToggle = document.getElementById('registerToggle');
+            const loading = document.getElementById('loading');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Toggle between login and register forms
+            loginToggle.addEventListener('click', function() {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginToggle.classList.add('active');
+                registerToggle.classList.remove('active');
+                hideStatus();
+            });
+
+            registerToggle.addEventListener('click', function() {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                registerToggle.classList.add('active');
+                loginToggle.classList.remove('active');
+                hideStatus();
+            });
+
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `status-message ${type}`;
+                statusMessage.style.display = 'block';
+            }
+
+            function hideStatus() {
+                statusMessage.style.display = 'none';
+            }
+
+            function showLoading(btn, text) {
+                btn.disabled = true;
+                text.style.display = 'none';
+                loading.classList.add('show');
+            }
+
+            function hideLoading(btn, text) {
+                btn.disabled = false;
+                text.style.display = 'block';
+                loading.classList.remove('show');
+            }
+
+            // Login form submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('login_email').value.trim();
+                const password = document.getElementById('login_password').value;
+
+                if (!email || !password) {
+                    showStatus('Please fill in all fields', 'error');
+                    return;
+                }
+
+                showLoading(document.getElementById('loginBtn'), document.getElementById('loginText'));
+                hideStatus();
+
+                fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatus('Login successful! Redirecting to dashboard...', 'success');
+                        setTimeout(() => {
+                            window.location.href = data.redirect || '/';
+                        }, 1500);
+                    } else {
+                        showStatus(data.error || data.message || 'Login failed', 'error');
+                        hideLoading(document.getElementById('loginBtn'), document.getElementById('loginText'));
+                    }
+                })
+                .catch(error => {
+                    showStatus('Connection error. Please try again.', 'error');
+                    hideLoading(document.getElementById('loginBtn'), document.getElementById('loginText'));
+                });
+            });
+
+            // Register form submission
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('reg_email').value.trim();
+                const password = document.getElementById('reg_password').value;
+                const apiKey = document.getElementById('api_key').value.trim();
+                const crn = document.getElementById('crn').value.trim();
+
+                if (!email || !password || !apiKey || !crn) {
+                    showStatus('Please fill in all fields', 'error');
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showStatus('Password must be at least 6 characters long', 'error');
+                    return;
+                }
+
+                showLoading(document.getElementById('registerBtn'), document.getElementById('registerText'));
+                hideStatus();
+
+                fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, api_key: apiKey, crn })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatus('Registration successful! Redirecting to dashboard...', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 1500);
+                    } else {
+                        showStatus(data.error || data.message || 'Registration failed', 'error');
+                        hideLoading(document.getElementById('registerBtn'), document.getElementById('registerText'));
+                    }
+                })
+                .catch(error => {
+                    showStatus('Connection error. Please try again.', 'error');
+                    hideLoading(document.getElementById('registerBtn'), document.getElementById('registerText'));
+                });
+            });
+
+            // Clear status when user starts typing
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', function() {
+                    if (statusMessage.style.display !== 'none') {
+                        hideStatus();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

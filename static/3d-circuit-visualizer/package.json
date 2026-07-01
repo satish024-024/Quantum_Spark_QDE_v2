@@ -1,0 +1,39 @@
+{
+  "name": "3d-quantum-circuit-visualizer",
+  "version": "1.0.0",
+  "description": "Advanced 3D quantum circuit visualization web application with IBM Qiskit integration",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server . -p 3000",
+    "dev": "http-server . -p 3000 -o",
+    "build": "echo 'Build process would go here'",
+    "lint": "eslint js/*.js",
+    "test": "echo 'Tests would go here'"
+  },
+  "keywords": [
+    "quantum",
+    "circuit",
+    "visualizer",
+    "3d",
+    "qiskit",
+    "three.js",
+    "ibm-quantum"
+  ],
+  "author": "Quantum Visualizer Team",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.158.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "eslint": "^8.57.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/3d-quantum-circuit-visualizer"
+  },
+  "bugs": {
+    "url": "https://github.com/your-repo/3d-quantum-circuit-visualizer/issues"
+  },
+  "homepage": "https://github.com/your-repo/3d-quantum-circuit-visualizer#readme"
+}

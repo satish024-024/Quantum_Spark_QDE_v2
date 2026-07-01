@@ -1,0 +1,124 @@
+/* Bloch Sphere Integration - Dashboard Theme */
+.display {
+    display: block;
+}
+
+.no-display {
+    display: none;
+}
+
+.info {
+    color: #06b6d4;
+}
+
+.success {
+    color: #10b981;
+}
+
+.warning {
+    color: #f59e0b;
+}
+
+.danger {
+    color: #ef4444;
+}
+
+.label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 2px;
+    color: #cbd5e1;
+}
+
+#bloch-sphere {
+    height: 100%;
+    position: relative;
+}
+
+#bloch-sphere-state {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    color: #f8fafc;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+#toolbox {
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.modal, .navbar {
+    color: #000000;
+}
+
+.btn {
+    border: 0 none;
+    text-transform: uppercase;
+}
+
+.btn-primary:active, .btn-primary.active {
+    background: #3b82f6;
+    box-shadow: none;
+}
+
+.btn-custom {
+    border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-custom:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.textarea-custom {
+    border-radius: 8px;
+    height: 200px;
+    min-height: 200px;
+    max-height: 200px;
+    resize: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f8fafc;
+}
+
+.textarea-custom::placeholder {
+    color: #cbd5e1;
+}
+
+/* Dashboard-specific Bloch sphere styles */
+.bloch-sphere-widget {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.bloch-sphere-container {
+    flex: 1;
+    position: relative;
+    min-height: 250px;
+}
+
+.bloch-sphere-state-display {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+}

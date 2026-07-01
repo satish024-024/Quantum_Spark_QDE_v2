@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark - Authentication</title>
+    <meta name="description" content="Access the Quantum Spark dashboard - Your gateway to quantum computing">
+    <!-- Preconnect for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        :root {
+            /* Quantum Computing Color Palette */
+            --deep-space: #0a0e27;
+            --cosmic-dark: #0f1535;
+            --qubit-blue: #00b4d8;
+            --cosmic-purple: #be95ff;
+            --teal-glow: #3ddbd9;
+            --accent-cyan: #82cfff;
+            --quantum-gold: #ffd60a;
+            --white: #ffffff;
+            --light-gray: #c8d4e3;
+            --text-bright: #e8ecf2;
+            --error-red: #ff6b6b;
+            --success-green: #10b981;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--deep-space) 0%, var(--cosmic-dark) 50%, #1a1f4e 100%);
+            overflow: hidden;
+        }
+
+        /* Quantum particle effects background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(2px 2px at 20% 30%, var(--qubit-blue), transparent),
+                radial-gradient(2px 2px at 40% 70%, var(--cosmic-purple), transparent),
+                radial-gradient(1px 1px at 60% 20%, var(--teal-glow), transparent),
+                radial-gradient(2px 2px at 80% 50%, var(--accent-cyan), transparent),
+                radial-gradient(1px 1px at 10% 80%, var(--qubit-blue), transparent),
+                radial-gradient(1px 1px at 90% 10%, var(--cosmic-purple), transparent);
+            animation: twinkle 4s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes twinkle {
+            0% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        .wrapper {
+            position: relative;
+            width: 850px;
+            height: 550px;
+            background: rgba(15, 21, 53, 0.95);
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            box-shadow:
+                0 0 40px rgba(0, 180, 216, 0.15),
+                0 0 80px rgba(190, 149, 255, 0.1),
+                inset 0 0 60px rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+        }
+
+        .wrapper .form-box {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .wrapper .form-box.login {
+            left: 0;
+            padding: 0 50px 0 40px;
+        }
+
+        .form-box .title {
+            position: relative;
+            font-size: 28px;
+            color: var(--white);
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .form-box .title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--qubit-blue), var(--cosmic-purple));
+            border-radius: 5px;
+        }
+
+        .form-box .input-box {
+            position: relative;
+            width: 100%;
+            height: 45px;
+            margin: 18px 0;
+        }
+
+        .input-box input {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--white);
+            font-size: 14px;
+            font-weight: 400;
+            border: none;
+            outline: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-right: 30px;
+            padding-left: 5px;
+            transition: 0.4s;
+        }
+
+        .input-box input:focus,
+        .input-box input:valid {
+            border-bottom-color: var(--qubit-blue);
+            background: rgba(0, 180, 216, 0.05);
+        }
+
+        .input-box label {
+            position: absolute;
+            top: 50%;
+            left: 5px;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--text-bright);
+            pointer-events: none;
+            transition: 0.4s;
+        }
+
+        .input-box input:focus~label,
+        .input-box input:valid~label {
+            color: var(--qubit-blue);
+            top: -8px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .input-box i {
+            position: absolute;
+            top: 50%;
+            right: 5px;
+            transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-bright);
+            transition: 0.4s;
+        }
+
+        .input-box input:focus~i,
+        .input-box input:valid~i {
+            color: var(--qubit-blue);
+        }
+
+        form .btn {
+            width: 100%;
+            height: 48px;
+            background: linear-gradient(135deg, var(--qubit-blue), var(--cosmic-purple));
+            color: var(--white);
+            border: none;
+            outline: none;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.5s;
+            margin-top: 10px;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        form .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        form .btn:hover::before {
+            left: 100%;
+        }
+
+        form .btn:hover {
+            box-shadow: 0 0 20px rgba(0, 180, 216, 0.5), 0 0 40px rgba(190, 149, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        form .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        form .linkText {
+            font-size: 13px;
+            color: var(--text-bright);
+            text-align: center;
+            margin: 15px 0 5px;
+        }
+
+        .linkText p a {
+            color: var(--qubit-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .linkText p a:hover {
+            color: var(--teal-glow);
+            text-shadow: 0 0 10px var(--qubit-blue);
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-message.error {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--error-red);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .loading-spinner i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Login form animations */
+        .wrapper .form-box.login .animation {
+            transform: translateX(0);
+            opacity: 1;
+            filter: blur(0);
+            transition: 0.7s ease;
+            transition-delay: calc(0.1s * var(--j));
+        }
+
+        .wrapper.active .form-box.login .animation {
+            transform: translateX(-120%);
+            opacity: 0;
+            filter: blur(10px);
+            transition-delay: calc(0.1s * var(--i));
+        }
+
+        /* Info text panels */
+        .wrapper .info-text {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .wrapper .info-text.login {
+            right: 0;
+            text-align: right;
+            padding: 0 40px 40px 120px;
+        }
+
+        .wrapper .info-text h2 {
+            font-size: 36px;
+            color: var(--white);
+            line-height: 1.3;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .wrapper .info-text h2 span {
+            background: linear-gradient(90deg, var(--qubit-blue), var(--teal-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .wrapper .info-text p {
+            font-size: 15px;
+            color: var(--white);
+            margin-top: 15px;
+            line-height: 1.7;
+            text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+            opacity: 0.95;
+        }
+
+        .wrapper .info-text.login .animation {
+            transform: translateX(0);
+            opacity: 1;
+            filter: blur(0);
+            transition: 0.7s ease;
+            transition-delay: calc(0.1s * var(--j));
+        }
+
+        .wrapper.active .info-text.login .animation {
+            transform: translateX(120px);
+            opacity: 0;
+            filter: blur(10px);
+            transition: 0.7s ease;
+            transition-delay: calc(0.1s * var(--i));
+        }
+
+        /* Rotating background shapes */
+        .bg-rotate {
+            position: absolute;
+            top: -4px;
+            right: 0;
+            width: 950px;
+            height: 700px;
+            background: linear-gradient(135deg, var(--qubit-blue) 0%, var(--cosmic-purple) 50%, var(--teal-glow) 100%);
+            transform: rotate(10deg) skewY(40deg);
+            transform-origin: bottom right;
+            transition: 1.5s ease;
+            transition-delay: 1.6s;
+        }
+
+        .wrapper.active .bg-rotate {
+            transform: rotate(0) skewY(0);
+            transition-delay: 0.5s;
+        }
+
+        /* Register form */
+        .wrapper .form-box.register {
+            padding: 0 40px 0 50px;
+            right: 0;
+            pointer-events: none;
+        }
+
+        .wrapper.active .form-box.register {
+            pointer-events: auto;
+        }
+
+        .wrapper .form-box.register .animation {
+            transform: translateX(120%);
+            opacity: 0;
+            filter: blur(10px);
+            transition: 0.7s ease;
+            transition-delay: calc(0.1s * var(--j));
+        }
+
+        .wrapper.active .form-box.register .animation {
+            transform: translateX(0);
+            opacity: 1;
+            filter: blur(0);
+            transition-delay: calc(0.1s * var(--i));
+        }
+
+        /* Register info text */
+        .wrapper .info-text.register {
+            left: 0;
+            text-align: left;
+            padding: 0 120px 40px 40px;
+            pointer-events: none;
+        }
+
+        .wrapper.active .info-text.register {
+            pointer-events: auto;
+        }
+
+        .wrapper .info-text.register .animation {
+            transform: translateX(-120%);
+            opacity: 0;
+            filter: blur(10px);
+            transition: 0.7s ease;
+            transition-delay: calc(0.1s * var(--j));
+        }
+
+        .wrapper.active .info-text.register .animation {
+            transform: translateX(0);
+            opacity: 1;
+            filter: blur(0);
+            transition-delay: calc(0.1s * var(--i));
+        }
+
+        /* Second background shape */
+        .wrapper .bg2-rotate {
+            position: absolute;
+            top: 100%;
+            left: 250px;
+            width: 950px;
+            height: 800px;
+            background: rgba(15, 21, 53, 0.98);
+            transform: rotate(0) skewY(0);
+            transform-origin: bottom left;
+            transition: 1.5s ease;
+            transition-delay: 0.5s;
+        }
+
+        .wrapper.active .bg2-rotate {
+            transform: rotate(-11deg) skewY(-40deg);
+            transition-delay: 1.2s;
+        }
+
+        /* Scrollable register form */
+        .form-box.register form {
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .form-box.register form::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .form-box.register form::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .form-box.register form::-webkit-scrollbar-thumb {
+            background: var(--qubit-blue);
+            border-radius: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .wrapper {
+                width: 95%;
+                max-width: 400px;
+                height: auto;
+                min-height: 500px;
+                padding: 30px;
+            }
+
+            .wrapper .form-box {
+                position: relative;
+                width: 100%;
+                padding: 0 !important;
+            }
+
+            .wrapper .form-box.register {
+                display: none;
+            }
+
+            .wrapper.active .form-box.login {
+                display: none;
+            }
+
+            .wrapper.active .form-box.register {
+                display: flex;
+                pointer-events: auto;
+            }
+
+            .wrapper .info-text {
+                display: none;
+            }
+
+            .bg-rotate,
+            .bg2-rotate {
+                display: none;
+            }
+
+            .wrapper .form-box .animation {
+                transform: translateX(0) !important;
+                opacity: 1 !important;
+                filter: blur(0) !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <span class="bg-rotate"></span>
+        <span class="bg2-rotate"></span>
+
+        <!-- Login Form -->
+        <div class="form-box login">
+            <h2 class="title animation" style="--i:0; --j:21">Login</h2>
+            <div id="loginStatus" class="status-message animation" style="--i:1; --j:22"></div>
+            <form id="loginForm" action="#">
+                <div class="input-box animation" style="--i:1; --j:22">
+                    <input type="email" id="login_email" required>
+                    <label>Email Address</label>
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="input-box animation" style="--i:2; --j:23">
+                    <input type="password" id="login_password" required>
+                    <label>Password</label>
+                    <i class="fas fa-lock"></i>
+                </div>
+                <button type="submit" class="btn animation" style="--i:3; --j:24" id="loginBtn">
+                    <span id="loginText">Access Dashboard</span>
+                    <span class="loading-spinner" id="loginSpinner">
+                        <i class="fas fa-spinner"></i> Authenticating...
+                    </span>
+                </button>
+                <div class="linkText animation" style="--i:4; --j:25">
+                    <p>New to Quantum Spark? <a href="#" class="register-link">Create Account</a></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Login Info Panel -->
+        <div class="info-text login">
+            <h2 class="animation" style="--i:0; --j:20">Welcome<br><span>Back!</span></h2>
+            <p class="animation" style="--i:1; --j:21">Access your quantum computing dashboard with real-time IBM
+                Quantum data, 3D visualizations, and AI-powered insights.</p>
+        </div>
+
+        <!-- Register Form -->
+        <div class="form-box register">
+            <h2 class="title animation" style="--i:17; --j:0">Sign Up</h2>
+            <div id="registerStatus" class="status-message animation" style="--i:18; --j:1"></div>
+            <form id="registerForm" action="#">
+                <div class="input-box animation" style="--i:18; --j:1">
+                    <input type="email" id="reg_email" required>
+                    <label>Email Address</label>
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="input-box animation" style="--i:19; --j:2">
+                    <input type="password" id="reg_password" required>
+                    <label>Password</label>
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="input-box animation" style="--i:20; --j:3">
+                    <input type="password" id="api_key" required>
+                    <label>IBM Quantum API Key</label>
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="input-box animation" style="--i:21; --j:4">
+                    <input type="text" id="crn" required>
+                    <label>IBM Quantum CRN</label>
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <button type="submit" class="btn animation" style="--i:22; --j:5" id="registerBtn">
+                    <span id="registerText">Create Account</span>
+                    <span class="loading-spinner" id="registerSpinner">
+                        <i class="fas fa-spinner"></i> Creating...
+                    </span>
+                </button>
+                <div class="linkText animation" style="--i:23; --j:6">
+                    <p>Already have an account? <a href="#" class="login-link">Login</a></p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Register Info Panel -->
+        <div class="info-text register">
+            <h2 class="animation" style="--i:17; --j:0">Join<br><span>Quantum</span></h2>
+            <p class="animation" style="--i:18; --j:1">Connect your IBM Quantum credentials and unlock the power of
+                quantum computing with our advanced dashboard.</p>
+        </div>
+    </div>
+
+    <script>
+        // Form toggle functionality
+        const wrapper = document.querySelector('.wrapper');
+        const registerLinks = document.querySelectorAll('.register-link');
+        const loginLinks = document.querySelectorAll('.login-link');
+
+        registerLinks.forEach(link => {
+            link.onclick = (e) => {
+                e.preventDefault();
+                wrapper.classList.add('active');
+                hideAllStatus();
+            }
+        });
+
+        loginLinks.forEach(link => {
+            link.onclick = (e) => {
+                e.preventDefault();
+                wrapper.classList.remove('active');
+                hideAllStatus();
+            }
+        });
+
+        // Status message functions
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status-message ${type}`;
+            element.style.display = 'block';
+        }
+
+        function hideStatus(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'none';
+        }
+
+        function hideAllStatus() {
+            hideStatus('loginStatus');
+            hideStatus('registerStatus');
+        }
+
+        // Loading state functions
+        function showLoading(btnId, textId, spinnerId) {
+            document.getElementById(btnId).disabled = true;
+            document.getElementById(textId).style.display = 'none';
+            document.getElementById(spinnerId).style.display = 'flex';
+        }
+
+        function hideLoading(btnId, textId, spinnerId) {
+            document.getElementById(btnId).disabled = false;
+            document.getElementById(textId).style.display = 'inline';
+            document.getElementById(spinnerId).style.display = 'none';
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('login_email').value.trim();
+            const password = document.getElementById('login_password').value;
+
+            if (!email || !password) {
+                showStatus('loginStatus', 'Please fill in all fields', 'error');
+                return;
+            }
+
+            showLoading('loginBtn', 'loginText', 'loginSpinner');
+            hideStatus('loginStatus');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('loginStatus', 'Login successful! Redirecting to dashboard...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect || '/modern_dashboard';
+                    }, 1500);
+                } else {
+                    showStatus('loginStatus', data.error || data.message || 'Login failed', 'error');
+                    hideLoading('loginBtn', 'loginText', 'loginSpinner');
+                }
+            } catch (error) {
+                showStatus('loginStatus', 'Connection error. Please try again.', 'error');
+                hideLoading('loginBtn', 'loginText', 'loginSpinner');
+            }
+        });
+
+        // Register form submission
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('reg_email').value.trim();
+            const password = document.getElementById('reg_password').value;
+            const apiKey = document.getElementById('api_key').value.trim();
+            const crn = document.getElementById('crn').value.trim();
+
+            if (!email || !password || !apiKey || !crn) {
+                showStatus('registerStatus', 'Please fill in all fields', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showStatus('registerStatus', 'Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            showLoading('registerBtn', 'registerText', 'registerSpinner');
+            hideStatus('registerStatus');
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password, api_key: apiKey, crn })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('registerStatus', 'Account created! Redirecting to dashboard...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect || '/modern_dashboard';
+                    }, 1500);
+                } else {
+                    showStatus('registerStatus', data.error || data.message || 'Registration failed', 'error');
+                    hideLoading('registerBtn', 'registerText', 'registerSpinner');
+                }
+            } catch (error) {
+                showStatus('registerStatus', 'Connection error. Please try again.', 'error');
+                hideLoading('registerBtn', 'registerText', 'registerSpinner');
+            }
+        });
+
+        // Clear status on input
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', hideAllStatus);
+        });
+
+        // Keyboard accessibility
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                hideAllStatus();
+            }
+        });
+    </script>
+</body>
+
+</html>

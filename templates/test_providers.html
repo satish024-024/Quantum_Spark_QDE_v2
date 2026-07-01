@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provider Config Test - Checkpoint 3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00d4ff;
+        }
+
+        .provider-card {
+            background: #16213e;
+            border: 1px solid #00d4ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .backend {
+            background: #0f3460;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-online {
+            color: #4caf50;
+        }
+
+        .status-offline {
+            color: #f44336;
+        }
+
+        .dropdown {
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #00d4ff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #ff5252;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        pre {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #00a8cc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔬 Checkpoint 3: Provider Config Test</h1>
+
+    <div id="status"></div>
+
+    <h2>Provider Selection</h2>
+    <div id="provider-dropdown"></div>
+
+    <h2>Backend Selection</h2>
+    <div id="backend-dropdown"></div>
+
+    <h2>Loaded Providers</h2>
+    <div id="providers"></div>
+
+    <h2>Test Functions</h2>
+    <button onclick="testGetAllBackends()">Get All Backends</button>
+    <button onclick="testGetQPUs()">Get QPUs Only</button>
+    <button onclick="testGetSimulators()">Get Simulators Only</button>
+    <button onclick="testGetAvailable()">Get Available Only</button>
+
+    <h2>Test Results</h2>
+    <pre id="results">Click a test button above...</pre>
+
+    <script src="/static/quantum_providers.js"></script>
+    <script>
+        let providersData = null;
+
+        async function loadProviders() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<div class="success">⏳ Loading providers...</div>';
+
+            try {
+                providersData = await window.QuantumProviders.fetchProviders();
+
+                statusDiv.innerHTML = `<div class="success">✅ Loaded ${Object.keys(providersData.providers).length} providers at ${providersData.timestamp}</div>`;
+
+                displayProviders();
+                updateDropdowns();
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function displayProviders() {
+            const providersDiv = document.getElementById('providers');
+            providersDiv.innerHTML = '';
+
+            for (const [id, provider] of Object.entries(providersData.providers)) {
+                const card = document.createElement('div');
+                card.className = 'provider-card';
+
+                let html = `<h3>${provider.icon} ${provider.displayName}</h3>`;
+                html += `<p>${provider.description}</p>`;
+
+                if (provider.error) {
+                    html += `<p style="color: #ff5252">Error: ${provider.error}</p>`;
+                } else if (provider.backends && provider.backends.length > 0) {
+                    html += `<p><strong>${provider.backends.length} backends available:</strong></p>`;
+
+                    for (const backend of provider.backends) {
+                        const statusClass = backend.status === 'online' ? 'status-online' : 'status-offline';
+                        html += `<div class="backend">
+                            <span>${backend.name} (${backend.qubits}q)</span>
+                            <span class="${statusClass}">${backend.status}</span>
+                        </div>`;
+                    }
+                } else {
+                    html += '<p>No backends available</p>';
+                }
+
+                if (provider.docs) {
+                    html += `<p><a href="${provider.docs}" target="_blank" style="color: #00d4ff;">Documentation →</a></p>`;
+                }
+
+                card.innerHTML = html;
+                providersDiv.appendChild(card);
+            }
+        }
+
+        function updateDropdowns() {
+            // Provider dropdown
+            const providerHtml = window.QuantumProviders.createProviderDropdown(providersData, 'ibm');
+            document.getElementById('provider-dropdown').innerHTML = providerHtml;
+
+            // Backend dropdown
+            const ibmProvider = window.QuantumProviders.getProvider('ibm', providersData);
+            const backendHtml = window.QuantumProviders.createBackendDropdown(ibmProvider);
+            document.getElementById('backend-dropdown').innerHTML = backendHtml;
+
+            // Add change listener
+            document.getElementById('provider-selector').addEventListener('change', (e) => {
+                const provider = window.QuantumProviders.getProvider(e.target.value, providersData);
+                const backendHtml = window.QuantumProviders.createBackendDropdown(provider);
+                document.getElementById('backend-dropdown').innerHTML = backendHtml;
+            });
+        }
+
+        function testGetAllBackends() {
+            const backends = window.QuantumProviders.getAllBackends(providersData);
+            document.getElementById('results').textContent = JSON.stringify(backends, null, 2);
+        }
+
+        function testGetQPUs() {
+            const qpus = window.QuantumProviders.getBackendsByType(providersData, 'qpu');
+            document.getElementById('results').textContent = JSON.stringify(qpus, null, 2);
+        }
+
+        function testGetSimulators() {
+            const simulators = window.QuantumProviders.getBackendsByType(providersData, 'simulator');
+            document.getElementById('results').textContent = JSON.stringify(simulators, null, 2);
+        }
+
+        function testGetAvailable() {
+            const available = window.QuantumProviders.getAvailableBackends(providersData);
+            document.getElementById('results').textContent = JSON.stringify(available, null, 2);
+        }
+
+        // Load on page load
+        loadProviders();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,797 @@
+* {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f0f23;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Fix select element styling */
+        select {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid rgba(6, 182, 212, 0.3) !important;
+            color: white !important;
+            border-radius: 4px !important;
+            padding: 0.4rem !important;
+        }
+
+        select option {
+            background: rgba(15, 15, 35, 0.95) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        select:focus {
+            outline: none !important;
+            border-color: #06b6d4 !important;
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2) !important;
+        }
+
+        #circuit-name-display {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        .header {
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #06b6d4;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .circuit-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid #06b6d4;
+            color: #06b6d4;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(6, 182, 212, 0.2);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Progress Animations */
+        @keyframes progress-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progress-glow {
+            0% {
+                box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(6, 182, 212, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 5px rgba(6, 182, 212, 0.5);
+            }
+        }
+
+        .progress-bar-container {
+            animation: progress-glow 2s ease-in-out infinite;
+        }
+
+        /* Connection Status Styles */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-right: 1rem;
+        }
+
+        .status-indicator {
+            font-size: 0.8rem;
+            color: #fbbf24;
+            /* Yellow for checking */
+        }
+
+        .status-indicator.connected {
+            color: #10b981;
+            /* Green for connected */
+        }
+
+        .status-indicator.error {
+            color: #ef4444;
+            /* Red for error */
+        }
+
+        .status-indicator.warning {
+            color: #f59e0b;
+            /* Orange for warning */
+        }
+
+        .status-text {
+            font-size: 0.8rem;
+            color: #e5e7eb;
+            white-space: nowrap;
+        }
+
+        .main-content {
+            display: flex;
+            height: 100vh;
+            padding-top: 80px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 8px;
+            margin: 1rem;
+            overflow: hidden;
+        }
+
+        #quantumCanvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        .circuit-info {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            gap: 2rem;
+            pointer-events: auto;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #06b6d4;
+        }
+
+        .camera-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(6, 182, 212, 0.2);
+            display: flex;
+            flex-direction: column;
+            margin: 1rem 1rem 1rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h3 {
+            color: #06b6d4;
+            font-size: 1.1rem;
+        }
+
+        .gate-categories {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
+        }
+
+        .gate-categories::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari */
+        }
+
+        .gate-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .gate-category h4 {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .gate-palette {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .gate-info {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-width: 300px;
+        }
+
+        .gate-list {
+            font-size: 0.9rem;
+            color: #06b6d4;
+            font-family: 'Courier New', monospace;
+            margin-top: 0.5rem;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .gate-item {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 6px;
+            padding: 0.75rem;
+            cursor: grab;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0.25rem;
+        }
+
+        .gate-item:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: #06b6d4;
+            transform: translateY(-2px);
+        }
+
+        .gate-icon {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.2));
+            border: 2px solid #06b6d4;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Different colors for different gate types */
+        .gate-item[data-gate="X"] .gate-icon,
+        .gate-item[data-gate="SX"] .gate-icon {
+            border-color: #ff6b6b;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.1));
+        }
+
+        .gate-item[data-gate="Y"] .gate-icon,
+        .gate-item[data-gate="CY"] .gate-icon {
+            border-color: #4ecdc4;
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.3), rgba(78, 205, 196, 0.1));
+        }
+
+        .gate-item[data-gate="Z"] .gate-icon,
+        .gate-item[data-gate="CZ"] .gate-icon,
+        .gate-item[data-gate="CCZ"] .gate-icon {
+            border-color: #a855f7;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(168, 85, 247, 0.1));
+        }
+
+        .gate-item[data-gate="H"] .gate-icon,
+        .gate-item[data-gate="CH"] .gate-icon {
+            border-color: #00d4ff;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(0, 212, 255, 0.1));
+        }
+
+        .gate-item[data-gate="S"] .gate-icon,
+        .gate-item[data-gate="SDG"] .gate-icon,
+        .gate-item[data-gate="T"] .gate-icon,
+        .gate-item[data-gate="TDG"] .gate-icon,
+        .gate-item[data-gate="P"] .gate-icon {
+            border-color: #ffd93d;
+            background: linear-gradient(135deg, rgba(255, 217, 61, 0.3), rgba(255, 217, 61, 0.1));
+            color: #ffd93d;
+        }
+
+        .gate-item[data-gate="CNOT"] .gate-icon,
+        .gate-item[data-gate="TOFFOLI"] .gate-icon {
+            border-color: #ff4757;
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.3), rgba(255, 71, 87, 0.1));
+        }
+
+        .gate-item[data-gate="SWAP"] .gate-icon,
+        .gate-item[data-gate="ISWAP"] .gate-icon,
+        .gate-item[data-gate="FREDKIN"] .gate-icon {
+            border-color: #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
+        }
+
+        .gate-item[data-gate="MEASURE"] .gate-icon {
+            border-color: #fbbf24;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.1));
+        }
+
+        .gate-item[data-gate="RESET"] .gate-icon {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.1));
+        }
+
+        .gate-item[data-gate="BARRIER"] .gate-icon {
+            border-color: #64748b;
+            background: linear-gradient(135deg, rgba(100, 116, 139, 0.3), rgba(100, 116, 139, 0.1));
+            border-style: dashed;
+        }
+
+        .gate-item[data-gate="I"] .gate-icon {
+            border-color: #64748b;
+            background: rgba(100, 116, 139, 0.1);
+        }
+
+        .gate-item span {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 15, 35, 0.9);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            color: #06b6d4;
+        }
+
+        .quantum-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(6, 182, 212, 0.3);
+            border-top: 3px solid #06b6d4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+
+            .circuit-info {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .canvas-overlay {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+        }
+
+
+/* ==================== HIGH-DENSITY COMPACT OVERRIDES FOR CIRCUIT BUILDER ==================== */
+/* Sizing reductions to prevent overlaps and collisions at 100% zoom */
+
+/* Header Compact Styles */
+.header {
+    padding: 0.35rem 1rem !important;
+    min-height: 52px !important;
+}
+
+.header-left .logo {
+    font-size: 1.05rem !important;
+}
+
+.header-left .btn-ghost {
+    padding: 0.35rem 0.6rem !important;
+    margin-right: 0.25rem !important;
+}
+
+.circuit-info-inline {
+    margin-left: 0.5rem !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 5px !important;
+    gap: 0.4rem !important;
+}
+
+#circuit-name-display {
+    font-size: 0.75rem !important;
+}
+
+.circuit-details {
+    gap: 0.25rem !important;
+}
+
+.qubit-btn {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+#circuit-qubits, #circuit-gates, #circuit-depth {
+    font-size: 0.65rem !important;
+    padding: 0.05rem 0.25rem !important;
+    border-radius: 3px !important;
+}
+
+#circuit-qubits {
+    min-width: 40px !important;
+}
+
+.circuit-controls {
+    padding: 0.35rem 0.6rem !important;
+    border-radius: 6px !important;
+    gap: 0.35rem !important;
+}
+
+/* Control buttons in header */
+.circuit-controls select {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+    min-width: unset !important;
+}
+
+#headerProviderSelect {
+    width: 65px !important;
+}
+
+#headerBackendSelect {
+    width: 110px !important;
+}
+
+#headerCostBadge {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+}
+
+.circuit-controls .btn {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    border-radius: 4px !important;
+    height: 26px !important;
+}
+
+#runCircuit {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    padding: 0.25rem 0.75rem !important;
+}
+
+/* Main content adjustments */
+.main-content {
+    padding-top: 60px !important;
+    height: 100vh !important;
+}
+
+.sidebar {
+    width: 260px !important;
+    margin: 0.5rem 0.5rem 0.5rem 0 !important;
+}
+
+.sidebar-header {
+    padding: 0.6rem 0.80rem !important;
+}
+
+.sidebar-header h3 {
+    font-size: 0.95rem !important;
+}
+
+.gate-category h4 {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+    padding-bottom: 0.2rem !important;
+}
+
+.gate-palette {
+    gap: 0.4rem !important;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)) !important;
+}
+
+.gate-item {
+    padding: 0.35rem !important;
+    border-radius: 6px !important;
+}
+
+.gate-icon {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
+}
+
+.gate-item span {
+    font-size: 0.6rem !important;
+}
+
+.canvas-container {
+    margin: 0.5rem !important;
+}
+
+/* OVERLAY PANELS OVERRIDE (DYNAMICAL INTERFACES FROM JS) */
+#circuit-selection-interface {
+    max-width: 240px !important;
+    padding: 10px !important;
+    font-size: 11px !important;
+    top: 8px !important;
+    left: 8px !important;
+    border-radius: 8px !important;
+}
+
+#circuit-selection-interface h3 {
+    font-size: 11.5px !important;
+    margin-bottom: 6px !important;
+}
+
+#circuit-selection-interface select,
+#circuit-selection-interface button,
+#circuit-selection-interface input {
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    margin-bottom: 4px !important;
+    border-radius: 4px !important;
+}
+
+#circuit-selection-interface div {
+    margin-bottom: 6px !important;
+}
+
+#mini-bloch-panel {
+    right: 175px !important;
+    top: 8px !important;
+    padding: 6px 10px !important;
+    min-width: 125px !important;
+    border-radius: 8px !important;
+}
+
+#mini-bloch-panel div {
+    font-size: 10px !important;
+    margin-bottom: 4px !important;
+}
+
+#mini-bloch-container {
+    gap: 3px !important;
+}
+
+#mini-bloch-container canvas {
+    width: 28px !important;
+    height: 28px !important;
+}
+
+#ibm-execution-controls {
+    right: 8px !important;
+    top: 8px !important;
+    padding: 8px !important;
+    min-width: 155px !important;
+    gap: 6px !important;
+    border-radius: 8px !important;
+}
+
+#ibm-execution-controls button {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    border-radius: 4px !important;
+}
+
+#live-code-panel {
+    right: 8px !important;
+    bottom: 8px !important;
+    width: 250px !important;
+    max-height: 180px !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+}
+
+#live-code-panel pre {
+    font-size: 9px !important;
+    padding: 6px !important;
+    border-radius: 4px !important;
+}
+
+.canvas-overlay {
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+}
+
+.circuit-info {
+    padding: 0.5rem !important;
+    gap: 0.75rem !important;
+    border-radius: 6px !important;
+}
+
+.circuit-info .info-item .label {
+    font-size: 0.65rem !important;
+}
+
+.circuit-info .info-item .value {
+    font-size: 0.8rem !important;
+}
+
+.gate-info {
+    padding: 0.5rem !important;
+    border-radius: 6px !important;
+}
+
+.gate-info .label {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px !important;
+}
+
+.gate-list {
+    font-size: 0.75rem !important;
+}
+
+
+/* --- Library Toggle Animations --- */
+#circuit-selection-interface {
+    opacity: 0 !important;
+    transform: translateY(-15px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+
+#circuit-selection-interface.active {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
+}
+
+/* Button Active Indicator */
+#loadCircuit.active-btn {
+    background: rgba(168, 85, 247, 0.4) !important;
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.6) !important;
+}
