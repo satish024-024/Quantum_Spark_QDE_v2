@@ -348,7 +348,7 @@ def get_results():
         if quantum_token and user_id:
             try:
                 service = IBMServiceSingleton.get_service(user_id, quantum_token)
-                jobs = list(service.jobs(limit=5))
+                jobs = list(service.jobs(limit=20))
                 completed_job_ids = [
                     str(job.job_id()) for job in jobs if str(job.status()).upper() == 'DONE'
                 ]
@@ -366,31 +366,19 @@ def get_results():
                             continue
                         backend_name = job.backend().name
                         result = job.result()
-                        data = result[0].data
                         
-                        counts = None
-                        register_name = None
-                        for reg_name in ['meas', 'c', 'cr', 'classical']:
-                            if reg_name in data.keys():
-                                reg = data[reg_name]
-                                if hasattr(reg, 'get_counts'):
-                                    counts = reg.get_counts()
-                                    register_name = reg_name
-                                    break
-                                    
-                        if not counts:
-                            for key in data.keys():
-                                try:
-                                    reg = data[key]
-                                    if hasattr(reg, 'get_counts'):
-                                        counts = reg.get_counts()
-                                        register_name = key
-                                        break
-                                except:
-                                    pass
-                                    
+                        counts = extract_counts_from_result(result)
                         if not counts:
                             continue
+                            
+                        register_name = 'meas'
+                        try:
+                            if hasattr(result, '__getitem__') and hasattr(result[0], 'data'):
+                                for key in result[0].data.keys():
+                                    register_name = key
+                                    break
+                        except:
+                            pass
                             
                         counts_dict = dict(counts)
                         total_shots = sum(counts_dict.values())
