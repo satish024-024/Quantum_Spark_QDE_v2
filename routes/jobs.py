@@ -338,52 +338,65 @@ def get_active_jobs():
 
 @jobs_bp.route('/api/results', methods=['GET'])
 def get_results():
-    """Get REAL measurement results from IBM Quantum jobs"""
+    """Get REAL measurement results from IBM Quantum jobs.
+    
+    Optimized: single service.jobs() call, reuses job objects,
+    server-side 60s cache via IBMResultsCache.
+    """
     try:
+        user_id = session.get('user_id')
+        force_refresh = request.args.get('force', '').lower() == 'true'
+
+        # --- Server-side cache: return instantly if fresh ---
+        if user_id and not force_refresh:
+            cached, hit = IBMResultsCache.get_cached_results(user_id)
+            if hit and cached is not None:
+                print(f"[/api/results] Cache hit for user {user_id}")
+                return jsonify(cached)
+
         results_list = []
         total_ibm_jobs_count = 0
         quantum_token, quantum_crn = get_user_quantum_credentials()
-        user_id = session.get('user_id')
-        
+
         if quantum_token and user_id:
             try:
                 service = IBMServiceSingleton.get_service(user_id, quantum_token)
-                jobs = list(service.jobs(limit=20))
-                completed_job_ids = [
-                    str(job.job_id()) for job in jobs if str(job.status()).upper() == 'DONE'
+
+                # ONE call to IBM — fetch jobs, keep objects for reuse
+                all_jobs = list(service.jobs(limit=50))
+                completed_jobs = [
+                    j for j in all_jobs
+                    if str(j.status()).upper() == 'DONE'
                 ]
-                
-                try:
-                    all_jobs = list(service.jobs(limit=50))
-                    total_ibm_jobs_count = len([j for j in all_jobs if str(j.status()).upper() == 'DONE'])
-                except:
-                    total_ibm_jobs_count = len(completed_job_ids)
-                    
-                for job_id in completed_job_ids:
+                total_ibm_jobs_count = len(completed_jobs)
+
+                # Reuse the job objects we already have — no re-fetch
+                for job in completed_jobs[:20]:
                     try:
-                        job = service.job(job_id)
-                        if str(job.status()).upper() != 'DONE':
-                            continue
+                        job_id = str(job.job_id())
                         backend_name = job.backend().name
                         result = job.result()
-                        
+
                         counts = extract_counts_from_result(result)
                         if not counts:
                             continue
-                            
+
                         register_name = 'meas'
                         try:
                             if hasattr(result, '__getitem__') and hasattr(result[0], 'data'):
                                 for key in result[0].data.keys():
                                     register_name = key
                                     break
-                        except:
+                        except Exception:
                             pass
-                            
+
                         counts_dict = dict(counts)
                         total_shots = sum(counts_dict.values())
-                        probabilities = {state: count/total_shots for state, count in counts_dict.items()}
-                        
+                        probabilities = {
+                            state: count / total_shots
+                            for state, count in counts_dict.items()
+                        }
+
                         results_list.append({
                             "job_id": job_id,
                             "circuit_name": "IBM Quantum Circuit",
@@ -396,13 +409,13 @@ def get_results():
                             "real_data": True,
                             "local_data": False,
                             "is_local": False,
-                            "register_name": register_name
+                            "register_name": register_name,
                         })
                     except Exception as job_err:
-                        print(f"Error getting result for job {job_id}: {job_err}")
+                        print(f"Error getting result for job {job.job_id()}: {job_err}")
             except Exception as ibm_err:
                 print(f"IBM API error: {ibm_err}")
-                
+
         # Also get local results from DB
         try:
             local_jobs = db.get_jobs(limit=20)
@@ -435,22 +448,28 @@ def get_results():
                         "status": "COMPLETED",
                         "real_data": False,
                         "local_data": True,
-                        "is_local": True
+                        "is_local": True,
                     })
-                except:
+                except Exception:
                     continue
         except Exception as db_err:
             print(f"Error fetching local results: {db_err}")
-            
+
         has_real_data = any(r.get('real_data') for r in results_list)
-        return jsonify({
+        response_payload = {
             "success": True,
             "results": results_list,
             "total_jobs": len(results_list),
             "total_ibm_jobs": total_ibm_jobs_count,
             "real_data": has_real_data,
-            "message": f"Retrieved {len(results_list)} results"
-        })
+            "message": f"Retrieved {len(results_list)} results",
+        }
+
+        # Cache for next request
+        if user_id:
+            IBMResultsCache.update_cache(user_id, response_payload)
+
+        return jsonify(response_payload)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
