@@ -187,40 +187,67 @@ def bloch_sphere():
 
 @views_bp.route('/robots.txt')
 def robots_txt():
-    """Serve robots.txt from root for Google crawler"""
+    """Serve robots.txt — blocks private routes from Google"""
     from flask import Response
-    content = """User-agent: *
-Allow: /
-Sitemap: https://quantumjobstracker.vercel.app/sitemap.xml
-Disallow: /api/
-Disallow: /debug/
-"""
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /debug/\n"
+        "Disallow: /internal/\n\n"
+        "Sitemap: https://quantumjobstracker.vercel.app/sitemap.xml\n"
+    )
     return Response(content, mimetype='text/plain')
+
 
 @views_bp.route('/sitemap.xml')
 def sitemap_xml():
-    """Serve sitemap.xml from root for Google Search Console"""
+    """Sitemap index — references all sub-sitemaps"""
     from flask import Response
-    content = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://quantumjobstracker.vercel.app/auth</loc>
-    <lastmod>2026-07-02</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://quantumjobstracker.vercel.app/dashboard</loc>
-    <lastmod>2026-07-02</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://quantumjobstracker.vercel.app/circuit-builder</loc>
-    <lastmod>2026-07-02</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-</urlset>"""
+    content = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<?xml-stylesheet type="text/xsl" href="/sitemap-index.xsl"?>\n'
+        '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <sitemap>\n'
+        '    <loc>https://quantumjobstracker.vercel.app/sitemap-pages.xml</loc>\n'
+        '    <lastmod>2026-07-02</lastmod>\n'
+        '  </sitemap>\n'
+        '</sitemapindex>\n'
+    )
     return Response(content, mimetype='application/xml')
+
+
+@views_bp.route('/sitemap-pages.xml')
+def sitemap_pages_xml():
+    """Pages sub-sitemap — all public app pages"""
+    from flask import Response
+    content = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url><loc>https://quantumjobstracker.vercel.app/auth</loc>'
+        '<lastmod>2026-07-02</lastmod><changefreq>monthly</changefreq><priority>1.0</priority></url>\n'
+        '  <url><loc>https://quantumjobstracker.vercel.app/dashboard</loc>'
+        '<lastmod>2026-07-02</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n'
+        '  <url><loc>https://quantumjobstracker.vercel.app/circuit-builder</loc>'
+        '<lastmod>2026-07-02</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>\n'
+        '  <url><loc>https://quantumjobstracker.vercel.app/bloch-sphere</loc>'
+        '<lastmod>2026-07-02</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n'
+        '</urlset>\n'
+    )
+    return Response(content, mimetype='application/xml')
+
+
+@views_bp.route('/sitemap.xsl')
+def sitemap_xsl():
+    """Serve branded XSL for individual sitemap display"""
+    return send_from_directory('static', 'sitemap.xsl', mimetype='text/xsl')
+
+
+@views_bp.route('/sitemap-index.xsl')
+def sitemap_index_xsl():
+    """Serve branded XSL for sitemap index display"""
+    return send_from_directory('static', 'sitemap-index.xsl', mimetype='text/xsl')
+
 
