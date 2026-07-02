@@ -182,3 +182,45 @@ def bloch_sphere():
     """Route to Bloch Sphere Simulator standalone application"""
     bloch_dir = os.path.join('static', 'bloch-sphere-simulator')
     return send_from_directory(bloch_dir, 'index.html')
+
+# ── SEO & Crawl Routes ──────────────────────────────────────────
+
+@views_bp.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt from root for Google crawler"""
+    from flask import Response
+    content = """User-agent: *
+Allow: /
+Sitemap: https://quantumjobstracker.vercel.app/sitemap.xml
+Disallow: /api/
+Disallow: /debug/
+"""
+    return Response(content, mimetype='text/plain')
+
+@views_bp.route('/sitemap.xml')
+def sitemap_xml():
+    """Serve sitemap.xml from root for Google Search Console"""
+    from flask import Response
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://quantumjobstracker.vercel.app/auth</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://quantumjobstracker.vercel.app/dashboard</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://quantumjobstracker.vercel.app/circuit-builder</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+</urlset>"""
+    return Response(content, mimetype='application/xml')
+

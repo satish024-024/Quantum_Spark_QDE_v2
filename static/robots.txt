@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://quantumjobstracker.vercel.app/sitemap.xml
+
+# Block internal/private routes from indexing
+Disallow: /api/
+Disallow: /static/
+Disallow: /debug/
