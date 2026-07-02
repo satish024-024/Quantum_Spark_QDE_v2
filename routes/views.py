@@ -185,6 +185,11 @@ def bloch_sphere():
 
 # ── SEO & Crawl Routes ──────────────────────────────────────────
 
+@views_bp.route('/googlec40ccbb49f7957ba.html')
+def gsc_verification():
+    """Google Search Console HTML file verification — must stay permanent"""
+    return send_from_directory('static', 'googlec40ccbb49f7957ba.html')
+
 @views_bp.route('/robots.txt')
 def robots_txt():
     """Serve robots.txt — blocks private routes from Google"""
