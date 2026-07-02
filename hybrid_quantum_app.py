@@ -1277,16 +1277,18 @@ def get_user_quantum_credentials():
         quantum_token, quantum_crn = user_auth.get_user_credentials(user_id)
         if quantum_token:
             # Validate CRN format (optional)
-            valid_crn = validate_crn(quantum_crn)
+            valid_crn = validate_crn(quantum_crn) if quantum_crn else None
+            
+            # Store credentials in session
+            session['quantum_token'] = quantum_token
             if valid_crn:
-                # Store validated credentials in session
-                session['quantum_token'] = quantum_token
                 session['quantum_crn'] = valid_crn
-                print(f"Retrieved credentials from database for user {user_id} (email: {user_email})")
-                print(f"Token: {quantum_token[:10]}..., CRN: {valid_crn[:20]}...")
-                return quantum_token, valid_crn
             else:
-                print(f"Invalid CRN format in database for user {user_id}")
+                session.pop('quantum_crn', None)
+                
+            print(f"Retrieved credentials from database for user {user_id} (email: {user_email})")
+            print(f"Token: {quantum_token[:10]}..., CRN: {str(valid_crn)[:20]}...")
+            return quantum_token, valid_crn
         else:
             print(f"No credentials found in database for user {user_id} (email: {user_email})")
     except Exception as e:
@@ -2195,7 +2197,7 @@ def load_credentials_to_memory():
                 cursor.execute('SELECT api_token, crn FROM ibm_credentials WHERE user_id = ? AND is_active = 1', (user_id,))
                 result = cursor.fetchone()
                 if not result:
-                    cursor.execute('SELECT quantum_token, quantum_crn FROM users WHERE id = ?', (user_id,))
+                    cursor.execute('SELECT api_key, crn FROM users WHERE id = ?', (user_id,))
                     result = cursor.fetchone()
                 conn.close()
                 
@@ -3502,7 +3504,7 @@ def modern_dashboard():
     
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f"?? Initializing quantum manager with user credentials for {session.get('user_email', 'unknown')}")
         try:
             # Initialize quantum manager with user's stored credentials
@@ -5926,7 +5928,7 @@ def get_status():
     job_count = 0
     connection_status = "disconnected"
 
-    if quantum_token and quantum_crn:
+    if quantum_token:
         try:
             quantum_manager = quantum_manager_singleton.get_manager(quantum_token, quantum_crn)
             if quantum_manager:
@@ -5963,7 +5965,7 @@ def get_status():
         "connection_status": connection_status,
         "backend_count": backend_count,
         "job_count": job_count,
-        "has_credentials": bool(quantum_token and quantum_crn),
+        "has_credentials": bool(quantum_token),
         "message": "Fully connected to IBM Quantum" if is_connected else "Connecting to IBM Quantum..."
     })
 
@@ -5982,7 +5984,7 @@ def dashboard():
     
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f" Initializing quantum manager with user credentials for {session.get('user_email', 'unknown')}")
         try:
             # Initialize quantum manager with user's stored credentials
@@ -6025,7 +6027,7 @@ def production_dashboard():
         # Get user's quantum credentials and initialize quantum manager
         quantum_token, quantum_crn = get_user_quantum_credentials()
         
-        if quantum_token and quantum_crn:
+        if quantum_token:
             # Initialize quantum manager with user's credentials
             try:
                 quantum_manager = QuantumManagerSingleton()
@@ -6098,7 +6100,7 @@ def ultimate_dashboard():
     
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f"🚀 Initializing quantum manager for Ultimate Dashboard - {session.get('user_email', 'unknown')}")
         try:
             quantum_manager = quantum_manager_singleton.get_manager(quantum_token, quantum_crn)
@@ -6131,7 +6133,7 @@ def dashboard_selector():
 
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f"?? Initializing quantum manager with user credentials for {session.get('user_email', 'unknown')}")
         try:
             # Initialize quantum manager with user's stored credentials
@@ -6174,7 +6176,7 @@ def hackathon_dashboard_legacy():
 
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f"?? Initializing quantum manager with user credentials for {session.get('user_email', 'unknown')}")
         try:
             # Initialize quantum manager with user's stored credentials
@@ -8648,7 +8650,7 @@ def get_results():
         quantum_token, quantum_crn = get_user_quantum_credentials()
         user_id = session.get('user_id')
         
-        if quantum_token and quantum_crn and user_id:
+        if quantum_token and user_id:
             try:
                 # PERFORMANCE FIX: Use singleton service (no recreation overhead)
                 service = IBMServiceSingleton.get_service(user_id, quantum_token)
@@ -8884,7 +8886,7 @@ def get_recommendations():
     user_id = session.get('user_id')
     if user_id:
         quantum_token, quantum_crn = get_user_quantum_credentials()
-        if quantum_token and quantum_crn:
+        if quantum_token:
             quantum_manager = quantum_manager_singleton.get_manager(quantum_token, quantum_crn)
             if quantum_manager and not quantum_manager.is_connected:
                 print(" Establishing connection for recommendations API...")
@@ -9010,7 +9012,7 @@ def get_backend_predictions_api():
     user_id = session.get('user_id')
     if user_id:
         quantum_token, quantum_crn = get_user_quantum_credentials()
-        if quantum_token and quantum_crn:
+        if quantum_token:
             quantum_manager = quantum_manager_singleton.get_manager(quantum_token, quantum_crn)
             if quantum_manager and not quantum_manager.is_connected:
                 print(" Establishing connection for predictions API...")
@@ -10391,7 +10393,7 @@ def quantum_research_platform():
     
     # Get user's IBM Quantum credentials and initialize quantum manager
     quantum_token, quantum_crn = get_user_quantum_credentials()
-    if quantum_token and quantum_crn:
+    if quantum_token:
         print(f"🔬 Initializing Quantum Research Platform for {session.get('user_email', 'unknown')}")
         try:
             quantum_manager = quantum_manager_singleton.get_manager(quantum_token, quantum_crn)
