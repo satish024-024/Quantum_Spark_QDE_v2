@@ -820,7 +820,7 @@ def run_circuit_stream():
                 time.sleep(1)
                 
                 num_qubits = int(circuit_data.get('qubits', 2))
-                qc = QuantumCircuit(num_qubits)
+                qc = QuantumCircuit(num_qubits, num_qubits)
                 
                 # Map lowercase gate names
                 for gate in circuit_data.get('gates', []):
@@ -870,7 +870,7 @@ def run_circuit_stream():
                 
                 # Auto-measure all if no measurements
                 if not any(inst.operation.name == 'measure' for inst in qc.data):
-                    qc.measure_all()
+                    qc.measure(list(range(num_qubits)), list(range(num_qubits)))
                 
                 yield f'data: {json.dumps({"step": "transpilation", "status": "completed", "message": "Circuit compilation completed successfully.", "backend": backend_name})}\n\n'
                 time.sleep(0.5)
@@ -951,6 +951,9 @@ def run_circuit_stream():
                         
                     yield f'data: {json.dumps(event_data)}\n\n'
                     time.sleep(2)
+                
+                # Retrieve the result object after job completes
+                result = job.result()
                     
                 yield f'data: {json.dumps({"step": "execution", "status": "completed", "message": "Job successfully completed on IBM Quantum!", "elapsed": int(time.time() - start_exec), "job_id": job_id, "backend": resolved_backend})}\n\n'
                 time.sleep(0.5)
