@@ -1,0 +1,126 @@
+{# ============================================================ #}
+{# SEO Partial: _seo_head.html                                  #}
+{# Inject inside <head> of every template.                      #}
+{# Pass: page_title, page_description, page_path, page_type     #}
+{# ============================================================ #}
+
+{% set brand       = "Quantum Jobs Tracker" %}
+{% set site_url    = "https://quantumjobstracker.vercel.app" %}
+{% set phone       = "+919505683584" %}
+{% set email       = "prakashkadali3723@gmail.com" %}
+{% set city        = "Rajahmundry" %}
+{% set region      = "Andhra Pradesh" %}
+{% set country     = "IN" %}
+{% set lat         = "17.0005" %}
+{% set lng         = "81.8040" %}
+{% set og_image    = site_url + "/static/logo.png" %}
+{% set page_url    = site_url + (page_path | default("/")) %}
+{% set _title      = page_title | default(brand + " | Quantum Cloud Job Execution & Tracking Platform") %}
+{% set _desc       = page_description | default("Quantum Jobs Tracker is a premium platform for tracking, executing, and analyzing quantum computing jobs on IBM Quantum and cloud backends. Based in Rajahmundry, Andhra Pradesh, India.") %}
+
+<!-- ── Primary SEO ── -->
+<title>{{ _title }}</title>
+<meta name="description"         content="{{ _desc }}">
+<meta name="robots"              content="index, follow">
+<meta name="author"              content="Kadali Satish Kumar — Quantum Jobs Tracker">
+<meta name="keywords"            content="quantum jobs tracker, IBM quantum, quantum computing, circuit builder, Qiskit, cloud quantum execution, Rajahmundry, quantum platform">
+<link rel="canonical"            href="{{ page_url }}">
+
+<!-- ── Open Graph ── -->
+<meta property="og:type"         content="{{ page_type | default('website') }}">
+<meta property="og:site_name"    content="{{ brand }}">
+<meta property="og:title"        content="{{ _title }}">
+<meta property="og:description"  content="{{ _desc }}">
+<meta property="og:url"          content="{{ page_url }}">
+<meta property="og:image"        content="{{ og_image }}">
+<meta property="og:image:width"  content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:locale"       content="en_IN">
+
+<!-- ── Twitter Card ── -->
+<meta name="twitter:card"        content="summary">
+<meta name="twitter:title"       content="{{ _title }}">
+<meta name="twitter:description" content="{{ _desc }}">
+<meta name="twitter:image"       content="{{ og_image }}">
+
+<!-- ── Favicons ── -->
+<link rel="icon"             type="image/x-icon" href="/static/favicon.ico">
+<link rel="icon"             type="image/png" sizes="32x32"  href="/static/favicon-32x32.png">
+<link rel="icon"             type="image/png" sizes="96x96"  href="/static/favicon-96x96.png">
+<link rel="icon"             type="image/png" sizes="192x192" href="/static/favicon-192x192.png">
+<link rel="icon"             type="image/png" sizes="512x512" href="/static/favicon-512x512.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest"         href="/static/site.webmanifest">
+
+<!-- ── JSON-LD Schema Graph ── -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "@id": "{{ site_url }}/#app",
+      "name": "{{ brand }}",
+      "url": "{{ site_url }}",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "description": "{{ _desc }}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ og_image }}",
+        "width": 512,
+        "height": 512
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "sameAs": [
+        "https://www.linkedin.com/in/kadalisatishkumar",
+        "https://github.com/satish024-024",
+        "https://www.instagram.com/satishhh_kumarrr"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "{{ phone }}",
+        "email": "{{ email }}",
+        "contactType": "technical support",
+        "areaServed": "IN",
+        "availableLanguage": ["English", "Telugu"]
+      }
+    },
+    {
+      "@type": "Organization",
+      "@id": "{{ site_url }}/#organization",
+      "name": "{{ brand }}",
+      "url": "{{ site_url }}",
+      "logo": "{{ og_image }}",
+      "email": "{{ email }}",
+      "telephone": "{{ phone }}",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "{{ city }}",
+        "addressRegion": "{{ region }}",
+        "addressCountry": "{{ country }}"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "{{ lat }}",
+        "longitude": "{{ lng }}"
+      },
+      "areaServed": ["Rajahmundry", "Andhra Pradesh", "India", "Global"],
+      "sameAs": [
+        "https://www.linkedin.com/in/kadalisatishkumar",
+        "https://github.com/satish024-024",
+        "https://www.instagram.com/satishhh_kumarrr"
+      ],
+      "founder": {
+        "@type": "Person",
+        "name": "Kadali Satish Kumar",
+        "url": "https://www.linkedin.com/in/kadalisatishkumar"
+      }
+    }
+  ]
+}
+</script>

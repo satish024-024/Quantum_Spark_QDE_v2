@@ -1,0 +1,13 @@
+{
+  "name": "Quantum Jobs Tracker",
+  "short_name": "QJT",
+  "description": "Track, execute, and analyze quantum computing jobs on IBM Quantum and cloud backends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00d4ff",
+  "icons": [
+    { "src": "/static/favicon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/favicon-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
