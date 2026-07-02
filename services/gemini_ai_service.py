@@ -299,11 +299,11 @@ class GeminiAIService:
         # Models to try in order of preference
         # Updated models for 2026 (preferring stable production models)
         models = [
-            'gemini-3.0-flash',      # Latest Flash model (2026)
-            'gemini-2.0-flash',      # Standard stable
-            'gemini-2.0-pro-exp',    # Advanced experimental
-            'gemini-1.5-flash-002',  # Highly stable fallback
-            'gemini-1.5-flash'       # Legacy stable fallback
+            'gemini-3.5-flash',      # Future-proofing
+            'gemini-2.5-flash',      # Stable 2026 (Highly available)
+            'gemini-2.5-pro',        # Advanced 2026
+            'gemini-2.0-flash-lite',  # Light 2.0
+            'gemini-2.0-flash'       # Standard 2.0
         ]
         
         last_error = None
@@ -598,11 +598,11 @@ Your Response:"""
         # Gemini 3 models are newest, Gemini 2.5 Pro available until June 2026
         # Updated models for 2026
         models = [
-            'gemini-3.0-flash',      # Latest Flash model (2026)
-            'gemini-2.0-flash',      # Standard stable
-            'gemini-2.0-pro-exp',    # Advanced
-            'gemini-1.5-flash-002',  # Stable fallback
-            'gemini-1.5-flash'       # Legacy stable
+            'gemini-3.5-flash',      # Future-proofing
+            'gemini-2.5-flash',      # Stable 2026 (Highly available)
+            'gemini-2.5-pro',        # Advanced 2026
+            'gemini-2.0-flash-lite',  # Light 2.0
+            'gemini-2.0-flash'       # Standard 2.0
         ]
         
         last_error = None
@@ -611,11 +611,6 @@ Your Response:"""
         
         for model in models:
             try:
-                # Optimized error prevention: check if we hit a rate limit in a previous turn
-                if "429" in last_error:
-                    print(f"   [Gemini] Skipping {model} due to previous rate limit (429)")
-                    continue
-
                 print(f"🔄 Trying Gemini model: {model}...")
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
                 
@@ -673,11 +668,8 @@ Your Response:"""
                     if response.status_code == 404:
                         continue
                     if response.status_code == 429:
-                        return {
-                            'success': False,
-                            'error': "API Rate Limit Exceeded. Your API key has hit its quota. Please wait a few minutes or provide your own API key."
-                        }
-                    continue
+                        print(f"   [Gemini] {model} rate limited (429), trying fallback models...")
+                        continue
                     
             except Exception as e:
                 last_error = f"Error with {model}: {str(e)}"

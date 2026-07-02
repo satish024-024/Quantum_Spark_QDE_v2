@@ -2,10 +2,8 @@
 
 // Security: Helper function to sanitize HTML and prevent XSS
 function sanitizeHTML(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    // Return HTML string as is so structural tags can render properly
+    return str || '';
 }
 
 // Helper functions for standardized status checking
@@ -1207,6 +1205,45 @@ class HackathonDashboard {
         popupOverlay.classList.add('active');
     }
 
+    forceCloseAllFullscreen() {
+        console.log('🧹 Force closing all fullscreen and side panel containers...');
+        try {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => console.log('Error exiting fullscreen:', err));
+            }
+            
+            // Remove Bloch sphere fullscreen
+            const blochContainer = document.getElementById('bloch-sphere-fullscreen-container');
+            if (blochContainer) {
+                if (blochContainer._keyHandler) {
+                    document.removeEventListener('keydown', blochContainer._keyHandler);
+                }
+                if (blochContainer.parentNode) {
+                    blochContainer.parentNode.removeChild(blochContainer);
+                }
+            }
+
+            // Remove 3D circuit fullscreen
+            const circuitContainer = document.getElementById('3d-circuit-fullscreen-container');
+            if (circuitContainer) {
+                if (circuitContainer._keyHandler) {
+                    document.removeEventListener('keydown', circuitContainer._keyHandler);
+                }
+                if (window.quantumApp && window.quantumApp.cleanup) {
+                    window.quantumApp.cleanup();
+                }
+                if (circuitContainer.parentNode) {
+                    circuitContainer.parentNode.removeChild(circuitContainer);
+                }
+            }
+
+            // Close AI side panel
+            this.closeAISidePanel();
+        } catch (error) {
+            console.error('Error in forceCloseAllFullscreen:', error);
+        }
+    }
+
     openFullscreen(widget) {
         const widgetType = widget.getAttribute('data-widget');
 
@@ -1681,317 +1718,1073 @@ class HackathonDashboard {
             position: fixed;
             top: 0;
             right: 0;
-            width: 480px;
+            width: 460px;
             height: 100vh;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
-            backdrop-filter: blur(24px);
-            border-left: 1px solid rgba(6, 182, 212, 0.3);
-            box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
             z-index: 10000;
             display: flex;
             flex-direction: column;
-            animation: slideInRight 0.3s ease-out;
+            animation: lgSlideInRight 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: transparent;
+            border-radius: 24px 0 0 24px;
+            overflow: hidden;
         `;
 
-        // Add CSS animation
+        // Inject SVG filter + full Liquid Glass CSS
         const style = document.createElement('style');
+        style.id = 'liquid-glass-ai-styles';
         style.textContent = `
-            @keyframes slideInRight {
-                from { transform: translateX(100%); }
-                to { transform: translateX(0); }
-            }
-            @keyframes slideOutRight {
-                from { transform: translateX(0); }
-                to { transform: translateX(100%); }
-            }
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            .ai-tab-content { display: none; }
-            .ai-tab-content.active {
-                display: block;
-                animation: fadeIn 0.2s ease-in;
-            }
-            .ai-message {
-                margin: 8px 0;
-                padding: 12px 16px;
-                border-radius: 12px;
-                max-width: 85%;
-                animation: fadeIn 0.3s ease-in;
-            }
-            .ai-message.user {
-                background: linear-gradient(135deg, #10b981, #059669);
-                color: white;
-                margin-left: auto;
-                border-bottom-right-radius: 4px;
-                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-            }
-            .ai-message.assistant {
-                background: rgba(59, 130, 246, 0.1);
-                border: 1px solid rgba(59, 130, 246, 0.3);
-                color: #e5e7eb;
-                margin-right: auto;
-                border-bottom-left-radius: 4px;
-            }
-            #ai-chat-messages::-webkit-scrollbar {
-                width: 8px;
-            }
-            #ai-chat-messages::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 4px;
-            }
-            #ai-chat-messages::-webkit-scrollbar-thumb {
-                background: rgba(59, 130, 246, 0.5);
-                border-radius: 4px;
-                transition: background 0.2s ease;
-            }
-            #ai-chat-messages::-webkit-scrollbar-thumb:hover {
-                background: rgba(59, 130, 246, 0.7);
+            /* ─── Panel Shell ─── */
+            #ai-assistant-side-panel {
+                font-family: -apple-system, 'SF Pro Display', 'Inter', sans-serif;
             }
 
-            /* Toggle Switch Styling */
-            .switch {
+            /* ─── Panel Wrapper ─── */
+            #lg-panel-wrapper {
                 position: relative;
-                display: inline-block;
-                width: 44px;
-                height: 24px;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                background: rgba(247, 247, 244, 0.92);
+                backdrop-filter: blur(48px) saturate(180%) brightness(1.02);
+                -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(1.02);
+                border-left: 1px solid rgba(18, 18, 18, 0.08);
+                border-radius: 24px 0 0 24px;
+                overflow: hidden;
+                box-shadow:
+                    -1px 0 0 rgba(255,255,255,0.8),
+                    -20px 0 60px rgba(0,0,0,0.12),
+                    inset 1px 0 0 rgba(255,255,255,0.6);
             }
 
-            .switch input {
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-
-            .slider {
+            /* Top specular rim */
+            #lg-panel-wrapper::before {
+                content: '';
                 position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), rgba(255,255,255,0.5), transparent);
+                pointer-events: none;
+                z-index: 10;
+            }
+
+            /* ─── Header ─── */
+            #lg-header {
+                flex-shrink: 0;
+                padding: 18px 20px 14px;
+                position: relative;
+                background: rgba(255,255,255,0.6);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(18,20,24,0.07);
+            }
+            #lg-header::after {
+                content: '';
+                position: absolute;
+                bottom: 0; left: 16px; right: 16px;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(0,168,150,0.3), transparent);
+            }
+
+            /* ─── Liquid Glass Avatar ─── */
+            .lg-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 13px;
+                background: rgba(0,168,150,0.1);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(0,168,150,0.25);
+                box-shadow:
+                    0 2px 8px rgba(0,168,150,0.15),
+                    inset 0 1px 0 rgba(255,255,255,0.8),
+                    inset 0 -1px 0 rgba(0,168,150,0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                overflow: hidden;
+            }
+            .lg-avatar::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 50%;
+                background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, transparent 100%);
+                border-radius: 13px 13px 0 0;
+            }
+
+            /* ─── Control Buttons ─── */
+            .lg-ctrl-btn {
+                width: 28px;
+                height: 28px;
+                border-radius: 9px;
+                background: rgba(18,20,24,0.05);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(18,20,24,0.09);
+                box-shadow:
+                    0 1px 4px rgba(0,0,0,0.08),
+                    inset 0 1px 0 rgba(255,255,255,0.7);
+                color: rgba(18,20,24,0.5);
                 cursor: pointer;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: #ccc;
-                transition: .4s;
-                border-radius: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 10px;
+                transition: all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                position: relative;
+                overflow: hidden;
             }
-
-            .slider:before {
+            .lg-ctrl-btn::before {
+                content: '';
                 position: absolute;
-                content: "";
-                height: 18px;
-                width: 18px;
-                left: 3px;
-                bottom: 3px;
-                background-color: white;
-                transition: .4s;
-                border-radius: 50%;
+                top: 0; left: 0; right: 0;
+                height: 50%;
+                background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, transparent 100%);
+                border-radius: 9px 9px 0 0;
+                pointer-events: none;
+            }
+            .lg-ctrl-btn:hover {
+                background: rgba(18,20,24,0.09);
+                border-color: rgba(18,20,24,0.15);
+                color: #111215;
+                transform: scale(1.06);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+            }
+            .lg-ctrl-btn:active { transform: scale(0.94); }
+
+            /* ─── Tab Bar ─── */
+            #lg-tabs {
+                flex-shrink: 0;
+                padding: 8px 12px;
+                background: rgba(255,255,255,0.5);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border-bottom: 1px solid rgba(18,20,24,0.06);
+                display: flex;
+                gap: 3px;
             }
 
-            input:checked + .slider {
-                background-color: #3b82f6;
+            .lg-tab {
+                flex: 1;
+                padding: 7px 4px;
+                border-radius: 9px;
+                background: transparent;
+                border: 1px solid transparent;
+                color: rgba(18,20,24,0.4);
+                cursor: pointer;
+                font-size: 10.5px;
+                font-weight: 500;
+                letter-spacing: 0.01em;
+                transition: all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                position: relative;
+                overflow: hidden;
+            }
+            .lg-tab i { font-size: 12px; }
+            .lg-tab:hover {
+                color: rgba(18,20,24,0.7);
+                background: rgba(18,20,24,0.04);
+            }
+            .lg-tab.active {
+                background: rgba(255,255,255,0.8);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(18,20,24,0.08);
+                color: #00A896;
+                box-shadow:
+                    0 2px 8px rgba(0,0,0,0.06),
+                    inset 0 1px 0 rgba(255,255,255,0.9),
+                    inset 0 -1px 0 rgba(0,0,0,0.03);
+            }
+            .lg-tab.active::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 15%; right: 15%;
+                height: 1.5px;
+                background: linear-gradient(90deg, transparent, rgba(0,168,150,0.6), transparent);
             }
 
-            input:checked + .slider:before {
-                transform: translateX(20px);
+            /* ─── Messages ─── */
+            #ai-chat-messages {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(18,20,24,0.1) transparent;
             }
-            .ai-code-block {
-                background: rgba(0, 0, 0, 0.8);
-                color: #e0e0e0;
-                padding: 12px;
-                border-radius: 8px;
-                margin: 8px 0;
-                font-family: 'Fira Code', monospace;
+            #ai-chat-messages::-webkit-scrollbar { width: 3px; }
+            #ai-chat-messages::-webkit-scrollbar-track { background: transparent; }
+            #ai-chat-messages::-webkit-scrollbar-thumb {
+                background: rgba(18,20,24,0.12);
+                border-radius: 2px;
+            }
+
+            #lg-panel-wrapper .ai-message {
+                margin: 6px 0;
+                padding: 0 !important;
+                background: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                animation: lgFadeUp 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            }
+            @keyframes lgFadeUp {
+                from { opacity: 0; transform: translateY(6px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
+
+            /* User bubble */
+            #lg-panel-wrapper .ai-message.user {
+                display: flex;
+                justify-content: flex-end;
+                background: none !important;
+                border: none !important;
+                margin-left: 0 !important;
+            }
+            #lg-panel-wrapper .ai-message.user .msg-bubble {
+                max-width: 80%;
+                padding: 9px 13px;
+                border-radius: 16px 16px 4px 16px;
+                background: rgba(0,168,150,0.08);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(0,168,150,0.2);
+                box-shadow:
+                    0 2px 10px rgba(0,168,150,0.1),
+                    inset 0 1px 0 rgba(255,255,255,0.8);
+                color: #111215;
                 font-size: 13px;
-                overflow-x: auto;
+                line-height: 1.55;
+                position: relative;
+                overflow: hidden;
             }
-            .ai-action-btn {
-                background: var(--accent, #3b82f6);
-                color: white;
+            #lg-panel-wrapper .ai-message.user .msg-bubble::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 40%;
+                background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+                pointer-events: none;
+            }
+
+            /* Assistant bubble */
+            #lg-panel-wrapper .ai-message.assistant {
+                display: flex;
+                justify-content: flex-start;
+                background: none !important;
+                border: none !important;
+                margin-right: 0 !important;
+            }
+            #lg-panel-wrapper .ai-message.assistant .msg-bubble {
+                max-width: 92%;
+                padding: 11px 14px;
+                border-radius: 4px 16px 16px 16px;
+                background: rgba(255,255,255,0.75);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(18,20,24,0.08);
+                box-shadow:
+                    0 2px 8px rgba(0,0,0,0.06),
+                    inset 0 1px 0 rgba(255,255,255,0.9);
+                color: #111215;
+                font-size: 13px;
+                line-height: 1.6;
+            }
+
+            /* ─── Text Shimmer Wave Animation ─── */
+            @keyframes lgShimmerWave {
+                0%, 100% {
+                    transform: translate3d(0, 0, 0) scale(1) rotateY(0deg);
+                    color: rgba(18, 20, 24, 0.4);
+                }
+                50% {
+                    transform: translate3d(1px, -4px, 8px) scale(1.1) rotateY(12deg);
+                    color: #00A896;
+                }
+            }
+            .lg-shimmer-wave-char {
+                display: inline-block;
+                white-space: pre;
+                transform-style: preserve-3d;
+                animation: lgShimmerWave 1.4s ease-in-out infinite;
+                animation-delay: calc(var(--char-idx) * 0.05s);
+            }
+            .ai-message.assistant .msg-header {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 7px;
+            }
+            .ai-message.assistant .msg-header .ai-dot {
+                width: 16px; height: 16px;
+                border-radius: 5px;
+                background: rgba(0,168,150,0.1);
+                border: 1px solid rgba(0,168,150,0.2);
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+            }
+            .ai-message.assistant .msg-header .ai-dot i {
+                font-size: 7px;
+                color: #00A896;
+            }
+            .ai-message.assistant .msg-header span {
+                font-size: 10px;
+                font-weight: 700;
+                color: rgba(18,20,24,0.4);
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+
+            /* ─── Input Area ─── */
+            #lg-input-area {
+                flex-shrink: 0;
+                padding: 12px 14px;
+                background: rgba(255,255,255,0.6);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border-top: 1px solid rgba(18,20,24,0.07);
+                position: relative;
+            }
+            #lg-input-area::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 14px; right: 14px;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+            }
+
+            /* Input pill */
+            #lg-input-pill {
+                display: flex;
+                align-items: flex-end;
+                gap: 8px;
+                background: rgba(255,255,255,0.8);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(18,20,24,0.1);
+                border-radius: 18px;
+                padding: 7px 7px 7px 13px;
+                box-shadow:
+                    0 2px 12px rgba(0,0,0,0.06),
+                    inset 0 1px 0 rgba(255,255,255,0.9),
+                    inset 0 -1px 0 rgba(0,0,0,0.03);
+                transition: all 0.22s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            #lg-input-pill::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 10%; right: 10%;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent);
+            }
+            #lg-input-pill:focus-within {
+                border-color: rgba(0,168,150,0.35);
+                box-shadow:
+                    0 3px 16px rgba(0,168,150,0.1),
+                    inset 0 1px 0 rgba(255,255,255,0.9);
+            }
+
+            #ai-chat-input {
+                flex: 1;
+                background: transparent;
                 border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
+                outline: none;
+                color: #111215;
+                font-size: 13px;
+                font-family: -apple-system, 'SF Pro Text', 'Inter', sans-serif;
+                line-height: 1.5;
+                resize: none;
+                min-height: 20px;
+                max-height: 100px;
+                padding: 2px 0;
+            }
+            #ai-chat-input::placeholder { color: rgba(18,20,24,0.3); }
+
+            /* Send button */
+            #ai-send-btn {
+                width: 32px; height: 32px;
+                border-radius: 11px;
+                background: #00A896;
+                border: none;
+                color: white;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 11px;
+                flex-shrink: 0;
+                transition: all 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                box-shadow:
+                    0 2px 8px rgba(0,168,150,0.3),
+                    inset 0 1px 0 rgba(255,255,255,0.3);
+                position: relative;
+                overflow: hidden;
+            }
+            #ai-send-btn::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 50%;
+                background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%);
+                border-radius: 11px 11px 0 0;
+            }
+            #ai-send-btn:hover {
+                background: #009687;
+                transform: scale(1.06);
+                box-shadow: 0 4px 14px rgba(0,168,150,0.4);
+            }
+            #ai-send-btn:active { transform: scale(0.93); }
+
+            /* ─── Quick Chips ─── */
+            .lg-chip {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 10px;
+                border-radius: 20px;
+                background: rgba(18,20,24,0.04);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(18,20,24,0.08);
+                color: rgba(18,20,24,0.55);
+                font-size: 11px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.18s ease;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8);
+                letter-spacing: 0.01em;
+            }
+            .lg-chip:hover {
+                background: rgba(0,168,150,0.08);
+                color: #00A896;
+                border-color: rgba(0,168,150,0.2);
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(0,168,150,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+            }
+
+            /* ─── Cards ─── */
+            .lg-card {
+                border-radius: 12px;
+                background: rgba(255,255,255,0.7);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(18,20,24,0.07);
+                padding: 13px;
+                transition: all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+            }
+            .lg-card::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+            }
+            .lg-card:hover {
+                background: rgba(255,255,255,0.9);
+                border-color: rgba(0,168,150,0.15);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+            }
+
+            /* Generate button */
+            .lg-gen-btn {
+                margin-top: 9px;
+                padding: 6px 14px;
+                border-radius: 9px;
+                background: rgba(0,168,150,0.08);
+                border: 1px solid rgba(0,168,150,0.2);
+                color: #00A896;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.18s ease;
+                letter-spacing: 0.02em;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+            }
+            .lg-gen-btn:hover {
+                background: #00A896;
+                color: white;
+                transform: scale(1.02);
+                box-shadow: 0 3px 10px rgba(0,168,150,0.25);
+            }
+
+            /* ─── Toggle ─── */
+            .switch { position:relative; display:inline-block; width:40px; height:22px; }
+            .switch input { opacity:0; width:0; height:0; }
+            .slider {
+                position:absolute; cursor:pointer; inset:0;
+                background: rgba(18,20,24,0.1);
+                border-radius:22px;
+                border: 1px solid rgba(18,20,24,0.08);
+                transition:0.3s;
+            }
+            .slider:before {
+                position:absolute; content:'';
+                height:14px; width:14px;
+                left:3px; bottom:3px;
+                background:rgba(18,20,24,0.35);
+                border-radius:50%;
+                transition:0.3s;
+            }
+            input:checked + .slider { background:#00A896; border-color:transparent; }
+            input:checked + .slider:before { transform:translateX(18px); background:white; }
+
+            /* ─── ai-action-btn compat ─── */
+            .ai-action-btn {
+                background: rgba(18,20,24,0.05);
+                border: 1px solid rgba(18,20,24,0.09);
+                color: rgba(18,20,24,0.7);
+                padding: 6px 13px;
+                border-radius: 9px;
                 cursor: pointer;
                 font-size: 12px;
-                margin: 4px;
-                transition: all 0.2s ease;
+                font-weight: 500;
+                transition: all 0.18s ease;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
             }
             .ai-action-btn:hover {
+                background: rgba(0,168,150,0.07);
+                color: #00A896;
+                border-color: rgba(0,168,150,0.2);
+            }
+
+            /* ─── Tab Content ─── */
+            .ai-tab-content { display: none; }
+            .ai-tab-content.active {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                animation: lgFadeUp 0.2s ease;
+            }
+
+            /* ─── Entry animation ─── */
+            @keyframes lgSlideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to   { transform: translateX(0);    opacity: 1; }
+            }
+            @keyframes lgSlideOutRight {
+                from { transform: translateX(0);    opacity: 1; }
+                to   { transform: translateX(100%); opacity: 0; }
+            }
+
+            /* ─── Text content inside messages ─── */
+            .ai-message .msg-bubble strong { color: #111215; }
+            .ai-message .msg-bubble code {
+                background: rgba(0,168,150,0.08);
+                color: #00A896;
+                padding: 2px 5px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            .ai-message .msg-bubble pre {
+                background: #f0f0ee;
+                border: 1px solid rgba(18,20,24,0.08);
+                border-radius: 8px;
+                padding: 10px 12px;
+                overflow-x: auto;
+                font-size: 12px;
+            }
+            .ai-message .msg-bubble ul {
+                padding-left: 18px;
+                margin: 6px 0;
+                color: rgba(18,20,24,0.75);
+            }
+             .ai-message .msg-bubble li { margin: 4px 0; }
+
+            /* ─── Welcome / New Chat Screen ─── */
+            #lg-welcome-screen {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                overflow: hidden;
+            }
+            /* Centered hero zone */
+            .lg-welcome-hero {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                padding: 30px 24px 20px;
+                text-align: left;
+                position: relative;
+            }
+            /* Bottom zone: chips + input */
+            .lg-welcome-bottom {
+                padding: 0 16px 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                position: relative;
+                z-index: 2;
+            }
+
+            .lg-orb {
+                position: absolute;
+                top: 15%;
+                right: -30px;
+                width: 130px;
+                height: 130px;
+                border-radius: 50%;
+                background: radial-gradient(
+                    ellipse at 35% 30%,
+                    rgba(0,200,190,0.45) 0%,
+                    rgba(0,168,150,0.3) 30%,
+                    rgba(0,120,110,0.2) 60%,
+                    rgba(0,80,75,0.05) 100%
+                );
+                box-shadow:
+                    0 0 40px rgba(0,168,150,0.15),
+                    0 0 80px rgba(0,168,150,0.08),
+                    inset 0 -10px 30px rgba(0,100,90,0.15),
+                    inset 10px 10px 30px rgba(255,255,255,0.25);
+                filter: url(#lg-refract) blur(2px);
+                animation: lgOrbFloat 6s ease-in-out infinite;
+                pointer-events: none;
+                z-index: 1;
+            }
+            .lg-orb::after {
+                content: '';
+                position: absolute;
+                top: 15%; left: 20%;
+                width: 35%; height: 25%;
+                background: radial-gradient(ellipse, rgba(255,255,255,0.4) 0%, transparent 70%);
+                border-radius: 50%;
+                transform: rotate(-30deg);
+            }
+            @keyframes lgOrbFloat {
+                0%, 100% { transform: translateY(0px) rotate(0deg); }
+                50% { transform: translateY(-12px) rotate(15deg); }
+            }
+
+            /* ─── Text Shimmer (CSS port of framer-motion TextShimmer) ─── */
+            @keyframes lgTextShimmer {
+                0%   { background-position: 120% center; }
+                100% { background-position: -120% center; }
+            }
+
+            .lg-text-shimmer {
+                display: inline-block;
+                background-image:
+                    linear-gradient(
+                        90deg,
+                        transparent calc(50% - var(--shimmer-spread, 80px)),
+                        var(--shimmer-color, #00A896) 50%,
+                        transparent calc(50% + var(--shimmer-spread, 80px))
+                    ),
+                    linear-gradient(var(--shimmer-base, #111215), var(--shimmer-base, #111215));
+                background-size: 250% 100%, auto;
+                background-repeat: no-repeat, padding-box;
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                color: transparent;
+                animation: lgTextShimmer var(--shimmer-duration, 2.2s) linear infinite;
+                will-change: background-position;
+            }
+
+            .lg-welcome-greeting {
+                margin-bottom: 8px;
+                text-align: left;
+                position: relative;
+                z-index: 2;
+            }
+            .lg-welcome-hey {
+                font-size: 28px;
+                font-weight: 500;
+                letter-spacing: -0.03em;
+                line-height: 1.15;
+            }
+            .lg-welcome-question {
+                font-size: 28px;
+                font-weight: 700;
+                letter-spacing: -0.035em;
+                line-height: 1.15;
+            }
+            .lg-welcome-sub {
+                font-size: 13.5px;
+                color: rgba(18,20,24,0.4);
+                font-weight: 400;
+                margin-top: 6px;
+                letter-spacing: 0.01em;
+                position: relative;
+                z-index: 2;
+                text-align: left;
+            }
+
+            .lg-welcome-chips {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            .lg-welcome-chip {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
+                padding: 11px 14px;
+                border-radius: 13px;
+                background: rgba(255,255,255,0.78);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(18,20,24,0.07);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9);
+                cursor: pointer;
+                text-align: left;
+                transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                width: 100%;
+            }
+            .lg-welcome-chip:hover {
+                background: rgba(255,255,255,0.95);
+                border-color: rgba(0,168,150,0.2);
                 transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                box-shadow: 0 5px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,1);
+            }
+            .lg-welcome-chip .chip-icon {
+                width: 30px; height: 30px;
+                border-radius: 9px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 13px;
+                flex-shrink: 0;
+            }
+            .lg-welcome-chip .chip-text h4 {
+                margin: 0 0 2px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #111215;
+            }
+            .lg-welcome-chip .chip-text p {
+                margin: 0;
+                font-size: 11.5px;
+                color: rgba(18,20,24,0.45);
+            }
+
+            /* Welcome input area */
+            #lg-welcome-input {
+                width: 100%;
+                padding: 0 0 4px;
+            }
+
+            /* ─── Chat Messages Container ─── */
+            #lg-chat-view {
+                flex: 1;
+                display: none;
+                flex-direction: column;
+                min-height: 0;
+            }
+            #lg-chat-view.active {
+                display: flex;
+            }
+
+            /* ─── History Panel ─── */
+            #lg-history-panel {
+                position: absolute;
+                inset: 0;
+                background: rgba(247,247,244,0.97);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                z-index: 100;
+                display: none;
+                flex-direction: column;
+                animation: lgFadeUp 0.22s ease;
+            }
+            #lg-history-panel.active { display: flex; }
+
+            #lg-history-header {
+                padding: 18px 18px 14px;
+                border-bottom: 1px solid rgba(18,20,24,0.07);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: rgba(255,255,255,0.6);
+            }
+
+            #lg-history-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 12px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(18,20,24,0.1) transparent;
+            }
+
+            .lg-session-item {
+                padding: 11px 13px;
+                border-radius: 11px;
+                background: rgba(255,255,255,0.7);
+                border: 1px solid rgba(18,20,24,0.06);
+                margin-bottom: 7px;
+                cursor: pointer;
+                transition: all 0.18s ease;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9);
+            }
+            .lg-session-item:hover {
+                background: rgba(255,255,255,0.95);
+                border-color: rgba(0,168,150,0.2);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+            }
+            .lg-session-item .session-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: #111215;
+                margin-bottom: 3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .lg-session-item .session-meta {
+                font-size: 11px;
+                color: rgba(18,20,24,0.4);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .lg-session-date-group {
+                font-size: 10.5px;
+                font-weight: 700;
+                color: rgba(18,20,24,0.35);
+                text-transform: uppercase;
+                letter-spacing: 0.07em;
+                padding: 8px 4px 6px;
             }
         `;
         document.head.appendChild(style);
 
+        // Inject SVG filter element at body level (for refraction)
+        if (!document.getElementById('lg-svg-filters')) {
+            const svgFilters = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svgFilters.id = 'lg-svg-filters';
+            svgFilters.setAttribute('aria-hidden', 'true');
+            svgFilters.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
+            svgFilters.innerHTML = `
+                <defs>
+                    <filter id="lg-refract" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.018 0.025" numOctaves="3" seed="4" result="noise"/>
+                        <feColorMatrix type="saturate" values="3" in="noise" result="coloredNoise"/>
+                        <feBlend in="SourceGraphic" in2="coloredNoise" mode="overlay" result="blended"/>
+                        <feComposite in="blended" in2="SourceGraphic" operator="in"/>
+                    </filter>
+                    <filter id="lg-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="6" result="blur"/>
+                        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                </defs>
+            `;
+            document.body.appendChild(svgFilters);
+        }
+
+        // Retrieve username from page
+        const emailEl = document.getElementById('user-email');
+        let userName = 'Raf';
+        if (emailEl && emailEl.textContent) {
+            const email = emailEl.textContent.trim();
+            const parts = email.split('@')[0];
+            let namePart = parts.split(/[0-9\._\-]/)[0];
+            if (namePart) {
+                // Split by "kumar" or other common suffixes to keep it friendly and short
+                if (namePart.toLowerCase().includes('kumar')) {
+                    const beforeKumar = namePart.toLowerCase().split('kumar')[0];
+                    if (beforeKumar) namePart = beforeKumar;
+                }
+                userName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+            }
+        }
+
         // Create the side panel HTML structure
         sidePanel.innerHTML = `
+            <div id="lg-panel-wrapper">
             <!-- Header -->
-            <div style="padding: 20px 24px; border-bottom: 1px solid rgba(6, 182, 212, 0.2); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); backdrop-filter: blur(20px);">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-                        <i class="fas fa-robot" style="color: white; font-size: 18px;"></i>
-                        <div style="position: absolute; inset: -2px; border-radius: 50%; background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3), rgba(6, 182, 212, 0.3));"></div>
+            <div id="lg-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <!-- Left: Avatar + Title -->
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="lg-avatar">
+                        <i class="fas fa-atom" style="color:#00A896;font-size:15px;position:relative;z-index:2;"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);">AI Assistant</h3>
-                        <p style="margin: 0; font-size: 13px; color: rgba(255, 255, 255, 0.8); font-weight: 500;">Quantum Computing Expert</p>
+                        <div style="font-size:14px;font-weight:700;color:#111215;letter-spacing:-0.01em;">AI Assistant</div>
+                        <div style="font-size:11px;color:rgba(18,20,24,0.45);font-weight:500;letter-spacing:0.01em;margin-top:1px;">Quantum Computing &middot; Gemini</div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button id="ai-clear-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s ease; font-size: 12px;" onmouseover="this.style.background='rgba(245, 158, 11, 0.2)'; this.style.color='#f59e0b';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='rgba(255, 255, 255, 0.8)';" title="Clear Chat History">
-                        <i class="fas fa-trash"></i>
+                <!-- Right: Controls -->
+                <div style="display:flex;gap:5px;align-items:center;">
+                    <button id="ai-history-btn" class="lg-ctrl-btn" title="Chat History" style="position:relative;">
+                        <i class="fas fa-clock-rotate-left" style="font-size:10px;"></i>
                     </button>
-                    <button id="ai-minimize-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'; this.style.color='white';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='rgba(255, 255, 255, 0.8)';">
-                        <i class="fas fa-minus"></i>
+                    <button id="ai-newchat-btn" class="lg-ctrl-btn" title="New Chat">
+                        <i class="fas fa-plus" style="font-size:10px;"></i>
                     </button>
-                    <button id="ai-close-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); cursor: pointer; padding: 8px; border-radius: 8px; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'; this.style.color='#ef4444';" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='rgba(255, 255, 255, 0.8)';">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div style="padding: 0 20px; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(10px);">
-                <div style="display: flex; gap: 0; border-radius: 12px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(6, 182, 212, 0.1);">
-                    <button class="ai-tab-btn active" data-tab="chat" style="flex: 1; padding: 16px 20px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%); border: none; border-bottom: 3px solid #3b82f6; color: #ffffff; font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative;">
-                        <i class="fas fa-comments" style="margin-right: 8px;"></i> Chat
-                        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #3b82f6, #8b5cf6);"></div>
-                    </button>
-                    <button class="ai-tab-btn" data-tab="circuits" style="flex: 1; padding: 16px 20px; background: rgba(255, 255, 255, 0.05); border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.7); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='white';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='rgba(255, 255, 255, 0.7)';">
-                        <i class="fas fa-microchip" style="margin-right: 8px;"></i> Circuits
-                    </button>
-                    <button class="ai-tab-btn" data-tab="suggestions" style="flex: 1; padding: 16px 20px; background: rgba(255, 255, 255, 0.05); border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.7); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='white';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='rgba(255, 255, 255, 0.7)';">
-                        <i class="fas fa-lightbulb" style="margin-right: 8px;"></i> Suggestions
-                    </button>
-                    <button class="ai-tab-btn" data-tab="code" style="flex: 1; padding: 16px 20px; background: rgba(255, 255, 255, 0.05); border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.7); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='white';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='rgba(255, 255, 255, 0.7)';">
-                        <i class="fas fa-code" style="margin-right: 8px;"></i> Code
-                    </button>
-                    <button class="ai-tab-btn" data-tab="tools" style="flex: 1; padding: 16px 20px; background: rgba(255, 255, 255, 0.05); border: none; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, 0.7); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.color='white';" onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='rgba(255, 255, 255, 0.7)';">
-                        <i class="fas fa-tools" style="margin-right: 8px;"></i> Tools
-                    </button>
+                    <div style="width:1px;height:16px;background:rgba(18,20,24,0.08);margin:0 2px;"></div>
+                    <button id="ai-close-btn" class="lg-ctrl-btn" title="Close"><i class="fas fa-times" style="font-size:10px;"></i></button>
                 </div>
             </div>
 
-            <!-- Tab Content -->
-            <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+            <!-- Tab Bar -->
+            <div id="lg-tabs">
+                <button class="lg-tab ai-tab-btn active" data-tab="chat"><i class="fas fa-comments"></i><span>Chat</span></button>
+                <button class="lg-tab ai-tab-btn" data-tab="circuits"><i class="fas fa-microchip"></i><span>Circuits</span></button>
+                <button class="lg-tab ai-tab-btn" data-tab="suggestions"><i class="fas fa-lightbulb"></i><span>Ideas</span></button>
+                <button class="lg-tab ai-tab-btn" data-tab="code"><i class="fas fa-code"></i><span>Code</span></button>
+                <button class="lg-tab ai-tab-btn" data-tab="tools"><i class="fas fa-sliders-h"></i><span>Tools</span></button>
+            </div>
 
-                <!-- Chat Tab -->
-                <div id="chat-tab" class="ai-tab-content active" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <!-- Scrollable messages container -->
-                    <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding: 16px; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: rgba(59, 130, 246, 0.5) rgba(255, 255, 255, 0.1); min-height: 0;">
-                        <div class="ai-message assistant">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
-                                    <i class="fas fa-robot" style="color: #ffffff;"></i>
-                                </div>
-                                <strong style="color: #ffffff; font-size: 14px;">AI Assistant</strong>
+            <!-- Tab Content Wrapper -->
+            <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+
+                <!-- CHAT TAB -->
+                <div id="chat-tab" class="ai-tab-content active" style="position:relative;">
+
+                    <!-- NEW CHAT WELCOME SCREEN -->
+                    <div id="lg-welcome-screen">
+
+                        <!-- HERO: centered orb + greeting -->
+                        <div class="lg-welcome-hero">
+                            <div class="lg-orb"></div>
+                            <div class="lg-welcome-greeting">
+                                <div class="lg-welcome-hey lg-text-shimmer" style="--shimmer-base:rgba(18,20,24,0.55);--shimmer-color:#00A896;--shimmer-duration:3s;">Hey! ${userName}</div>
+                                <div class="lg-welcome-question lg-text-shimmer" style="--shimmer-base:#111215;--shimmer-color:#00A896;--shimmer-duration:2.5s;--shimmer-spread:110px;">What can I help with?</div>
                             </div>
-                            <div style="color: #e5e7eb; line-height: 1.6; font-size: 14px;">
-                                Hello! I'm your advanced quantum computing AI assistant. I can help you with:
-                                <ul style="margin: 12px 0; padding-left: 20px; color: #cbd5e1;">
-                                    <li style="margin: 6px 0;">Create and execute quantum circuits</li>
-                                    <li style="margin: 6px 0;">Explain quantum algorithms and concepts</li>
-                                    <li style="margin: 6px 0;">Generate Qiskit code</li>
-                                    <li style="margin: 6px 0;">Monitor IBM Quantum backends</li>
-                                    <li style="margin: 6px 0;">Visualize quantum states</li>
-                                </ul>
-                                What would you like to explore?
+                            <div class="lg-welcome-sub">Quantum computing expert &middot; Powered by Gemini</div>
+                        </div>
+
+                        <!-- BOTTOM: chips + input -->
+                        <div class="lg-welcome-bottom">
+                            <div class="lg-welcome-chips">
+                                <button class="lg-welcome-chip ai-quick-btn" data-prompt="Create a Bell state entanglement circuit with Qiskit code">
+                                    <div class="chip-icon" style="background:rgba(0,168,150,0.1);color:#00A896;"><i class="fas fa-link"></i></div>
+                                    <div class="chip-text">
+                                        <h4>Bell State Circuit</h4>
+                                        <p>Create quantum entanglement between 2 qubits</p>
+                                    </div>
+                                </button>
+                                <button class="lg-welcome-chip ai-quick-btn" data-prompt="Explain Grover's search algorithm with a 3-qubit example circuit">
+                                    <div class="chip-icon" style="background:rgba(110,115,125,0.08);color:rgba(18,20,24,0.6);"><i class="fas fa-search"></i></div>
+                                    <div class="chip-text">
+                                        <h4>Grover's Search</h4>
+                                        <p>Quadratic speedup for search problems</p>
+                                    </div>
+                                </button>
+                                <button class="lg-welcome-chip ai-quick-btn" data-prompt="Explain quantum superposition and give a practical Qiskit example">
+                                    <div class="chip-icon" style="background:rgba(110,115,125,0.08);color:rgba(18,20,24,0.6);"><i class="fas fa-atom"></i></div>
+                                    <div class="chip-text">
+                                        <h4>Superposition</h4>
+                                        <p>Understand core quantum concepts</p>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div id="lg-welcome-input">
+                                <div id="lg-input-pill">
+                                    <textarea id="ai-chat-input" placeholder="Ask me anything about quantum computing..." rows="1"></textarea>
+                                    <button id="ai-send-btn"><i class="fas fa-arrow-up"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- CHAT MESSAGE VIEW -->
+                    <div id="lg-chat-view">
+                        <div id="ai-chat-messages" style="flex:1;overflow-y:auto;padding:14px 13px;scroll-behavior:smooth;min-height:0;"></div>
+                        <div style="padding:7px 13px;display:flex;gap:5px;flex-wrap:wrap;border-top:1px solid rgba(18,20,24,0.05);background:rgba(255,255,255,0.4);">
+                            <button class="lg-chip ai-quick-btn" data-prompt="Create a Bell state circuit">Bell State</button>
+                            <button class="lg-chip ai-quick-btn" data-prompt="Grover's search 3 qubits">Grover's</button>
+                            <button class="lg-chip ai-quick-btn" data-prompt="Show available IBM backends">Backends</button>
+                        </div>
+                        <div id="lg-input-area">
+                            <div id="lg-input-pill-chat" style="display:flex;align-items:flex-end;gap:8px;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border:1px solid rgba(18,20,24,0.1);border-radius:18px;padding:7px 7px 7px 13px;box-shadow:0 2px 12px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.9);">
+                                <textarea id="ai-chat-input-msg" placeholder="Ask me about quantum computing..." rows="1" style="flex:1;background:transparent;border:none;outline:none;color:#111215;font-size:13px;font-family:-apple-system,'Inter',sans-serif;line-height:1.5;resize:none;min-height:20px;max-height:100px;padding:2px 0;"></textarea>
+                                <button id="ai-send-btn-msg" style="width:32px;height:32px;border-radius:11px;background:#00A896;border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,168,150,0.3);"><i class="fas fa-arrow-up"></i></button>
                             </div>
                         </div>
                     </div>
-                    <!-- Fixed input area at bottom -->
-                    <div style="flex-shrink: 0; padding: 16px; border-top: 1px solid var(--glass-border, rgba(0, 0, 0, 0.1)); background: var(--glass-bg, rgba(255, 255, 255, 0.95)); position: relative; z-index: 10;">
-                        <div style="display: flex; gap: 8px; align-items: flex-end;">
-                            <div style="flex: 1; position: relative;">
-                                <textarea id="ai-chat-input" placeholder="Ask me about quantum computing..." style="width: 100%; min-height: 40px; max-height: 120px; padding: 12px; border: 1px solid var(--glass-border, rgba(0, 0, 0, 0.2)); border-radius: 8px; resize: none; font-family: inherit; outline: none; background: rgba(255, 255, 255, 0.9);" rows="1"></textarea>
-                                <div id="ai-quick-actions" style="position: absolute; bottom: 8px; left: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
-                                    <button class="ai-quick-btn" data-prompt="Create a Bell state circuit" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Bell State</button>
-                                    <button class="ai-quick-btn" data-prompt="Explain quantum superposition" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Superposition</button>
-                                    <button class="ai-quick-btn" data-prompt="Show available backends" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Backends</button>
-                                </div>
+
+                    <!-- HISTORY PANEL -->
+                    <div id="lg-history-panel">
+                        <div id="lg-history-header">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <i class="fas fa-clock-rotate-left" style="color:#00A896;font-size:14px;"></i>
+                                <span style="font-size:14px;font-weight:700;color:#111215;">Chat History</span>
                             </div>
-                            <button id="ai-send-btn" style="background: var(--accent, #3b82f6); color: white; border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                            <div style="display:flex;gap:6px;">
+                                <button id="lg-new-chat-from-history" style="padding:6px 13px;border-radius:9px;background:#00A896;border:none;color:white;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,168,150,0.25);">+ New Chat</button>
+                                <button id="lg-history-close" class="lg-ctrl-btn"><i class="fas fa-times" style="font-size:10px;"></i></button>
+                            </div>
                         </div>
+                        <div id="lg-history-list"><div style="text-align:center;padding:32px 16px;color:rgba(18,20,24,0.35);font-size:13px;"><i class="fas fa-comment-slash" style="font-size:24px;display:block;margin-bottom:10px;opacity:0.3;"></i>No chat history yet</div></div>
                     </div>
                 </div>
 
-                <!-- Circuits Tab -->
-                <div id="circuits-tab" class="ai-tab-content" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <div style="flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: none; -ms-overflow-style: none; min-height: 0;">
-                        <h4 style="margin: 0 0 16px 0; color: #ffffff; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-microchip"></i> Quantum Circuit Library</h4>
-
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                        <div class="ai-circuit-item" style="padding: 12px; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: rgba(16, 185, 129, 0.05);" onmouseover="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(16, 185, 129, 0.05)'; this.style.transform='translateY(0)';">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <i class="fas fa-link" style="color: #34d399;"></i>
-                                <strong style="color: #ffffff; font-size: 14px;">Bell State Preparation</strong>
+                <!-- CIRCUITS TAB -->
+                <div id="circuits-tab" class="ai-tab-content">
+                    <div style="flex:1;overflow-y:auto;padding:16px 14px;min-height:0;">
+                        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Circuit Library</div>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <div class="lg-card ai-circuit-item">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                    <i class="fas fa-link" style="color:rgba(255,255,255,0.5);font-size:13px;"></i>
+                                    <span style="font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.88);">Bell State</span>
+                                </div>
+                                <p style="margin:0 0 10px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">Creates quantum entanglement between two qubits</p>
+                                <button class="lg-gen-btn ai-generate-btn" data-circuit-type="bell">Generate Circuit</button>
                             </div>
-                            <p style="margin: 0; font-size: 13px; color: #cbd5e1;">Creates quantum entanglement between two qubits</p>
-                            <button class="ai-action-btn ai-generate-btn" data-circuit-type="bell" style="margin-top: 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Generate</button>
-                        </div>
-
-                        <div class="ai-circuit-item" style="padding: 12px; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: rgba(245, 158, 11, 0.05);" onmouseover="this.style.background='rgba(245, 158, 11, 0.1)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(245, 158, 11, 0.05)'; this.style.transform='translateY(0)';">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <i class="fas fa-search" style="color: #fbbf24;"></i>
-                                <strong style="color: #ffffff; font-size: 14px;">Grover's Search Algorithm</strong>
+                            <div class="lg-card ai-circuit-item">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                    <i class="fas fa-search" style="color:rgba(255,255,255,0.5);font-size:13px;"></i>
+                                    <span style="font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.88);">Grover's Search</span>
+                                </div>
+                                <p style="margin:0 0 10px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">Quadratic speedup over classical search</p>
+                                <button class="lg-gen-btn ai-generate-btn" data-circuit-type="grover">Generate Circuit</button>
                             </div>
-                            <p style="margin: 0; font-size: 13px; color: #cbd5e1;">Quadratic speedup for searching unsorted databases</p>
-                            <button class="ai-action-btn ai-generate-btn" data-circuit-type="grover" style="margin-top: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Generate</button>
-                        </div>
-
-                        <div class="ai-circuit-item" style="padding: 12px; border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: rgba(139, 92, 246, 0.05);" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(139, 92, 246, 0.05)'; this.style.transform='translateY(0)';">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <i class="fas fa-share-alt" style="color: #a78bfa;"></i>
-                                <strong style="color: #ffffff; font-size: 14px;">Quantum Teleportation</strong>
+                            <div class="lg-card ai-circuit-item">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                    <i class="fas fa-share-alt" style="color:rgba(255,255,255,0.5);font-size:13px;"></i>
+                                    <span style="font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.88);">Quantum Teleportation</span>
+                                </div>
+                                <p style="margin:0 0 10px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">Transfer quantum state via entanglement</p>
+                                <button class="lg-gen-btn ai-generate-btn" data-circuit-type="teleport">Generate Circuit</button>
                             </div>
-                            <p style="margin: 0; font-size: 13px; color: #cbd5e1;">Transfer quantum information using entanglement</p>
-                            <button class="ai-action-btn ai-generate-btn" data-circuit-type="teleport" style="margin-top: 8px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Generate</button>
-                        </div>
-
-                        <div class="ai-circuit-item" style="padding: 12px; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: rgba(6, 182, 212, 0.05);" onmouseover="this.style.background='rgba(6, 182, 212, 0.1)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.background='rgba(6, 182, 212, 0.05)'; this.style.transform='translateY(0)';">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <i class="fas fa-random" style="color: #22d3ee;"></i>
-                                <strong style="color: #ffffff; font-size: 14px;">Quantum Random Number Generator</strong>
+                            <div class="lg-card ai-circuit-item">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                    <i class="fas fa-random" style="color:rgba(255,255,255,0.5);font-size:13px;"></i>
+                                    <span style="font-size:13.5px;font-weight:600;color:rgba(255,255,255,0.88);">Quantum RNG</span>
+                                </div>
+                                <p style="margin:0 0 10px;font-size:12px;color:rgba(255,255,255,0.45);line-height:1.5;">True randomness from quantum measurement</p>
+                                <button class="lg-gen-btn ai-generate-btn" data-circuit-type="qrng">Generate Circuit</button>
                             </div>
-                            <p style="margin: 0; font-size: 13px; color: #cbd5e1;">True random numbers using quantum measurement</p>
-                            <button class="ai-action-btn ai-generate-btn" data-circuit-type="qrng" style="margin-top: 8px; background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Generate</button>
                         </div>
-                    </div>
                     </div>
                 </div>
-                <!-- Suggestions Tab -->
-                <div id="suggestions-tab" class="ai-tab-content" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <div style="flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: none; -ms-overflow-style: none; min-height: 0;">
-                        <h4 style="margin: 0 0 16px 0; color: #ffffff; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-lightbulb"></i> Circuit Suggestions</h4>
-                        <p style="margin: 0 0 16px 0; color: #cbd5e1; font-size: 14px;">Not sure what to build? Try these suggestions!</p>
-
-                        <div id="ai-suggestions-container" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                            <!-- Suggestions will be loaded here -->
-                            <div class="ai-suggestion-loading" style="text-align: center; padding: 20px; color: #cbd5e1;">
-                                <i class="fas fa-spinner fa-spin" style="margin-right: 8px; color: #3b82f6;"></i>
-                                Loading suggestions...
+                <!-- SUGGESTIONS TAB -->
+                <div id="suggestions-tab" class="ai-tab-content">
+                    <div style="flex:1;overflow-y:auto;padding:16px 14px;min-height:0;">
+                        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Circuit Ideas</div>
+                        <div id="ai-suggestions-container" style="display:flex;flex-direction:column;gap:10px;">
+                            <div class="ai-suggestion-loading lg-card" style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);">
+                                <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Loading…
                             </div>
                         </div>
-
-                        <div style="margin-top: 20px; padding: 16px; background: rgba(59, 130, 246, 0.15); border-radius: 12px; border-left: 4px solid #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
-                            <h5 style="margin: 0 0 10px 0; color: #60a5fa; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 6px;"><i class="fas fa-lightbulb"></i> Pro Tips</h5>
-                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.8;">
-                                <li>Click any suggestion to generate that circuit</li>
-                                <li>Use the chat tab for custom requests</li>
-                                <li>All circuits are visualized in 3D automatically</li>
+                        <div class="lg-card" style="margin-top:14px;">
+                            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Pro Tips</div>
+                            <ul style="margin:0;padding-left:16px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.9;">
+                                <li>Click any suggestion to generate</li>
+                                <li>Use Chat tab for custom requests</li>
+                                <li>Circuits visualize in 3D automatically</li>
                             </ul>
                         </div>
                     </div>
                 </div>
 
-                <!-- Code Tab -->
-                <div id="code-tab" class="ai-tab-content" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <div style="flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: none; -ms-overflow-style: none; min-height: 0;">
-                        <h4 style="margin: 0 0 16px 0; color: #ffffff; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-code"></i> Code Examples</h4>
-
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                <!-- CODE TAB -->
+                <div id="code-tab" class="ai-tab-content">
+                    <div style="flex:1;overflow-y:auto;padding:16px 14px;min-height:0;">
+                        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Code Examples</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
                         <div class="ai-code-example" style="border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; overflow: hidden; background: rgba(245, 158, 11, 0.05); transition: all 0.3s ease;" onmouseover="this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.3)';" onmouseout="this.style.boxShadow='none';">
                             <div style="padding: 14px; background: rgba(245, 158, 11, 0.15); border-bottom: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: space-between;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -2019,12 +2812,11 @@ print(qc.draw())</pre>
                     </div>
                 </div>
 
-                <!-- Tools Tab -->
-                <div id="tools-tab" class="ai-tab-content" style="flex: 1; display: flex; flex-direction: column; height: 100%;">
-                    <div style="flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: none; -ms-overflow-style: none; min-height: 0;">
-                        <h4 style="margin: 0 0 16px 0; color: #ffffff; font-weight: 600; display: flex; align-items: center; gap: 8px;"><i class="fas fa-tools"></i> AI Tools & Settings</h4>
-
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                <!-- TOOLS TAB -->
+                <div id="tools-tab" class="ai-tab-content">
+                    <div style="flex:1;overflow-y:auto;padding:16px 14px;min-height:0;">
+                        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Tools & Settings</div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
                         <div style="padding: 14px; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; background: rgba(59, 130, 246, 0.05);">
                             <h5 style="margin: 0 0 12px 0; color: #60a5fa; font-weight: 600; font-size: 15px;"><i class="fas fa-info-circle"></i> System Status</h5>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: #e5e7eb;">
@@ -2064,6 +2856,8 @@ print(qc.draw())</pre>
                     </div>
                 </div>
             </div>
+            </div>
+            </div>
         `;
 
         document.body.appendChild(sidePanel);
@@ -2071,10 +2865,22 @@ print(qc.draw())</pre>
         // Initialize functionality
         this.initializeAISidePanel(sidePanel);
 
-        // Restore chat history after initialization
+        // Always start fresh — save current session if there are messages, then reset
+        try {
+            if (this.aiChatHistory && this.aiChatHistory.length > 0) {
+                this.saveCurrentSession();
+            }
+        } catch(e) { /* ignore */ }
+
+        // Reset for new chat (don't restore old messages)
+        this.aiChatHistory = [];
+        this.aiChatContext = {};
+        this.aiInChatView = false;
+
+        // Initialize chat interactions after DOM is ready
         setTimeout(() => {
-            this.restoreAIChatState(sidePanel);
-        }, 100);
+            this.initAIChatInteractions(sidePanel);
+        }, 80);
 
         // Add keyboard shortcut for closing (Escape key)
         const handleKeyPress = (event) => {
@@ -2093,19 +2899,11 @@ print(qc.draw())</pre>
         const tabBtns = sidePanel.querySelectorAll('.ai-tab-btn');
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Remove active class from all tabs and reset styling
-                tabBtns.forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = 'rgba(255, 255, 255, 0.05)';
-                    b.style.borderBottom = '3px solid transparent';
-                    b.style.color = 'rgba(255, 255, 255, 0.7)';
-                });
+                // Remove active class from all tabs (CSS handles the visual)
+                tabBtns.forEach(b => b.classList.remove('active'));
 
-                // Add active class to clicked tab and apply active styling
+                // Add active class to clicked tab
                 btn.classList.add('active');
-                btn.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%)';
-                btn.style.borderBottom = '3px solid #3b82f6';
-                btn.style.color = '#ffffff';
 
                 // Hide all tab contents
                 const tabContents = sidePanel.querySelectorAll('.ai-tab-content');
@@ -2257,112 +3055,361 @@ print(qc.draw())</pre>
         }
     }
 
-    initializeAIChat(sidePanel) {
-        const chatInput = sidePanel.querySelector('#ai-chat-input');
-        const sendBtn = sidePanel.querySelector('#ai-send-btn');
-        const quickBtns = sidePanel.querySelectorAll('.ai-quick-btn');
+    initAIChatInteractions(sidePanel) {
+        // Wire welcome screen input
+        const welcomeInput = sidePanel.querySelector('#ai-chat-input');
+        const welcomeSend = sidePanel.querySelector('#ai-send-btn');
 
-        const sendMessage = async () => {
-            const message = chatInput.value.trim();
-            if (!message) return;
+        const handleWelcomeSend = () => {
+            const msg = (welcomeInput?.value || '').trim();
+            if (!msg) return;
+            welcomeInput.value = '';
+            this.transitionToChatView(sidePanel);
+            this.sendAIMessage(sidePanel, msg);
+        };
 
-            // Add user message
-            this.addAIMessage(sidePanel, message, 'user');
+        if (welcomeSend) welcomeSend.addEventListener('click', handleWelcomeSend);
+        if (welcomeInput) {
+            welcomeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleWelcomeSend(); }
+                welcomeInput.style.height = 'auto';
+                welcomeInput.style.height = Math.min(welcomeInput.scrollHeight, 100) + 'px';
+            });
+        }
+
+        // Wire chat view input
+        const chatInput = sidePanel.querySelector('#ai-chat-input-msg');
+        const chatSend = sidePanel.querySelector('#ai-send-btn-msg');
+
+        const handleChatSend = () => {
+            const msg = (chatInput?.value || '').trim();
+            if (!msg) return;
             chatInput.value = '';
+            chatInput.style.height = 'auto';
+            this.sendAIMessage(sidePanel, msg);
+        };
 
-            // Show typing indicator
-            const typingId = this.addAITypingIndicator(sidePanel);
+        if (chatSend) chatSend.addEventListener('click', handleChatSend);
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); }
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+            });
+        }
 
+        // Quick chips (both welcome and chat view)
+        sidePanel.querySelectorAll('.ai-quick-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prompt = btn.dataset.prompt;
+                if (!prompt) return;
+                if (!this.aiInChatView) this.transitionToChatView(sidePanel);
+                this.sendAIMessage(sidePanel, prompt);
+            });
+        });
+    }
+
+    transitionToChatView(sidePanel) {
+        if (this.aiInChatView) return;
+        this.aiInChatView = true;
+        const welcome = sidePanel.querySelector('#lg-welcome-screen');
+        const chatView = sidePanel.querySelector('#lg-chat-view');
+        if (welcome) { welcome.style.opacity = '0'; welcome.style.transform = 'scale(0.97)'; setTimeout(() => { welcome.style.display = 'none'; }, 220); }
+        if (chatView) { chatView.classList.add('active'); setTimeout(() => { chatView.style.opacity = '1'; }, 10); }
+    }
+
+    startNewChat(sidePanel) {
+        // Save current session if it has messages
+        if (this.aiChatHistory && this.aiChatHistory.length > 0) {
+            this.saveCurrentSession();
+        }
+        // Reset state
+        this.aiChatHistory = [];
+        this.aiChatContext = {};
+        this.aiInChatView = false;
+        // Reset UI
+        const welcome = sidePanel.querySelector('#lg-welcome-screen');
+        const chatView = sidePanel.querySelector('#lg-chat-view');
+        const msgContainer = sidePanel.querySelector('#ai-chat-messages');
+        const welcomeInput = sidePanel.querySelector('#ai-chat-input');
+        if (msgContainer) msgContainer.innerHTML = '';
+        if (welcomeInput) { welcomeInput.value = ''; welcomeInput.style.height = 'auto'; }
+        if (chatView) { chatView.classList.remove('active'); chatView.style.opacity = ''; }
+        if (welcome) { welcome.style.display = ''; welcome.style.opacity = ''; welcome.style.transform = ''; }
+        console.log('[AI] New chat started');
+    }
+
+    saveCurrentSession() {
+        try {
+            if (!this.aiChatHistory || this.aiChatHistory.length === 0) return;
+            const sessions = JSON.parse(localStorage.getItem('quantum_ai_sessions') || '[]');
+            const firstMsg = this.aiChatHistory.find(m => m.type === 'user');
+            const title = firstMsg ? firstMsg.content.slice(0, 55) + (firstMsg.content.length > 55 ? '...' : '') : 'Untitled Chat';
+            const session = {
+                id: Date.now().toString(),
+                title,
+                savedAt: Date.now(),
+                messages: [...this.aiChatHistory]
+            };
+            sessions.unshift(session); // newest first
+            // Keep last 30 sessions
+            localStorage.setItem('quantum_ai_sessions', JSON.stringify(sessions.slice(0, 30)));
+            console.log('[AI] Session saved:', title);
+        } catch(e) { console.warn('[AI] Could not save session', e); }
+    }
+
+    renderHistoryList(sidePanel) {
+        const list = sidePanel.querySelector('#lg-history-list');
+        if (!list) return;
+        try {
+            const sessions = JSON.parse(localStorage.getItem('quantum_ai_sessions') || '[]');
+            if (sessions.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:32px 16px;color:rgba(18,20,24,0.35);font-size:13px;"><i class="fas fa-comment-slash" style="font-size:24px;display:block;margin-bottom:10px;opacity:0.3;"></i>No chat history yet</div>';
+                return;
+            }
+            // Group by date
+            const groups = {};
+            sessions.forEach(s => {
+                const d = new Date(s.savedAt);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
+                let label;
+                if (d >= today) label = 'Today';
+                else if (d >= yesterday) label = 'Yesterday';
+                else label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (!groups[label]) groups[label] = [];
+                groups[label].push(s);
+            });
+            list.innerHTML = Object.entries(groups).map(([date, items]) => `
+                <div class="lg-session-date-group">${date}</div>
+                ${items.map(s => `
+                    <div class="lg-session-item" data-session-id="${s.id}">
+                        <div class="session-title">${this.escapeHtmlText(s.title)}</div>
+                        <div class="session-meta">
+                            <span>${new Date(s.savedAt).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'})}</span>
+                            <span>&middot;</span>
+                            <span>${s.messages.length} msg${s.messages.length !== 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            `).join('');
+            // Wire clicks
+            list.querySelectorAll('.lg-session-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const sessionId = item.dataset.sessionId;
+                    const session = sessions.find(s => s.id === sessionId);
+                    if (session) this.loadSession(sidePanel, session);
+                });
+            });
+        } catch(e) { list.innerHTML = '<div style="padding:16px;color:rgba(18,20,24,0.4);font-size:13px;">Could not load history</div>'; }
+    }
+
+    loadSession(sidePanel, session) {
+        // Close history panel
+        const histPanel = sidePanel.querySelector('#lg-history-panel');
+        if (histPanel) histPanel.classList.remove('active');
+        // Save current session
+        if (this.aiChatHistory && this.aiChatHistory.length > 0) this.saveCurrentSession();
+        // Load the selected session
+        this.aiChatHistory = [...session.messages];
+        this.aiChatContext = {};
+        this.aiInChatView = true;
+        // Switch to chat view
+        const welcome = sidePanel.querySelector('#lg-welcome-screen');
+        const chatView = sidePanel.querySelector('#lg-chat-view');
+        const msgContainer = sidePanel.querySelector('#ai-chat-messages');
+        if (welcome) welcome.style.display = 'none';
+        if (chatView) chatView.classList.add('active');
+        if (msgContainer) {
+            msgContainer.innerHTML = '';
+            session.messages.forEach(msg => this.addAIMessage(sidePanel, msg.content, msg.type, true));
+            setTimeout(() => { msgContainer.scrollTop = msgContainer.scrollHeight; }, 50);
+        }
+        console.log('[AI] Session loaded:', session.title);
+    }
+
+    escapeHtmlText(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    sendAIMessage(sidePanel, userMessage) {
+        if (!userMessage) return;
+        // Add user message to UI
+        this.addAIMessage(sidePanel, userMessage, 'user');
+        // Route to the existing send logic
+        this.handleAIMessageSend(sidePanel, userMessage);
+    }
+
+    handleAIMessageSend(sidePanel, message) {
+        if (!message || !message.trim()) return;
+
+        // Show typing indicator
+        const typingId = this.addAITypingIndicator(sidePanel);
+
+        // Scroll to bottom
+        const msgContainer = sidePanel.querySelector('#ai-chat-messages');
+        if (msgContainer) setTimeout(() => { msgContainer.scrollTop = msgContainer.scrollHeight; }, 50);
+
+        (async () => {
             try {
-                console.log('🤖 AI Chat: Processing message:', message);
+                console.log('🤖 AI Chat: Sending query to backend:', message);
 
-                // Get AI response
-                let response;
-                if (window.dashboard && window.dashboard.generateAIResponse && typeof window.dashboard.generateAIResponse === 'function') {
-                    console.log('🤖 Using dashboard.generateAIResponse');
-                    response = await window.dashboard.generateAIResponse(message);
-                } else {
-                    console.log('🤖 Using fallback generateAIResponse');
-                    // Use the class method directly
-                    response = await this.generateAIResponse.call(window.dashboard || this, message);
+                // Call the Gemini-powered quantum chat endpoint
+                const response = await fetch('/api/ai/quantum_chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                console.log('🤖 AI Response received:', response);
-
-                // Check if this response contains circuit generation
-                if (response && response.includes('Circuit generated')) {
-                    console.log('🔗 Circuit generation detected in response');
-                    // The circuit should be automatically loaded via the response processing
-                }
+                const data = await response.json();
+                console.log('🤖 AI Response received:', data);
 
                 this.removeAITypingIndicator(sidePanel, typingId);
-                this.addAIMessage(sidePanel, response, 'assistant');
+                
+                const aiResponse = data.ai_response || data.response || 'Sorry, I couldn\'t process that request.';
+                this.addAIMessage(sidePanel, aiResponse, 'assistant');
+
+                // If a circuit was generated, update the workspace state and trigger redraw
+                if (data.circuit_generated && data.circuit_data) {
+                    console.log('⚡ AI generated a circuit: updating workspace state and redrawing circuit...', data.circuit_data);
+                    
+                    this.dashboard.currentCircuit = data.circuit_data;
+                    
+                    if (window.WorkspaceState) {
+                        window.WorkspaceState.setState('activeCircuit', data.circuit_data);
+                    }
+                    
+                    if (typeof loadCircuitIn3D === 'function') {
+                        try {
+                            loadCircuitIn3D(data.circuit_data);
+                        } catch (e) {
+                            console.error('Failed to send circuit data to 3D widget:', e);
+                        }
+                    } else if (typeof setCircuitData === 'function') {
+                        try {
+                            setCircuitData(data.circuit_data);
+                        } catch (e) {
+                            console.error('Failed to send circuit data to 3D widget:', e);
+                        }
+                    }
+                    
+                    if (window.quantumWidgets) {
+                        window.quantumWidgets.updateWidgetSafely('circuit');
+                    }
+
+                    // Add action buttons for circuit operations (Run Local, Execute, View, Copy) in monochrome styling
+                    setTimeout(() => {
+                        const lastMessage = sidePanel.querySelector('.ai-message:last-child, .message:last-child');
+                        if (lastMessage) {
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.style.cssText = 'margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;';
+
+                            // Run Circuit Locally Button
+                            const runButton = document.createElement('button');
+                            runButton.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;';
+                            runButton.innerHTML = '<i class="fas fa-desktop"></i> <span>Run Local</span>';
+                            runButton.onclick = function () {
+                                if (window.dashboard && window.dashboard.runCircuitLocally) {
+                                    window.dashboard.runCircuitLocally(data.circuit_data);
+                                }
+                                runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Running...</span>';
+                                runButton.disabled = true;
+                                setTimeout(function () {
+                                    runButton.innerHTML = '<i class="fas fa-desktop"></i> <span>Run Local</span>';
+                                    runButton.disabled = false;
+                                }, 3000);
+                            };
+
+                            // View Circuit in 3D Button
+                            const view3DButton = document.createElement('button');
+                            view3DButton.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;';
+                            view3DButton.innerHTML = '<i class="fas fa-cube"></i> <span>View Circuit</span>';
+                            view3DButton.onclick = function () {
+                                if (window.dashboard) {
+                                    window.dashboard.closeAISidePanel();
+                                    setTimeout(() => {
+                                        window.dashboard.open3DCircuitFullscreenWithData(data.circuit_data);
+                                    }, 300);
+                                }
+                            };
+
+                            // Execute Circuit Button
+                            const executeButton = document.createElement('button');
+                            executeButton.style.cssText = 'padding: 8px 12px; background: #ffffff; color: #111215; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;';
+                            executeButton.innerHTML = '<i class="fas fa-play"></i> <span>Execute</span>';
+                            executeButton.onclick = async function () {
+                                try {
+                                    if (window.dashboard && window.dashboard.executeCircuitOnIBM) {
+                                        executeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Executing...</span>';
+                                        executeButton.disabled = true;
+
+                                        const results = await window.dashboard.executeCircuitOnIBM(data.circuit_data);
+
+                                        const resultsMessage = `🎉 IBM Quantum Execution Complete!\n\n**Backend:** ${results.backend}\n**Shots:** ${results.shots}\n**Results:**\n${JSON.stringify(results.counts, null, 2)}\n\n*Executed on real IBM Quantum hardware!*`;
+                                        window.dashboard.addAIMessage(sidePanel, resultsMessage, 'assistant');
+
+                                        executeButton.innerHTML = '<i class="fas fa-check"></i> <span>Complete!</span>';
+                                        setTimeout(() => {
+                                            executeButton.innerHTML = '<i class="fas fa-play"></i> <span>Execute</span>';
+                                            executeButton.disabled = false;
+                                        }, 3000);
+                                    } else {
+                                        throw new Error('IBM execution not available');
+                                    }
+                                } catch (error) {
+                                    console.error('IBM execution failed:', error);
+                                    executeButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Failed</span>';
+                                    const errorMessage = `IBM Quantum Execution Failed:\n\n${error.message}\n\n*Please check your IBM Quantum credentials and try again.*`;
+                                    window.dashboard.addAIMessage(sidePanel, errorMessage, 'assistant');
+                                    setTimeout(() => {
+                                        executeButton.innerHTML = '<i class="fas fa-play"></i> <span>Execute</span>';
+                                        executeButton.disabled = false;
+                                    }, 3000);
+                                }
+                            };
+
+                            // Copy Code Button
+                            const copyButton = document.createElement('button');
+                            copyButton.style.cssText = 'padding: 8px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;';
+                            copyButton.innerHTML = '<i class="fas fa-copy"></i> <span>Copy Code</span>';
+                            copyButton.onclick = function () {
+                                const code = data.circuit_code || ('from qiskit import QuantumCircuit\n\nqc = QuantumCircuit(' + (data.circuit_data.qubits || 2) + ')\n# Add gates here\nprint(qc.draw())');
+                                navigator.clipboard.writeText(code).then(function () {
+                                    copyButton.innerHTML = '<i class="fas fa-check"></i> <span>Copied!</span>';
+                                    setTimeout(function () {
+                                        copyButton.innerHTML = '<i class="fas fa-copy"></i> <span>Copy Code</span>';
+                                    }, 2000);
+                                });
+                            };
+
+                            buttonContainer.appendChild(runButton);
+                            buttonContainer.appendChild(view3DButton);
+                            buttonContainer.appendChild(executeButton);
+                            buttonContainer.appendChild(copyButton);
+                            lastMessage.querySelector('.message-body').appendChild(buttonContainer);
+                        }
+                    }, 50);
+                }
 
                 // Scroll to bottom
                 const messagesContainer = sidePanel.querySelector('#ai-chat-messages');
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             } catch (error) {
+                console.error('AI Chat Error:', error);
                 this.removeAITypingIndicator(sidePanel, typingId);
                 this.addAIMessage(sidePanel, 'Sorry, I encountered an error. Please try again.', 'assistant');
             }
-        };
-        // Send on button click
-        sendBtn.addEventListener('click', () => {
-            if (window.dashboard) {
-                // Use the dashboard's sendMessage function if available
-                const dashboardSendMessage = window.dashboard.initializeAIChat && window.dashboard.initializeAIChat.sendMessage;
-                if (dashboardSendMessage) {
-                    dashboardSendMessage();
-                } else {
-                    sendMessage();
-                }
-            } else {
-                sendMessage();
-            }
-        });
-
-        // Send on Enter (but allow Shift+Enter for new lines)
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (window.dashboard) {
-                    // Use the dashboard's sendMessage function if available
-                    const dashboardSendMessage = window.dashboard.initializeAIChat && window.dashboard.initializeAIChat.sendMessage;
-                    if (dashboardSendMessage) {
-                        dashboardSendMessage();
-                    } else {
-                        sendMessage();
-                    }
-                } else {
-                    sendMessage();
-                }
-            }
-        });
-
-        // Quick action buttons
-        quickBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                chatInput.value = btn.getAttribute('data-prompt');
-                if (window.dashboard) {
-                    // Use the dashboard's sendMessage function if available
-                    const dashboardSendMessage = window.dashboard.initializeAIChat && window.dashboard.initializeAIChat.sendMessage;
-                    if (dashboardSendMessage) {
-                        dashboardSendMessage();
-                    } else {
-                        sendMessage();
-                    }
-                } else {
-                    sendMessage();
-                }
-            });
-        });
-
-        // Auto-resize textarea
-        chatInput.addEventListener('input', () => {
-            chatInput.style.height = 'auto';
-            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
-        });
+        })();
     }
+
 
     initializeCircuitHandlers(sidePanel) {
         const generateBtns = sidePanel.querySelectorAll('.ai-generate-btn');
@@ -2673,16 +3720,28 @@ print(qc.draw())</pre>
         // Enhanced Content Formatting
         const formattedContent = this.formatAIResponse(content);
 
+        // Wrap in liquid glass bubble structure
         if (type === 'assistant' || type === 'ai') {
-            messageDiv.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <i class="fas fa-robot" style="color: var(--accent, #3b82f6); font-size: 12px;"></i>
-                    <strong style="font-size: 12px;">AI Assistant</strong>
-                </div>
-                <div class="message-body">${formattedContent}</div>
-            `;
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+            const header = document.createElement('div');
+            header.className = 'msg-header';
+            header.innerHTML = '<div class="ai-dot"><i class="fas fa-atom"></i></div><span>AI Assistant</span>';
+            const body = document.createElement('div');
+            body.className = 'message-body';
+            body.innerHTML = formattedContent;
+            bubble.appendChild(header);
+            bubble.appendChild(body);
+            messageDiv.appendChild(bubble);
+        } else if (type === 'user') {
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-bubble';
+            bubble.innerHTML = `<div class="message-body">${formattedContent}</div>`;
+            messageDiv.appendChild(bubble);
         } else {
-            messageDiv.innerHTML = `<div class="message-body">${formattedContent}</div>`;
+            // system/status messages
+            messageDiv.style.cssText = 'text-align:center;font-size:11px;color:rgba(18,20,24,0.35);padding:3px 0;margin:2px 0;';
+            messageDiv.textContent = content;
         }
 
         messagesContainer.appendChild(messageDiv);
@@ -2783,15 +3842,15 @@ print(qc.draw())</pre>
 
         // 4. Handle Markdown formatting
         // Inline code
-        html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(167,139,250,0.15); padding:4px 8px; border-radius:6px; font-family:\'IBM Plex Mono\', monospace; color:#c084fc; font-size:13px; border:1px solid rgba(167,139,250,0.3);">$1</code>');
+        html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(0,168,150,0.06); padding:3px 6px; border-radius:6px; font-family:\'JetBrains Mono\', \'Consolas\', monospace; color:#00A896; font-size:12px; border:1px solid rgba(0,168,150,0.15);">$1</code>');
 
         // Bold/Italic
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#a78bfa; font-weight:700;">$1</strong>');
-        html = html.replace(/\*(.*?)\*/g, '<em style="color:#c4b5fd;">$1</em>');
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#111215; font-weight:700;">$1</strong>');
+        html = html.replace(/\*(.*?)\*/g, '<em style="color:rgba(18,20,24,0.7);">$1</em>');
 
         // Lists
-        html = html.replace(/^\s*[-•]\s+(.*)$/gm, '<li style="margin:6px 0; color:#e0e7ff; line-height:1.6;">$1</li>');
-        html = html.replace(/(<li.*<\/li>)/s, '<ul style="padding-left:28px; margin:12px 0; list-style-type:disc;">$1</ul>');
+        html = html.replace(/^\s*[-•]\s+(.*)$/gm, '<li style="margin:5px 0; color:rgba(18,20,24,0.75); line-height:1.55; font-size:13px;">$1</li>');
+        html = html.replace(/(<li.*<\/li>)/s, '<ul style="padding-left:20px; margin:8px 0; list-style-type:disc;">$1</ul>');
 
         // Newlines
         html = html.replace(/\n\n/g, '<br><br>');
@@ -3105,34 +4164,30 @@ print(qc.draw())</pre>
         const typingDiv = document.createElement('div');
         typingDiv.className = 'ai-message assistant';
         typingDiv.id = 'ai-typing-indicator';
+
+        // Split "Generating code..." into individual spans for the shimmer wave animation
+        const loadingText = "Generating code...";
+        const spans = loadingText.split('').map((char, idx) => {
+            return `<span class="lg-shimmer-wave-char" style="--char-idx: ${idx}">${char}</span>`;
+        }).join('');
+
         typingDiv.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <i class="fas fa-robot" style="color: var(--accent, #3b82f6); font-size: 12px;"></i>
-                <strong style="font-size: 12px;">AI Assistant</strong>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #3b82f6); animation: aiTypingDot 1.4s infinite ease-in-out both;"></div>
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #3b82f6); animation: aiTypingDot 1.4s infinite ease-in-out both 0.2s;"></div>
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #3b82f6); animation: aiTypingDot 1.4s infinite ease-in-out both 0.4s;"></div>
+            <div class="msg-bubble" style="padding: 10px 14px;">
+                <div class="msg-header" style="margin-bottom: 6px;">
+                    <div class="ai-dot"><i class="fas fa-atom"></i></div>
+                    <span style="font-size: 10px; font-weight: 700; color: rgba(18,20,24,0.4); letter-spacing: 0.06em; text-transform: uppercase;">AI Assistant</span>
+                </div>
+                <div style="font-size: 13.5px; font-weight: 500; font-family: 'JetBrains Mono', 'Consolas', monospace; perspective: 500px; display: inline-block;">
+                    ${spans}
+                </div>
             </div>
         `;
 
-        // Add typing animation CSS
-        if (!document.getElementById('ai-typing-styles')) {
-            const style = document.createElement('style');
-            style.id = 'ai-typing-styles';
-            style.textContent = `
-                @keyframes aiTypingDot {
-                    0%, 80%, 100% { transform: scale(0); }
-                    40% { transform: scale(1); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
         messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return typingDiv.id;
     }
+
 
     removeAITypingIndicator(sidePanel, typingId) {
         const typingDiv = document.getElementById(typingId);

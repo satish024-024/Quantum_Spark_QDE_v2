@@ -1,0 +1,48 @@
+<!-- AI Copilot Widget -->
+<div class="panel-card liquid-glass widget" id="ai-assistant-widget" data-widget="ai-chat">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-brain" style="color: var(--accent-aqua);"></i>
+            <h4>AI Copilot</h4>
+        </div>
+        <div class="panel-header-actions">
+            <button class="btn btn-ghost btn-icon" onclick="(window.dashboard || window.hackathonDashboard) && (window.dashboard || window.hackathonDashboard).openAIAssistantSidePanel(document.getElementById('ai-assistant-widget'))" title="Expand to Copilot Side Panel">
+                <i class="fas fa-expand-arrows-alt"></i>
+            </button>
+            <button class="btn btn-ghost btn-icon" id="clear-ai-chat" title="Clear Chat">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="panel-body" style="height: 380px; display: flex; flex-direction: column;" id="ai-chat-content">
+        <!-- Loading element targeted by widgets.js -->
+        <div id="ai-chat-loading" style="display: none; padding: 24px; text-align: center;">
+            <i class="fas fa-spinner fa-spin"></i> Loading AI Agent...
+        </div>
+
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-sm); padding-bottom: var(--space-sm);">
+            <!-- Static Initial Greeting -->
+            <div class="chat-message bot" style="background: rgba(18, 20, 24, 0.04); padding: 12px; border-radius: var(--radius-sm);">
+                <p style="font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">AI Copilot</p>
+                <p style="font-size: 13px;">Hello! I'm your quantum programming assistant. Ask me to generate templates or optimize circuit codes.</p>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;" id="ai-quick-templates">
+            <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 11px;" onclick="window.CommandPalette && window.CommandPalette.generateTemplate('bell')">Bell State</button>
+            <button class="btn btn-ghost" style="padding: 4px 10px; font-size: 11px;" onclick="window.CommandPalette && window.CommandPalette.generateTemplate('grover')">Grover</button>
+        </div>
+        
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="chat-input" placeholder="Ask Copilot..." style="flex: 1; font-size: 13px; padding: 8px 12px;" />
+            <button class="btn btn-accent btn-icon" id="send-message" style="width: 36px; height: 36px;">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="panel-footer">
+        <span class="caption">Powered by Google Gemini</span>
+    </div>
+</div>

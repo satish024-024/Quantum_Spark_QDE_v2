@@ -1,0 +1,100 @@
+/* Glossy Gel Buttons & Interactive States */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: none;
+    outline: none;
+    transition: all 250ms cubic-bezier(.22,.61,.36,1);
+    user-select: none;
+}
+
+/* Primary Button - Glossy Black Gel Capsule */
+.btn-primary {
+    background: linear-gradient(180deg, #2a2c35 0%, #111215 100%);
+    color: var(--bg-primary);
+    box-shadow: 
+        inset 0 2px 3px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.4),
+        0 4px 10px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(17, 18, 21, 0.8);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.4),
+        0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 
+        inset 0 1px 2px rgba(0, 0, 0, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Accent Button - Glossy Aqua Gel Capsule */
+.btn-accent {
+    background: linear-gradient(180deg, #00c2ae 0%, #00a896 100%);
+    color: #FFFFFF;
+    box-shadow: 
+        inset 0 2px 3px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+        0 4px 10px rgba(0, 168, 150, 0.25);
+    border: 1px solid rgba(0, 168, 150, 0.8);
+}
+
+.btn-accent:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+        0 6px 15px rgba(0, 168, 150, 0.35);
+}
+
+.btn-accent:active {
+    transform: translateY(0);
+    box-shadow: 
+        inset 0 1px 2px rgba(0, 0, 0, 0.4),
+        0 2px 4px rgba(0, 168, 150, 0.15);
+}
+
+/* Ghost Button - Translucent Glass */
+.btn-ghost {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: var(--text-primary);
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        var(--shadow-soft);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(255, 255, 255, 0.85);
+    transform: translateY(-1px);
+}
+
+.btn-ghost:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(0);
+}
+
+/* Icon Buttons (Circular Capsules) */
+.btn-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

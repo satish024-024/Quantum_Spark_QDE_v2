@@ -1,0 +1,145 @@
+<!-- Floating QDE Header & Status Strip -->
+<header class="workspace-header">
+    <div class="workspace-header-left">
+        <a href="/dashboard" class="workspace-logo">
+            <i class="fas fa-atom workspace-logo-icon"></i>
+            <div class="workspace-logo-text">
+                <h1>Quantum Spark</h1>
+                <span>QDE Workspace v2</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Active Session Status Strip -->
+    <div class="workspace-status-strip">
+        <div class="workspace-status-item">
+            <i class="fas fa-server" style="color: var(--accent-aqua);"></i>
+            <span>Backend:</span>
+            <span id="header-active-backend">ibm_fez</span>
+        </div>
+        <div class="workspace-status-item">
+            <i class="fas fa-tasks"></i>
+            <span>Queue:</span>
+            <span id="header-queue-depth" class="number-display">3</span>
+        </div>
+        <div class="workspace-status-item">
+            <i class="fas fa-clock"></i>
+            <span>Est. Wait:</span>
+            <span id="header-wait-time">1.8s</span>
+        </div>
+        <div class="workspace-status-item">
+            <i class="fas fa-coins" style="color: #d97706;"></i>
+            <span>Credits:</span>
+            <span id="header-credits-remaining">97%</span>
+        </div>
+    </div>
+
+    <div class="workspace-header-right">
+        <div class="workspace-controls-group">
+            <button class="btn btn-ghost btn-icon" id="refresh-all-btn" title="Refresh All Data">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="btn btn-ghost btn-icon" id="command-palette-btn" title="Command Palette (Ctrl+K)">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-ghost btn-icon" id="tutorial-btn" title="Help & Documentation">
+                <i class="fas fa-graduation-cap"></i>
+            </button>
+            <button class="btn btn-ghost btn-icon" id="customize-btn" title="Layout Preferences">
+                <i class="fas fa-sliders-h"></i>
+            </button>
+        </div>
+
+        <div class="workspace-user-profile" id="user-profile-widget">
+            <div class="workspace-user-avatar" id="avatar-initial">S</div>
+            <div class="workspace-user-info">
+                <span class="email" id="user-email">satishkumarkadali24@gmail.com</span>
+                <span class="status">
+                    <span class="status-dot status-dot-active"></span>
+                    Online
+                </span>
+            </div>
+            <button class="btn btn-ghost" id="logout-btn" style="padding: 6px 12px; font-size: 12px;">Logout</button>
+        </div>
+    </div>
+</header>
+
+<script>
+// Keep Header active backend synced with central state
+if (window.WorkspaceState) {
+    window.WorkspaceState.subscribe(state => {
+        const headerBackend = document.getElementById('header-active-backend');
+        if (headerBackend && state && state.activeBackend) {
+            headerBackend.innerText = state.activeBackend.name;
+        }
+    });
+}
+
+// Command palette button click handler
+const commandPaletteBtn = document.getElementById('command-palette-btn');
+if (commandPaletteBtn) {
+    commandPaletteBtn.addEventListener('click', () => {
+        if (window.KeyboardShortcuts && typeof window.KeyboardShortcuts.toggleCommandPalette === 'function') {
+            window.KeyboardShortcuts.toggleCommandPalette();
+        }
+    });
+}
+
+// Refresh all button click handler
+const refreshAllBtn = document.getElementById('refresh-all-btn');
+if (refreshAllBtn) {
+    refreshAllBtn.addEventListener('click', async () => {
+        const icon = refreshAllBtn.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+        try {
+            if (window.dashboard && typeof window.dashboard.refreshData === 'function') {
+                await window.dashboard.refreshData();
+            } else if (window.quantumWidgets) {
+                await window.quantumWidgets.preloadLocalData();
+                await window.quantumWidgets.updateAllWidgets();
+            }
+        } catch (e) {
+            console.error('Refresh failed:', e);
+        } finally {
+            setTimeout(() => {
+                if (icon) icon.classList.remove('fa-spin');
+            }, 1000);
+        }
+    });
+}
+
+// Tutorial button click handler
+const tutorialBtn = document.getElementById('tutorial-btn');
+if (tutorialBtn) {
+    tutorialBtn.addEventListener('click', () => {
+        if (window.quantumTutorial && typeof window.quantumTutorial.start === 'function') {
+            window.quantumTutorial.start();
+        }
+    });
+}
+
+// Customize/theme switcher button click handler
+const customizeBtn = document.getElementById('customize-btn');
+if (customizeBtn) {
+    customizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.themeSwitcher && typeof window.themeSwitcher.toggleThemeDropdown === 'function') {
+            window.themeSwitcher.toggleThemeDropdown();
+        }
+    });
+}
+
+// Logout button click handler
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/auth';
+        } catch (e) {
+            console.error('Logout failed:', e);
+            window.location.href = '/auth';
+        }
+    });
+}
+</script>

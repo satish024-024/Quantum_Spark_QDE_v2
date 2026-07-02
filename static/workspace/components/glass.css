@@ -1,0 +1,70 @@
+/* Glass Surfaces & Specular Highlights */
+.liquid-glass {
+    position: relative;
+    background: var(--surface-secondary);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.05),
+        inset 0 -4px 10px rgba(255, 255, 255, 0.2), /* Bottom refraction shadow */
+        var(--shadow-medium);
+    overflow: hidden;
+    transition: transform 300ms cubic-bezier(.22,.61,.36,1), box-shadow 300ms cubic-bezier(.22,.61,.36,1), border-color 300ms cubic-bezier(.22,.61,.36,1);
+}
+
+/* Curved Glossy Highlight Overlay on top half of cards */
+.liquid-glass::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 100px 100px / var(--radius-lg) var(--radius-lg) 20px 20px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Interactive card hover */
+.liquid-glass.interactive:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.02),
+        0 15px 45px rgba(18, 20, 24, 0.09);
+    border-color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+}
+
+/* Special Featured Black Glossy Card (Used for Active Backends KPI) */
+.glass-black {
+    background: linear-gradient(135deg, #22252a 0%, #111215 100%);
+    color: #FAFBFC !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.25),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+        var(--shadow-medium);
+}
+
+.glass-black::before {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.glass-black * {
+    color: #FAFBFC !important;
+}
+
+/* Glass Tabs & Small Containers */
+.glass-pill {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), var(--shadow-soft);
+}

@@ -1,0 +1,209 @@
+/* Panel Widget Layouts & Styling */
+.panel-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid rgba(18, 20, 24, 0.06);
+}
+
+.panel-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-header-title i {
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.panel-header-title h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel-body {
+    padding: var(--space-md);
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+}
+
+.panel-footer {
+    padding: var(--space-sm) var(--space-md);
+    border-top: 1px solid rgba(18, 20, 24, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Shimmer Loading States (Skeleton Placeholder) */
+.shimmer-placeholder {
+    background: linear-gradient(90deg, rgba(18, 20, 24, 0.05) 25%, rgba(18, 20, 24, 0.1) 50%, rgba(18, 20, 24, 0.05) 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+@keyframes loading-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Empty State Styling */
+.empty-state-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px var(--space-md);
+    gap: var(--space-sm);
+}
+
+.empty-state-icon {
+    font-size: 32px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    margin-bottom: 8px;
+}
+
+.empty-state-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.empty-state-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 240px;
+    line-height: 1.4;
+}
+
+/* Floating Slide-over Panel (For Backend Details) */
+.slide-over-panel {
+    position: fixed;
+    top: 0;
+    right: -380px;
+    width: 360px;
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--glass-border);
+    box-shadow: -10px 0 40px rgba(18, 20, 24, 0.08);
+    z-index: 1001;
+    transition: right 300ms cubic-bezier(.22,.61,.36,1);
+    display: flex;
+    flex-direction: column;
+}
+
+.slide-over-panel.active {
+    right: 0;
+}
+
+/* Premium Light Theme Overrides for Dynamically Injected Elements */
+
+.backend-card, .job-card, .snapshot-item, .job-item {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(18, 20, 24, 0.06) !important;
+    border-radius: 16px !important;
+    padding: var(--space-md) !important;
+    margin-bottom: var(--space-sm) !important;
+    box-shadow: 0 4px 20px rgba(18, 20, 24, 0.03) !important;
+    color: var(--text-primary) !important;
+    transition: all 200ms ease !important;
+}
+
+.backend-card:hover, .job-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 30px rgba(0, 168, 150, 0.06) !important;
+    border-color: rgba(0, 168, 150, 0.2) !important;
+}
+
+.backend-card h4, .job-card h4, .job-card h5 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-family: var(--font-primary) !important;
+}
+
+/* Modals Override to Premium Sheets */
+#detailed-backends-modal, #all-jobs-modal, #snapshots-fullscreen-modal, .detailed-modal {
+    background: rgba(247, 247, 244, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow: 0 30px 80px rgba(18, 20, 24, 0.12) !important;
+    border-radius: 24px !important;
+    color: var(--text-primary) !important;
+}
+
+/* Override standard bootstrap or custom dark elements */
+.detailed-modal table, #detailed-backends-table-container table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+}
+
+.detailed-modal th, #detailed-backends-table-container th {
+    background: rgba(18, 20, 24, 0.02) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid rgba(18, 20, 24, 0.06) !important;
+}
+
+.detailed-modal td, #detailed-backends-table-container td {
+    border-bottom: 1px solid rgba(18, 20, 24, 0.04) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Button stylings injected inline */
+#historical-data-content button, #jobs-content button, #backends-content button {
+    background: var(--text-primary) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    transition: opacity 150ms ease !important;
+}
+
+#historical-data-content button:hover, #jobs-content button:hover, #backends-content button:hover {
+    opacity: 0.9 !important;
+}
+
+/* 3D Bloch Sphere Plotly alignment and resizing overrides */
+.widget[data-widget="bloch-sphere"] #bloch-3d-container {
+    width: 100% !important;
+    height: 240px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important; /* Overrides flexbox shifting */
+}
+
+.widget[data-widget="bloch-sphere"] #bloch-3d-container .js-plotly-plot,
+.widget[data-widget="bloch-sphere"] #bloch-3d-container .plot-container,
+.widget[data-widget="bloch-sphere"] #bloch-3d-container .svg-container {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 auto !important;
+}
+
+.widget[data-widget="bloch-sphere"] #bloch-3d-container .main-svg,
+.widget[data-widget="bloch-sphere"] #bloch-3d-container .gl-container {
+    width: 100% !important;
+    height: 100% !important;
+}

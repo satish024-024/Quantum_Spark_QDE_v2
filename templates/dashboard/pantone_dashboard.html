@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spark QDE v2 - Workspace</title>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Modular QDE Design System CSS -->
+    <link rel="stylesheet" href="/static/workspace/design/variables.css">
+    <link rel="stylesheet" href="/static/workspace/design/base.css">
+    <link rel="stylesheet" href="/static/workspace/components/glass.css">
+    <link rel="stylesheet" href="/static/workspace/components/buttons.css">
+    <link rel="stylesheet" href="/static/workspace/components/forms.css">
+    <link rel="stylesheet" href="/static/workspace/components/tables.css">
+    <link rel="stylesheet" href="/static/workspace/layouts/layout.css">
+    <link rel="stylesheet" href="/static/workspace/layouts/activity_bar.css">
+    <link rel="stylesheet" href="/static/workspace/layouts/header.css">
+    <link rel="stylesheet" href="/static/workspace/layouts/widgets.css">
+    <link rel="stylesheet" href="/static/workspace/animations/transitions.css">
+    <link rel="stylesheet" href="/static/workspace/layouts/responsive.css">
+    
+    <!-- Component-specific CSS sheets -->
+    <link rel="stylesheet" href="/static/quantum_ai_enhancement.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tutorial.css') }}">
+</head>
+<body>
+
+    <!-- Main Workspace Container -->
+    <div class="workspace-wrapper fade-in">
+        
+        <!-- Breadcrumb Navigation Strip -->
+        <div class="breadcrumb-nav">
+            <span>Workspace</span>
+            <span class="breadcrumb-separator">></span>
+            <span>IBM Quantum</span>
+            <span class="breadcrumb-separator">></span>
+            <span id="breadcrumb-active-device">ibm_fez</span>
+        </div>
+
+        <!-- Floating Capsule Navigation Header -->
+        {% include 'dashboard/partials/header.html' %}
+
+        <!-- Horizontal KPI Summary Cards -->
+        {% include 'dashboard/partials/kpi_cards.html' %}
+
+        <!-- 12-Column Main Workspace Grid -->
+        <div class="workspace-grid">
+            
+            <!-- VS Code-Style Activity Bar -->
+            {% include 'dashboard/partials/activity_bar.html' %}
+
+            <!-- Multi-Column Workspace Panels -->
+            <div class="workspace-content">
+                
+                <!-- LEFT COLUMN: Explorer & Builder -->
+                <div class="sidebar-panel">
+                    {% include 'dashboard/widgets/hardware_explorer.html' %}
+                    {% include 'dashboard/widgets/timeline.html' %}
+                </div>
+
+                <!-- CENTER COLUMN: Circuit Workspace & Results -->
+                <div class="editor-panel">
+                    {% include 'dashboard/widgets/circuit_canvas.html' %}
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                        {% include 'dashboard/widgets/measurement_results.html' %}
+                        {% include 'dashboard/widgets/entanglement_analysis.html' %}
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Copilot & Metadata Inspector -->
+                <div class="right-sidebar-panel">
+                    {% include 'dashboard/widgets/ai_copilot.html' %}
+                    {% include 'dashboard/widgets/state_representation.html' %}
+                    {% include 'dashboard/widgets/bloch_widget.html' %}
+                    {% include 'dashboard/widgets/insights_performance.html' %}
+                </div>
+
+                <!-- BOTTOM PANEL CONTAINER -->
+                <div class="bottom-panel-container col-span-12">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                        {% include 'dashboard/widgets/comparison.html' %}
+                        {% include 'dashboard/widgets/radar_chart.html' %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Apple-Style Floating bottom dock -->
+    <div class="bottom-dock">
+        <a href="#circuit-builder-widget" class="bottom-dock-item active">
+            <i class="fas fa-atom"></i>
+            <span>Builder</span>
+        </a>
+        <a href="#ai-assistant-widget" class="bottom-dock-item">
+            <i class="fas fa-brain"></i>
+            <span>AI Copilot</span>
+        </a>
+        <a href="#backends-widget" class="bottom-dock-item">
+            <i class="fas fa-server"></i>
+            <span>Hardware</span>
+        </a>
+        <a href="#measurement-results-widget" class="bottom-dock-item">
+            <i class="fas fa-chart-bar"></i>
+            <span>Results</span>
+        </a>
+        <a href="#history-widget" class="bottom-dock-item">
+            <i class="fas fa-history"></i>
+            <span>Timeline</span>
+        </a>
+    </div>
+
+    <!-- Overlays & Modals -->
+    {% include 'dashboard/modals/command_palette.html' %}
+    {% include 'dashboard/modals/api_credentials.html' %}
+
+    <!-- Core State, Layout & Action Javascript Modules -->
+    <script src="/static/js/workspace/core/workspace_state.js"></script>
+    <script src="/static/js/workspace/core/layout_manager.js"></script>
+    <script src="/static/js/workspace/core/keyboard_shortcuts.js"></script>
+    <script src="/static/js/workspace/commands/command_palette.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://unpkg.com/mathjs@11.11.0/lib/browser/math.min.js"></script>
+    
+    <!-- Legacy Bindings (Mapping IDs to preserve all existing logic) -->
+    <script src="/static/offline_manager.js"></script>
+    <script src="/static/remote_data_service.js"></script>
+    <script src="/static/api_utils.js"></script>
+    <script src="/static/quantum.js"></script>
+    <script src="/static/plot.js"></script>
+    <script src="/static/ui.js"></script>
+    <script src="/static/helper.js"></script>
+    <script src="/static/3d_quantum_circuit.js"></script>
+    <script src="/static/bloch_sphere/src/libs/three/three.min.js"></script>
+    <script src="/static/bloch-sphere-reference/src/libs/three/jsm/renderers/CSS2DRenderer.js"></script>
+    <script src="/static/orbitcontrols_fixed.js"></script>
+    <script src="/static/bloch_quantum.js"></script>
+    <script src="/static/bloch_ui.js"></script>
+    <script src="/static/enhanced_bloch_integration.js"></script>
+    <script src="/static/quantum_results_integration.js"></script>
+    <script src="/static/theme_switcher.js"></script>
+    <script src="/static/enhanced_ai_assistant.js"></script>
+    <script src="/static/quantum_ai_enhancement.js"></script>
+    <script src="/static/quantum_providers.js"></script>
+    <script src="/static/backend_comparison.js?v=2.0"></script>
+    <script src="/static/widgets.js?v=2.0"></script>
+    <script src="/static/enhanced_quantum_script.js"></script>
+    <script src="/static/dashboard_new.js"></script>
+    <script src="/static/modern_dashboard.js"></script>
+    <script src="{{ url_for('static', filename='tutorial.js') }}"></script>
+
+    <script>
+    // Map custom bottom-dock toggle navigation
+    document.querySelectorAll('.bottom-dock-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.bottom-dock-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            
+            const targetId = item.getAttribute('href').substring(1);
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight the widget briefly
+                targetEl.style.outline = '2px solid var(--accent-aqua)';
+                targetEl.style.borderRadius = 'var(--radius-lg)';
+                targetEl.style.transition = 'outline 0.3s ease';
+                setTimeout(() => { targetEl.style.outline = 'none'; }, 1500);
+            }
+        });
+    });
+
+    // Synchronize breadcrumbs with state changes
+    if (window.WorkspaceState) {
+        window.WorkspaceState.subscribe(state => {
+            const breadcrumbDevice = document.getElementById('breadcrumb-active-device');
+            if (breadcrumbDevice && state && state.activeBackend) {
+                breadcrumbDevice.innerText = state.activeBackend.name;
+            }
+        });
+    }
+
+    // Initialize Hackathon Dashboard and Widgets
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 DOMContentLoaded: Initializing Hackathon Dashboard...');
+        
+        // Mark as authenticated for the frontend
+        window.isAuthenticated = true;
+
+        try {
+            // Use the controlled initialization function from dashboard_new.js
+            if (typeof window.initializeHackathonDashboard === 'function') {
+                window.hackathonDashboard = window.initializeHackathonDashboard();
+                console.log('✅ Dashboard initialized successfully');
+            } else if (typeof HackathonDashboard !== 'undefined') {
+                window.hackathonDashboard = new HackathonDashboard();
+                window.dashboard = window.hackathonDashboard;
+                console.log('✅ Dashboard initialized via fallback');
+            } else {
+                console.error('❌ HackathonDashboard class not found!');
+            }
+        } catch (error) {
+            console.error('❌ Error during dashboard initialization:', error);
+        }
+    });
+
+    // Helper to update active backend
+    window.selectBackend = function(name, queue) {
+        const headerBackend = document.getElementById('header-active-backend');
+        const breadcrumbDevice = document.getElementById('breadcrumb-active-device');
+        const headerQueue = document.getElementById('header-queue-depth');
+        
+        if (headerBackend) headerBackend.innerText = name;
+        if (breadcrumbDevice) breadcrumbDevice.innerText = name;
+        if (headerQueue) headerQueue.innerText = queue;
+        
+        if (window.WorkspaceState) {
+            window.WorkspaceState.setState('activeBackend.name', name);
+        }
+    };
+    </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!-- Circuit Canvas Editor Area -->
+<div class="panel-card liquid-glass widget" id="circuit-builder-widget" data-widget="circuit" style="grid-column: span 8;">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-cube" style="color: var(--accent-aqua);"></i>
+            <h4>Circuit Canvas</h4>
+        </div>
+        <div class="panel-header-actions">
+            <button class="btn btn-ghost" id="open-builder-btn" style="padding: 6px 12px; font-size: 12px;">Open Builder</button>
+            <button class="btn btn-accent" id="execute-circuit-btn" style="padding: 6px 16px; font-size: 12px;">
+                <i class="fas fa-play"></i> Run Circuit
+            </button>
+        </div>
+    </div>
+    
+    <div class="panel-body" style="min-height: 240px; display: flex; flex-direction: column; gap: var(--space-md);" id="circuit-content">
+        <!-- Loading element targeted by widgets.js -->
+        <div id="circuit-loading" style="display: none; padding: 32px; text-align: center;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--accent-aqua);"></i>
+            <p style="margin-top: 8px; font-size: 13px;">Preparing Circuit Visuals...</p>
+        </div>
+
+        <!-- Tabbed view header: Visual Canvas | QASM Code -->
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid rgba(18,20,24,0.06); padding-bottom: 8px;">
+            <button class="btn btn-ghost active" id="tab-visual-canvas" style="padding: 4px 12px; font-size: 12px;">Visual Canvas</button>
+            <button class="btn btn-ghost" id="tab-qasm-code" style="padding: 4px 12px; font-size: 12px;">QASM 2.0 Source</button>
+        </div>
+
+        <div id="visual-canvas-pane" style="flex: 1; min-height: 280px; position: relative;">
+            <!-- 3D Circuit Canvas injection target -->
+            <div id="3d-quantum-circuit" style="width: 100%; height: 280px; position: relative; border-radius: var(--radius-sm); overflow: hidden;"></div>
+        </div>
+
+        <div id="qasm-code-pane" style="display: none; flex: 1;">
+            <textarea id="qasm-editor-textarea" style="width: 100%; height: 180px; font-family: var(--font-mono); font-size: 13px; background: rgba(18,20,24,0.03); color: #111215; resize: none; border-radius: var(--radius-sm); padding: 12px;"></textarea>
+        </div>
+
+        <!-- Dynamic Gate Keyboard (For Quick Injection) -->
+        <div style="display: flex; flex-direction: column; gap: var(--space-xs); border-top: 1px solid rgba(18,20,24,0.06); padding-top: 12px;">
+            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Insert Gate Elements</p>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn btn-ghost quantum-gate" data-gate="H" style="padding: 6px 12px; font-size: 12px;">H</button>
+                    <button class="btn btn-ghost quantum-gate" data-gate="X" style="padding: 6px 12px; font-size: 12px;">X</button>
+                    <button class="btn btn-ghost quantum-gate" data-gate="Y" style="padding: 6px 12px; font-size: 12px;">Y</button>
+                    <button class="btn btn-ghost quantum-gate" data-gate="Z" style="padding: 6px 12px; font-size: 12px;">Z</button>
+                </div>
+                <div style="border-right: 1px solid rgba(18,20,24,0.1); height: 24px;"></div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn btn-ghost quantum-gate" data-gate="CNOT" style="padding: 6px 12px; font-size: 12px;">CNOT</button>
+                    <button class="btn btn-ghost quantum-gate" data-gate="Measure" style="padding: 6px 12px; font-size: 12px;">Measure</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Switch between visuals and QASM tab view
+document.getElementById('tab-visual-canvas').addEventListener('click', () => {
+    document.getElementById('tab-visual-canvas').classList.add('active');
+    document.getElementById('tab-qasm-code').classList.remove('active');
+    document.getElementById('visual-canvas-pane').style.display = 'flex';
+    document.getElementById('qasm-code-pane').style.display = 'none';
+});
+
+document.getElementById('tab-qasm-code').addEventListener('click', () => {
+    document.getElementById('tab-visual-canvas').classList.remove('active');
+    document.getElementById('tab-qasm-code').classList.add('active');
+    document.getElementById('visual-canvas-pane').style.display = 'none';
+    document.getElementById('qasm-code-pane').style.display = 'block';
+});
+
+// Bind Open Builder button
+document.getElementById('open-builder-btn').addEventListener('click', () => {
+    window.open('/circuit-builder', '_blank');
+});
+</script>

@@ -130,7 +130,7 @@ if (typeof QuantumWidgets === 'undefined') {
             }
 
             return items.filter(item => {
-                const backend = (item.backend || item.backend_name || '').toLowerCase();
+                const backend = (item.backend || item.backend_name || item.name || item.id || '').toLowerCase();
                 const provider = (item.provider || '').toLowerCase();
                 const isRealData = item.real_data === true;
                 const isSimulator = backend.includes('simulator') || backend.includes('local') || backend.includes('aer');
@@ -139,9 +139,9 @@ if (typeof QuantumWidgets === 'undefined') {
                 // Match by mode
                 switch (currentMode.toLowerCase()) {
                     case 'ibm':
-                        return isRealData || (backend.includes('ibm') || backend.includes('fez') ||
+                        return provider === 'ibm' || isRealData || (backend.includes('ibm') || backend.includes('fez') ||
                             backend.includes('marrakesh') || backend.includes('torino') ||
-                            backend.includes('brisbane')) && !isLocal;
+                            backend.includes('kingston') || backend.includes('brisbane')) && !isLocal;
                     case 'local':
                         return isLocal;
                     case 'ionq':
@@ -461,7 +461,6 @@ if (typeof QuantumWidgets === 'undefined') {
             console.log('✅ Entanglement widget rendered with metrics:', metrics.type);
         }
 
-
         // Bloch Sphere Widget Update
         async updateBlochSphereWidget() {
             // Prevent duplicate renders
@@ -480,6 +479,24 @@ if (typeof QuantumWidgets === 'undefined') {
                 if (loadingElement) loadingElement.style.display = 'none';
                 contentElement.style.display = 'block';
 
+                // Try to fetch real quantum state data
+                let targetX = 0, targetY = 0, targetZ = 1;
+                try {
+                    const res = await fetch('/api/quantum_state_data');
+                    if (res.ok) {
+                        const apiResponse = await res.json();
+                        // Support both raw format and data wrapper format
+                        const coords = apiResponse.bloch_coordinates?.qubit0 || apiResponse.data?.bloch_coordinates?.qubit0 || apiResponse.qubit0;
+                        if (coords) {
+                            targetX = parseFloat(coords.x) ?? 0;
+                            targetY = parseFloat(coords.y) ?? 0;
+                            targetZ = parseFloat(coords.z) ?? 1;
+                        }
+                    }
+                } catch (fetchErr) {
+                    console.warn('Failed to fetch live Bloch coordinates:', fetchErr);
+                }
+
                 // Render a simple Bloch sphere visualization using Canvas
                 const container = document.getElementById('bloch-3d-container');
                 if (container) {
@@ -490,15 +507,37 @@ if (typeof QuantumWidgets === 'undefined') {
                         <canvas id="bloch-widget-canvas" style="width: 100%; height: 100%;"></canvas>
                         <div style="text-align: center; margin-top: -40px; position: relative; z-index: 10;">
                             <button onclick="window.location.href='/static/bloch-sphere-simulator/index.html'" 
-                                style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+                                style="padding: 0.5rem 1rem; background: var(--button-bg, #111); color: var(--button-text, #fff); 
+                                border: 1px solid var(--border-color, rgba(255,255,255,0.15)); border-radius: 6px; cursor: pointer; 
+                                font-size: 0.8rem; font-weight: 500; font-family: inherit; transition: all 0.2s;">
                                 Open Full Simulator
                             </button>
                         </div>
                     `;
 
+                    // Update UI text below sphere if elements exist
+                    const thetaValElem = document.getElementById('bloch-theta-val');
+                    const phiValElem = document.getElementById('bloch-phi-val');
+                    const stateTextElem = document.getElementById('bloch-state-text');
+                    
+                    const r = Math.sqrt(targetX*targetX + targetY*targetY + targetZ*targetZ);
+                    const thetaRad = r > 0.001 ? Math.acos(targetZ / r) : 0;
+                    const phiRad = Math.atan2(targetY, targetX);
+                    const thetaDeg = Math.round(thetaRad * 180 / Math.PI);
+                    const phiDeg = Math.round(phiRad * 180 / Math.PI);
+                    
+                    if (thetaValElem) thetaValElem.textContent = `${thetaDeg}°`;
+                    if (phiValElem) phiValElem.textContent = `${phiDeg}°`;
+                    if (stateTextElem) {
+                        if (targetZ > 0.8) stateTextElem.textContent = '|0⟩';
+                        else if (targetZ < -0.8) stateTextElem.textContent = '|1⟩';
+                        else if (targetX > 0.8) stateTextElem.textContent = '|+⟩';
+                        else if (targetX < -0.8) stateTextElem.textContent = '|-⟩';
+                        else stateTextElem.textContent = '|ψ⟩';
+                    }
+
                     // Draw simple 3D Bloch sphere
-                    this.drawSimpleBlochSphere('bloch-widget-canvas');
+                    this.drawSimpleBlochSphere('bloch-widget-canvas', targetX, targetY, targetZ);
                     this.showWidgetContent(contentElement);
                 } else {
                     console.error('❌ Bloch 3D container not found');
@@ -518,99 +557,154 @@ if (typeof QuantumWidgets === 'undefined') {
             }
         }
 
-        // Draw a simple 2D representation of the Bloch sphere
-        drawSimpleBlochSphere(canvasId) {
+        drawSimpleBlochSphere(canvasId, targetX = 0, targetY = 0, targetZ = 1) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
-            const width = canvas.offsetWidth;
-            const height = canvas.offsetHeight;
-            canvas.width = width;
-            canvas.height = height;
+            
+            // Handle high DPI displays
+            const dpr = window.devicePixelRatio || 1;
+            const width = canvas.clientWidth || 300;
+            const height = canvas.clientHeight || 260;
+            
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
 
             const centerX = width / 2;
-            const centerY = height / 2;
+            const centerY = height / 2 - 15;
             const radius = Math.min(width, height) * 0.35;
 
-            // Clear canvas
-            ctx.clearRect(0, 0, width, height);
+            let rotationAngle = 0;
+            const pitch = Math.PI / 10; // 18 degree tilt
 
-            // Draw sphere (circle with gradient)
-            const gradient = ctx.createRadialGradient(centerX - radius / 3, centerY - radius / 3, radius / 4, centerX, centerY, radius);
-            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
-            gradient.addColorStop(0.5, 'rgba(102, 126, 234, 0.2)');
-            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.1)');
+            // Clear any existing animation frame
+            if (canvas.animationFrameId) {
+                cancelAnimationFrame(canvas.animationFrameId);
+            }
 
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.fill();
+            const tick = () => {
+                rotationAngle += 0.005; // speed of rotation
 
-            // Draw sphere outline
-            ctx.strokeStyle = 'rgba(102, 126, 234, 0.6)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
 
-            // Draw coordinate axes
-            ctx.strokeStyle = 'rgba(118, 75, 162, 0.5)';
-            ctx.lineWidth = 1.5;
+                // Get dynamic theme colors
+                const textColor = getComputedStyle(document.body).getPropertyValue('--text-primary') || '#ffffff';
+                const textColorMuted = getComputedStyle(document.body).getPropertyValue('--text-muted') || '#a0aec0';
+                
+                // Draw sphere background circle (subtle glassmorphism style)
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(128, 128, 128, 0.03)';
+                ctx.fill();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.15)';
+                ctx.stroke();
 
-            // Z-axis (vertical)
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY - radius - 10);
-            ctx.lineTo(centerX, centerY + radius + 10);
-            ctx.stroke();
+                // 3D coordinate projection helper
+                const project = (x, y, z) => {
+                    // Rotate around Z axis (yaw)
+                    const xRot = x * Math.cos(rotationAngle) - y * Math.sin(rotationAngle);
+                    const yRot = x * Math.sin(rotationAngle) + y * Math.cos(rotationAngle);
+                    const zRot = z;
 
-            // X-axis (horizontal)
-            ctx.beginPath();
-            ctx.moveTo(centerX - radius - 10, centerY);
-            ctx.lineTo(centerX + radius + 10, centerY);
-            ctx.stroke();
+                    // Tilt around X axis (pitch)
+                    const xProj = xRot;
+                    const yProj = yRot * Math.cos(pitch) - zRot * Math.sin(pitch);
+                    
+                    return {
+                        x: centerX + radius * xProj,
+                        y: centerY - radius * yProj
+                    };
+                };
 
-            // Y-axis (diagonal)
-            ctx.beginPath();
-            ctx.moveTo(centerX - radius * 0.7, centerY + radius * 0.7);
-            ctx.lineTo(centerX + radius * 0.7, centerY - radius * 0.7);
-            ctx.stroke();
+                // Draw rotated grid lines (latitudes / longitudes)
+                ctx.lineWidth = 0.5;
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
 
-            // Draw state vector (pointing up-right)
-            const vecX = centerX + radius * 0.3;
-            const vecY = centerY - radius * 0.7;
+                // Draw Equator (Z = 0 circle)
+                ctx.beginPath();
+                for (let a = 0; a <= 2 * Math.PI + 0.1; a += 0.1) {
+                    const eqX = Math.cos(a);
+                    const eqY = Math.sin(a);
+                    const pt = project(eqX, eqY, 0);
+                    if (a === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
 
-            ctx.strokeStyle = '#FFD700';
-            ctx.fillStyle = '#FFD700';
-            ctx.lineWidth = 3;
+                // Draw Prime Meridian (Y = 0 circle)
+                ctx.beginPath();
+                for (let a = 0; a <= 2 * Math.PI + 0.1; a += 0.1) {
+                    const mX = Math.cos(a);
+                    const mZ = Math.sin(a);
+                    const pt = project(mX, 0, mZ);
+                    if (a === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
 
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(vecX, vecY);
-            ctx.stroke();
+                // Draw Z-axis (pointing from -1 to 1)
+                const zTop = project(0, 0, 1.05);
+                const zBot = project(0, 0, -1.05);
+                ctx.beginPath();
+                ctx.moveTo(zBot.x, zBot.y);
+                ctx.lineTo(zTop.x, zTop.y);
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
 
-            // Draw arrowhead
-            const angle = Math.atan2(vecY - centerY, vecX - centerX);
-            const arrowLength = 10;
-            ctx.beginPath();
-            ctx.moveTo(vecX, vecY);
-            ctx.lineTo(vecX - arrowLength * Math.cos(angle - Math.PI / 6), vecY - arrowLength * Math.sin(angle - Math.PI / 6));
-            ctx.lineTo(vecX - arrowLength * Math.cos(angle + Math.PI / 6), vecY - arrowLength * Math.sin(angle + Math.PI / 6));
-            ctx.closePath();
-            ctx.fill();
+                // Z-axis labels: |0⟩ at top, |1⟩ at bottom
+                ctx.fillStyle = textColor;
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('|0⟩', zTop.x, zTop.y - 8);
+                ctx.fillText('|1⟩', zBot.x, zBot.y + 14);
 
-            // Draw labels
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.font = 'bold 14px Inter, sans-serif';
-            ctx.textAlign = 'center';
+                // Draw X and Y axes rotating
+                const xEnd = project(1.05, 0, 0);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(xEnd.x, xEnd.y);
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.15)';
+                ctx.stroke();
+                ctx.fillStyle = textColorMuted;
+                ctx.font = '500 10px Inter, sans-serif';
+                ctx.fillText('+x', xEnd.x + (xEnd.x > centerX ? 8 : -8), xEnd.y + 3);
 
-            ctx.fillText('|0⟩', centerX, centerY - radius - 20);
-            ctx.fillText('|1⟩', centerX, centerY + radius + 30);
-            ctx.fillText('|+⟩', centerX + radius + 25, centerY + 5);
-            ctx.fillText('|-⟩', centerX - radius - 25, centerY + 5);
+                const yEnd = project(0, 1.05, 0);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(yEnd.x, yEnd.y);
+                ctx.stroke();
+                ctx.fillText('+y', yEnd.x + (yEnd.x > centerX ? 8 : -8), yEnd.y + 3);
 
-            // State label
-            ctx.font = 'italic 12px Inter, sans-serif';
-            ctx.fillStyle = '#FFD700';
-            ctx.fillText('|ψ⟩', vecX + 15, vecY - 10);
+                // Draw State Vector
+                const vecEnd = project(targetX, targetY, targetZ);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(vecEnd.x, vecEnd.y);
+                ctx.strokeStyle = textColor; // Matches the theme color
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                // Draw Vector endpoint dot
+                ctx.beginPath();
+                ctx.arc(vecEnd.x, vecEnd.y, 4.5, 0, 2 * Math.PI);
+                ctx.fillStyle = textColor;
+                ctx.fill();
+
+                // Draw state label
+                ctx.fillStyle = textColor;
+                ctx.font = 'italic 11px Inter, sans-serif';
+                ctx.fillText('|ψ⟩', vecEnd.x + (vecEnd.x > centerX ? 10 : -10), vecEnd.y - 6);
+
+                canvas.animationFrameId = requestAnimationFrame(tick);
+            };
+
+            canvas.animationFrameId = requestAnimationFrame(tick);
         }
 
         // Circuit Widget Update
@@ -675,8 +769,8 @@ if (typeof QuantumWidgets === 'undefined') {
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
-            const width = canvas.offsetWidth;
-            const height = canvas.offsetHeight;
+            const width = canvas.offsetWidth || 400;
+            const height = canvas.offsetHeight || 280;
             canvas.width = width;
             canvas.height = height;
 
@@ -1116,71 +1210,71 @@ if (typeof QuantumWidgets === 'undefined') {
 
             const backendCards = backendsArray.slice(0, 3).map(backend => {
                 const isActive = backend.status === 'active' || backend.status === 'online' || backend.operational === true;
-                const statusColor = isActive ? '#4CAF50' : '#FF9800';
+                const statusColor = isActive ? 'var(--text-primary)' : '#9ca3af';
                 const statusIcon = isActive ? 'fa-check-circle' : 'fa-clock';
                 const tier = backend.tier || (backend.name.includes('brisbane') || backend.name.includes('pittsburgh') ? 'Paid' : 'Free');
-                const tierColor = tier === 'Free' ? '#10b981' : '#f59e0b';
+                const tierBg = tier === 'Free' ? 'rgba(18, 20, 24, 0.05)' : 'var(--text-primary)';
+                const tierColor = tier === 'Free' ? 'var(--text-primary)' : 'var(--bg-primary)';
+                const tierBorder = tier === 'Free' ? '1px solid rgba(18, 20, 24, 0.08)' : 'none';
 
                 return `
                 <div class="backend-card" 
                      onclick="window.quantumWidgets.showBackendDetails('${backend.name}')"
                      style="
                         background: var(--glass-bg); 
-                        padding: 1rem; 
-                        border-radius: 8px; 
-                        margin-bottom: 1rem; 
+                        padding: 0.8rem 1rem; 
+                        border-radius: 6px; 
+                        margin-bottom: 0.5rem; 
                         border: 1px solid var(--glass-border);
                         cursor: pointer;
-                        transition: all 0.3s ease;
+                        transition: all 0.2s ease;
                      "
-                     onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'; this.style.borderColor='#667eea';"
-                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='var(--glass-border)';">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <h4 style="margin: 0; color: var(--text-primary); font-size: 1rem;">${backend.name}</h4>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="background: ${tierColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem;">${tier}</span>
-                            <span style="color: ${statusColor}; font-size: 1.2rem;">
+                     onmouseover="this.style.transform='translateY(-1px)'; this.style.borderColor='var(--text-primary)';"
+                     onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--glass-border)';">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <h4 style="margin: 0; color: var(--text-primary); font-size: 0.85rem; font-weight: 600; font-family: var(--font-mono);">${backend.name}</h4>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="background: ${tierBg}; color: ${tierColor}; border: ${tierBorder}; padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; font-family: var(--font-mono);">${tier}</span>
+                            <span style="color: ${statusColor}; font-size: 1rem;">
                                 <i class="fas ${statusIcon}"></i>
                             </span>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
-                        <div>📊 Qubits: ${backend.num_qubits || backend.n_qubits || 'N/A'}</div>
-                        <div>⏳ Queue: ${backend.queue || backend.pending_jobs || 0}</div>
-                        <div>💡 Status: ${backend.status || 'Unknown'}</div>
-                        <div>🎟️ Tier: ${tier}</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.72rem; color: var(--text-secondary);">
+                        <div>Qubits: <strong>${backend.num_qubits || backend.n_qubits || 'N/A'}</strong></div>
+                        <div>Queue: <strong>${backend.queue || backend.pending_jobs || 0}</strong></div>
+                        <div>Status: <strong>${backend.status || 'Unknown'}</strong></div>
                     </div>
-                    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #667eea; text-align: center;">
-                        <i class="fas fa-info-circle"></i> Click for detailed metrics
+                    <div style="margin-top: 0.4rem; font-size: 0.68rem; color: var(--text-secondary); text-align: center; opacity: 0.8;">
+                        <i class="fas fa-info-circle"></i> View details
                     </div>
                 </div>
             `;
             }).join('');
 
-            // Add expand button at the bottom
+            // Add expand button at the bottom (Monochrome)
             const expandButton = `
                 <button 
                     onclick="window.quantumWidgets.showDetailedBackendsModal()"
                     style="
                         width: 100%;
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
+                        background: var(--text-primary);
+                        color: var(--bg-primary);
                         border: none;
-                        padding: 0.75rem;
-                        border-radius: 8px;
+                        padding: 0.5rem;
+                        border-radius: 6px;
                         cursor: pointer;
-                        font-size: 0.9rem;
-                        font-weight: 600;
-                        margin-top: 1rem;
+                        font-size: 0.8rem;
+                        font-weight: 500;
+                        margin-top: 0.5rem;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        gap: 0.5rem;
-                        transition: all 0.3s ease;
-                        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                        gap: 0.4rem;
+                        transition: all 0.2s ease;
                     "
-                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';"
+                    onmouseover="this.style.transform='translateY(-1px)';"
+                    onmouseout="this.style.transform='translateY(0)';"
                 >
                     <i class="fas fa-expand-arrows-alt"></i>
                     View Detailed Backend Metrics
@@ -2957,57 +3051,51 @@ if (typeof QuantumWidgets === 'undefined') {
         // Mode-specific performance rendering (single mode only)
         renderModeSpecificPerformanceContent(performance, contentElement) {
             const mode = performance.mode || 'ibm';
-            const modeColors = mode === 'ibm' ?
-                { primary: '#06b6d4', secondary: '#0891b2', icon: '🌐' } :
-                { primary: '#10b981', secondary: '#059669', icon: ' ' };
-            const modeLabel = mode === 'ibm' ? 'IBM Quantum' : 'Local Simulator';
+            const modeLabel = mode === 'ibm' ? 'IBM Quantum Hardware' : 'Local Simulator';
 
             const performanceHtml = `
             <div class="widget-content" style="padding: 1rem; max-height: 380px; overflow-y: auto;">
-                <!-- Mode Header -->
-                <div style="background: linear-gradient(135deg, rgba(${mode === 'ibm' ? '6, 182, 212' : '16, 185, 129'}, 0.2), rgba(${mode === 'ibm' ? '6, 182, 212' : '16, 185, 129'}, 0.1)); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(${mode === 'ibm' ? '6, 182, 212' : '16, 185, 129'}, 0.4); margin-bottom: 1rem; text-align: center;">
-                    <div style="font-size: 0.85rem; color: ${modeColors.primary}; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <span>${modeColors.icon}</span>
-                        ${modeLabel} Performance Metrics
-                    </div>
-                    <div style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">Mode: ${mode.toUpperCase()}</div>
-                </div>
-                
-                <!-- Performance Metrics Grid -->
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                    <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); padding: 1rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
-                        <div style="font-size: 2rem; color: #10b981; font-weight: bold; margin-bottom: 0.25rem;">${performance.success_rate.toFixed(1)}%</div>
-                        <div style="color: var(--text-secondary); font-size: 0.8rem;">Success Rate</div>
-                    </div>
-                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)); padding: 1rem; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3); text-align: center;">
-                        <div style="font-size: 2rem; color: #3b82f6; font-weight: bold; margin-bottom: 0.25rem;">${performance.avg_execution_time.toFixed(2)}s</div>
-                        <div style="color: var(--text-secondary); font-size: 0.8rem;">Avg Time</div>
+                <!-- Mode Header (Monochrome) -->
+                <div style="background: rgba(18, 20, 24, 0.03); padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(18, 20, 24, 0.08); margin-bottom: 1rem; text-align: center;">
+                    <div style="font-size: 0.8rem; color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px;">
+                        ${modeLabel}
                     </div>
                 </div>
                 
-                <!-- Total Jobs -->
-                <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05)); padding: 1rem; border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3); text-align: center; margin-bottom: 1rem;">
-                    <div style="font-size: 2rem; color: #8b5cf6; font-weight: bold; margin-bottom: 0.25rem;">${performance.total_jobs}</div>
-                    <div style="color: var(--text-secondary); font-size: 0.8rem;">Total Jobs</div>
+                <!-- Performance Metrics Grid (Monochrome) -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <div style="background: rgba(18, 20, 24, 0.02); padding: 0.875rem; border-radius: 6px; border: 1px solid rgba(18, 20, 24, 0.06); text-align: center;">
+                        <div style="font-size: 1.75rem; color: var(--text-primary); font-weight: 700; margin-bottom: 0.15rem;">${performance.success_rate.toFixed(1)}%</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Success Rate</div>
+                    </div>
+                    <div style="background: rgba(18, 20, 24, 0.02); padding: 0.875rem; border-radius: 6px; border: 1px solid rgba(18, 20, 24, 0.06); text-align: center;">
+                        <div style="font-size: 1.75rem; color: var(--text-primary); font-weight: 700; margin-bottom: 0.15rem;">${performance.avg_execution_time.toFixed(2)}s</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Avg Time</div>
+                    </div>
                 </div>
                 
-                <!-- Completion Status -->
-                <div style="padding: 0.75rem; background: var(--glass-bg); border-radius: 8px; border: 1px solid var(--glass-border);">
-                    <h4 style="color: var(--text-primary); margin: 0 0 0.5rem 0; font-size: 0.85rem; font-weight: 600;">  Completion Status</h4>
+                <!-- Total Jobs (Monochrome) -->
+                <div style="background: rgba(18, 20, 24, 0.02); padding: 0.875rem; border-radius: 6px; border: 1px solid rgba(18, 20, 24, 0.06); text-align: center; margin-bottom: 1rem;">
+                    <div style="font-size: 1.75rem; color: var(--text-primary); font-weight: 700; margin-bottom: 0.15rem;">${performance.total_jobs}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;">Total Jobs</div>
+                </div>
+                
+                <!-- Completion Status (Monochrome) -->
+                <div style="padding: 0.75rem; background: rgba(18, 20, 24, 0.02); border-radius: 6px; border: 1px solid rgba(18, 20, 24, 0.06);">
+                    <h4 style="color: var(--text-primary); margin: 0 0 0.5rem 0; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--font-mono);">Job Status Summary</h4>
                     <div style="color: var(--text-secondary); font-size: 0.75rem; line-height: 1.6;">
-                        <div style="display: flex; justify-content: space-between; margin: 0.25rem 0;">
-                            <span>Completed Jobs:</span>
-                            <span style="color: ${modeColors.primary}; font-weight: bold;">${performance.completed_jobs}</span>
+                        <div style="display: flex; justify-content: space-between; margin: 0.2rem 0;">
+                            <span>Completed:</span>
+                            <span style="color: var(--text-primary); font-weight: 600;">${performance.completed_jobs}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin: 0.25rem 0;">
-                            <span>Total Jobs:</span>
-                            <span style="color: var(--text-primary); font-weight: bold;">${performance.total_jobs}</span>
+                        <div style="display: flex; justify-content: space-between; margin: 0.2rem 0;">
+                            <span>Active / Running:</span>
+                            <span style="color: var(--text-primary); font-weight: 600;">${performance.running_jobs}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin: 0.25rem 0;">
-                            <span>Mode:</span>
-                            <span style="color: ${modeColors.primary}; font-weight: bold;">${modeLabel}</span>
+                        <div style="display: flex; justify-content: space-between; margin: 0.2rem 0;">
+                            <span>Total Registered:</span>
+                            <span style="color: var(--text-primary); font-weight: 600;">${performance.total_jobs}</span>
                         </div>
-                    </div>
                 </div>
             </div>
         `;
@@ -3079,18 +3167,17 @@ if (typeof QuantumWidgets === 'undefined') {
 
                 try {
                     // PRIMARY: Call dedicated quantum state API
-                    const res = await fetch('/api/quantum_state');
+                    const res = await fetch('/api/quantum_state_data');
                     if (!res.ok) throw new Error(`Quantum State API failed: ${res.status}`);
 
                     const apiResponse = await res.json();
                     console.log('✅ Quantum State API response:', apiResponse);
 
-                    // Check if API returned successful data (connected: true)
-                    if (apiResponse.connected === true && (apiResponse.counts || apiResponse.bloch_vector)) {
-                        stateData = apiResponse;
+                    // Check if API returned successful data
+                    if (apiResponse.success === true && (apiResponse.data || apiResponse.counts || apiResponse.bloch_vector)) {
+                        stateData = apiResponse.data || apiResponse;
                     } else if (apiResponse.error) {
                         console.warn('⚠️ Quantum State API returned error:', apiResponse.error);
-                        // Don't throw - fall through to fallback
                     }
 
                 } catch (apiError) {
@@ -3143,55 +3230,76 @@ if (typeof QuantumWidgets === 'undefined') {
 
         // Render quantum state visualization
         renderQuantumStateVisualization(stateData, contentElement, currentMode) {
+            // If state_vector is provided, convert it to amplitudes object
+            if (stateData.state_vector && !stateData.amplitudes) {
+                stateData.amplitudes = {};
+                const basis = stateData.basis_states || ["00", "01", "10", "11"];
+                for (let i = 0; i < stateData.state_vector.length; i++) {
+                    const val = stateData.state_vector[i];
+                    const label = basis[i] || i.toString(2);
+                    stateData.amplitudes[label] = typeof val === 'number' ? val.toFixed(3) : val;
+                }
+            }
+
             // Calculate Bloch sphere coordinates from counts (simplified)
             let blochVector = { x: 0, y: 0, z: 1 }; // Default |0⟩ state
 
             if (stateData.bloch_vector) {
                 blochVector = stateData.bloch_vector;
             } else if (stateData.counts) {
-                // Estimate from measurement counts
                 const counts = stateData.counts;
                 const total = Object.values(counts).reduce((a, b) => a + b, 0);
                 if (total > 0) {
                     const p0 = (counts['0'] || counts['00'] || 0) / total;
                     const p1 = (counts['1'] || counts['11'] || 0) / total;
-                    blochVector.z = p0 - p1; // z = p(0) - p(1)
+                    blochVector.z = p0 - p1;
+                }
+            } else if (stateData.probabilities) {
+                const probs = stateData.probabilities;
+                if (probs.length >= 2) {
+                    const p0 = probs[0] || 0;
+                    const p1 = probs[probs.length - 1] || 0;
+                    blochVector.z = p0 - p1;
                 }
             }
 
-            const modeColor = currentMode === 'ibm' ? '#06b6d4' : currentMode === 'ionq' ? '#8b5cf6' : '#10b981';
+            const modeColor = 'var(--text-primary)';
 
             let html = `
-                <div class="quantum-state-visualization" style="padding: 1rem;">
+                <div class="quantum-state-visualization" style="padding: 0.5rem 0;">
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                        <span style="font-size: 1.5rem;">🌐</span>
+                        <span style="font-size: 1.3rem;">🌐</span>
                         <div>
-                            <div style="font-size: 1.1rem; font-weight: 600; color: ${modeColor};">Quantum State</div>
-                            <div style="font-size: 0.8rem; color: #9ca3af;">${currentMode.toUpperCase()} Provider</div>
+                            <div style="font-size: 1rem; font-weight: 600; color: ${modeColor};">Quantum State</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${currentMode.toUpperCase()} Provider</div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-                        <div style="background: rgba(6, 182, 212, 0.1); padding: 0.75rem; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #06b6d4;">${blochVector.x.toFixed(3)}</div>
-                            <div style="font-size: 0.7rem; color: #9ca3af;">X (|+⟩/-⟩)</div>
+                        <div style="background: rgba(18, 20, 24, 0.03); padding: 0.75rem; border-radius: 8px; text-align: center; border: 1px solid var(--glass-border);">
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">${blochVector.x.toFixed(3)}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary);">X (|+⟩/-⟩)</div>
                         </div>
-                        <div style="background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #8b5cf6;">${blochVector.y.toFixed(3)}</div>
-                            <div style="font-size: 0.7rem; color: #9ca3af;">Y (|i⟩/-i⟩)</div>
+                        <div style="background: rgba(18, 20, 24, 0.03); padding: 0.75rem; border-radius: 8px; text-align: center; border: 1px solid var(--glass-border);">
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">${blochVector.y.toFixed(3)}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary);">Y (|i⟩/-i⟩)</div>
                         </div>
-                        <div style="background: rgba(16, 185, 129, 0.1); padding: 0.75rem; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 1.25rem; font-weight: 700; color: #10b981;">${blochVector.z.toFixed(3)}</div>
-                            <div style="font-size: 0.7rem; color: #9ca3af;">Z (|0⟩/|1⟩)</div>
+                        <div style="background: rgba(18, 20, 24, 0.03); padding: 0.75rem; border-radius: 8px; text-align: center; border: 1px solid var(--glass-border);">
+                            <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">${blochVector.z.toFixed(3)}</div>
+                            <div style="font-size: 0.65rem; color: var(--text-secondary);">Z (|0⟩/|1⟩)</div>
                         </div>
                     </div>
 
                     ${stateData.amplitudes ? `
-                    <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: #9ca3af; margin-bottom: 0.5rem;">Amplitudes</div>
-                        <div style="font-family: monospace; font-size: 0.9rem; color: #e5e7eb;">
-                            |0⟩: ${stateData.amplitudes['0'] || 'N/A'}<br>
-                            |1⟩: ${stateData.amplitudes['1'] || 'N/A'}
+                    <div style="background: rgba(18, 20, 24, 0.02); border: 1px solid var(--glass-border); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600;">State Amplitudes</div>
+                        <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-primary); display: flex; flex-direction: column; gap: 4px;">
+                            ${Object.entries(stateData.amplitudes).map(([state, amp]) => `
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(18,20,24,0.04); padding-bottom: 2px;">
+                                    <span>|${state}⟩</span>
+                                    <span style="font-weight: 600;">${amp}</span>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>` : ''}
 
@@ -3228,25 +3336,11 @@ if (typeof QuantumWidgets === 'undefined') {
             const freshResult = results.length > 0 ? results[0] : null;
 
             let html = `
-            <div class="results-container">
-                <div class="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <div>
-                        <h4 style="color: #06b6d4; margin: 0; font-size: 1rem;">Latest Measurement Result</h4>
-                        <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 0.2rem; display: flex; gap: 1rem;">
-                            <span style="color: #06b6d4; background: rgba(6, 182, 212, 0.15); padding: 0.2rem 0.6rem; border-radius: 12px;">
-                                ${ibmResults.length} IBM Quantum
-                            </span>
-                            <span style="color: #10b981; background: rgba(16, 185, 129, 0.15); padding: 0.2rem 0.6rem; border-radius: 12px;">
-                                ${localResults.length} Local Simulator
-                            </span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                    <button onclick="window.quantumWidgets.refreshResults()" style="background: #06b6d4; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.3s;">Refresh</button>
-                        <button onclick="window.quantumWidgets.showAllResults()" style="background: #8b5cf6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.3s;">View All (${results.length})</button>
-                    </div>
+            <div class="results-container" style="height: 100%; overflow-y: auto; padding: 0.5rem 0;">
+                <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-family: var(--font-mono);">
+                    Latest Outcome • ${ibmResults.length} IBM Quantum • ${localResults.length} Local simulator
                 </div>
-        `;
+            `;
 
             // Show only the fresh result in the main widget
             if (freshResult) {
@@ -3254,95 +3348,58 @@ if (typeof QuantumWidgets === 'undefined') {
                 const jobId = freshResult.job_id || freshResult.id || 'result-1';
                 const backend = freshResult.backend || freshResult.backend_name || 'Unknown';
                 const status = freshResult.status || 'Unknown';
-                const isLocal = freshResult.is_local || (backend && backend.includes('Local Simulator'));
+                const isLocal = freshResult.is_local || (backend && backend.toLowerCase().includes('local'));
 
                 // Calculate total shots and most common state
                 const totalShots = Object.values(counts).reduce((sum, count) => sum + count, 0);
                 const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 
-                // Different styling for IBM vs Local
-                const cardBg = isLocal ? 'rgba(16, 185, 129, 0.1)' : 'rgba(6, 182, 212, 0.1)';
-                const cardBorder = isLocal ? 'rgba(16, 185, 129, 0.3)' : 'rgba(6, 182, 212, 0.3)';
-                const accentColor = isLocal ? '#10b981' : '#06b6d4';
+                // Light-theme card styling
+                const cardBg = 'rgba(18,20,24,0.02)';
+                const cardBorder = 'rgba(18,20,24,0.06)';
                 const typeLabel = isLocal ? 'Local Simulator' : 'IBM Quantum Hardware';
-                const typeIcon = isLocal ? '' : '';
 
                 html += `
-                <div class="result-card" style="background: ${cardBg}; border: 2px solid ${cardBorder}; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                    <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
-                                <div style="font-size: 0.85rem; color: ${accentColor}; font-weight: bold; font-family: monospace; overflow: hidden; text-overflow: ellipsis; max-width: 300px;" title="${jobId || 'N/A'}">Job: ${jobId ? (jobId.length > 20 ? jobId.substring(0, 20) + '...' : jobId) : 'N/A'}</div>
-                                <div style="background: ${isLocal ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)'}; color: ${accentColor}; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.65rem; font-weight: 600; white-space: nowrap;">
-                                    ${typeIcon} ${typeLabel}
-                                </div>
+                    <div style="background: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 6px; padding: 0.8rem; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.15rem; font-family: var(--font-mono);">${typeLabel}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis;">${backend} • ${totalShots} shots</div>
                             </div>
-                            <div style="font-size: 0.8rem; color: #9ca3af; overflow: hidden; text-overflow: ellipsis;">${backend} • ${totalShots} shots</div>
+                            <div class="status-badge" style="background: rgba(18,20,24,0.05); color: var(--text-primary); padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid rgba(18,20,24,0.08); font-size: 0.65rem; font-weight: 600; flex-shrink: 0; margin-left: 0.5rem;">
+                                ${status}
+                            </div>
                         </div>
-                        <div class="status-badge" style="background: ${status === 'DONE' || status === 'COMPLETED' ? '#10b981' : '#f59e0b'}; color: white; padding: 0.3rem 0.7rem; border-radius: 12px; font-size: 0.7rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
-                            ${status === 'DONE' || status === 'COMPLETED' ? '' : ''} ${status}
-                        </div>
+                        <div class="measurement-results"></div>
                     </div>
-                    
-                    <div class="measurement-results">
-                        <div style="font-size: 0.85rem; color: ${accentColor}; margin-bottom: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Measurement Distribution</div>
-                        <div class="counts-display">
-            `;
-
-                // Add IBM Quantum Platform-style histogram visualization
+                `;
+                // Add histogram visualization
                 const safeJobId = jobId.replace(/[^a-zA-Z0-9-_]/g, '-');
                 html += `
-                <div style="margin-bottom: 1.2rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%); border-radius: 8px; padding: 1rem; border: 1px solid ${isLocal ? 'rgba(16, 185, 129, 0.2)' : 'rgba(6, 182, 212, 0.2)'};">
-                    <div style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Probability Distribution</div>
-                    <div id="histogram-${safeJobId}" style="height: 140px; position: relative; margin-bottom: 0.6rem;"></div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #9ca3af; padding: 0 0.2rem;">
-                        <span style="font-weight: 500;">0%</span>
-                        <span style="font-weight: 500; color: ${accentColor};">Probability</span>
-                        <span style="font-weight: 500;">100%</span>
+                <div style="margin-bottom: 0.75rem; background: rgba(18,20,24,0.01); border-radius: 6px; padding: 0.75rem; border: 1px solid rgba(18,20,24,0.05);">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; font-family: var(--font-mono);">Probability Distribution</div>
+                    <div id="histogram-${safeJobId}" style="height: 80px; position: relative; margin-bottom: 0.4rem;"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-secondary);">
+                        <span>0%</span><span style="font-weight:500;">Probability</span><span>100%</span>
                     </div>
                 </div>
             `;
 
-                // Display measurement counts with IBM Quantum Platform-style formatting
-                html += `<div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.1);">`;
-                html += `<div style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Measurement Outcomes</div>`;
+                html += `<div style="background: rgba(18,20,24,0.01); border-radius: 6px; padding: 0.75rem; border: 1px solid rgba(18,20,24,0.05);">`;
+                html += `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; font-family: var(--font-mono);">Measurement Outcomes</div>`;
 
                 sortedCounts.slice(0, 8).forEach(([state, count]) => {
-                    const percentage = totalShots > 0 ? ((count / totalShots) * 100).toFixed(2) : 0;
+                    const percentage = totalShots > 0 ? ((count / totalShots) * 100).toFixed(1) : 0;
                     const barWidth = sortedCounts.length > 0 ? (count / Math.max(...Object.values(counts))) * 100 : 0;
 
-                    // IBM Quantum Platform-style color coding
-                    const stateColors = {
-                        '00': { main: '#10b981', light: 'rgba(16, 185, 129, 0.2)' },
-                        '01': { main: '#3b82f6', light: 'rgba(59, 130, 246, 0.2)' },
-                        '10': { main: '#f59e0b', light: 'rgba(245, 158, 11, 0.2)' },
-                        '11': { main: '#ef4444', light: 'rgba(239, 68, 68, 0.2)' },
-                        '000': { main: '#10b981', light: 'rgba(16, 185, 129, 0.2)' },
-                        '001': { main: '#3b82f6', light: 'rgba(59, 130, 246, 0.2)' },
-                        '010': { main: '#06b6d4', light: 'rgba(6, 182, 212, 0.2)' },
-                        '011': { main: '#f59e0b', light: 'rgba(245, 158, 11, 0.2)' },
-                        '100': { main: '#8b5cf6', light: 'rgba(139, 92, 246, 0.2)' },
-                        '101': { main: '#ec4899', light: 'rgba(236, 72, 153, 0.2)' },
-                        '110': { main: '#ef4444', light: 'rgba(239, 68, 68, 0.2)' },
-                        '111': { main: '#f97316', light: 'rgba(249, 115, 22, 0.2)' }
-                    };
-
-                    const colors = stateColors[state] || { main: '#8b5cf6', light: 'rgba(139, 92, 246, 0.2)' };
-
                     html += `
-                    <div style="margin-bottom: 0.7rem; background: ${colors.light}; border-radius: 8px; padding: 0.6rem; border: 1px solid ${colors.main}40; transition: all 0.3s ease;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <div style="display: flex; align-items: center; gap: 0.6rem;">
-                                <div style="background: ${colors.main}; width: 4px; height: 24px; border-radius: 2px;"></div>
-                                <span style="font-family: 'Courier New', monospace; color: ${colors.main}; font-size: 1rem; font-weight: 700; letter-spacing: 1px;">|${state}⟩</span>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="color: #e5e7eb; font-size: 0.9rem; font-weight: 600;">${percentage}%</div>
-                                <div style="color: #9ca3af; font-size: 0.7rem; font-weight: 500;">${count} shots</div>
-                            </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; font-size: 0.7rem;">
+                            <span style="font-family: var(--font-mono); color: var(--text-primary); font-weight: 600;">|${state}⟩</span>
+                            <span style="color: var(--text-secondary); font-weight: 500;">${percentage}% <span style="opacity:0.6;">(${count})</span></span>
                         </div>
-                        <div style="background: rgba(0, 0, 0, 0.3); height: 10px; border-radius: 5px; overflow: hidden; position: relative;">
-                            <div style="background: linear-gradient(90deg, ${colors.main} 0%, ${colors.main}dd 100%); height: 100%; width: ${barWidth}%; border-radius: 5px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></div>
+                        <div style="background: rgba(18,20,24,0.04); height: 5px; border-radius: 2px; overflow: hidden;">
+                            <div style="background: var(--text-primary); height: 100%; width: ${barWidth}%; border-radius: 2px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);"></div>
                         </div>
                     </div>
                 `;
@@ -3351,7 +3408,7 @@ if (typeof QuantumWidgets === 'undefined') {
                 html += `</div>`;
 
                 if (sortedCounts.length > 8) {
-                    html += `<div style="color: #9ca3af; font-size: 0.75rem; text-align: center; margin-top: 0.8rem; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; font-weight: 500;">+ ${sortedCounts.length - 8} more measurement outcomes</div>`;
+                    html += `<div style="color: var(--text-secondary); font-size: 0.7rem; text-align: center; margin-top: 0.5rem; padding: 0.35rem; background: rgba(18,20,24,0.02); border-radius: 4px; font-weight: 500;">+ ${sortedCounts.length - 8} more measurement outcomes</div>`;
                 }
 
                 html += `
@@ -3361,10 +3418,10 @@ if (typeof QuantumWidgets === 'undefined') {
             `;
             } else {
                 html += `
-                <div style="text-align: center; color: #9ca3af; padding: 2rem;">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;"> </div>
-                    <div>No measurement results available</div>
-                    <div style="font-size: 0.8rem; margin-top: 0.5rem;">Run quantum circuits to see results here</div>
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem 1rem;">
+                    <div style="font-size: 1.75rem; margin-bottom: 0.75rem; opacity: 0.3;">◯</div>
+                    <div style="font-weight: 500; font-size: 0.85rem;">No measurement results yet</div>
+                    <div style="font-size: 0.7rem; margin-top: 0.35rem; opacity: 0.7;">Run a quantum circuit to see results here</div>
                 </div>
             `;
             }
@@ -3372,6 +3429,7 @@ if (typeof QuantumWidgets === 'undefined') {
             html += '</div>';
 
             contentElement.innerHTML = html;
+            this.showWidgetContent(contentElement);
 
             // Create histogram visualization for the fresh result
             if (freshResult) {
@@ -3420,11 +3478,9 @@ if (typeof QuantumWidgets === 'undefined') {
                 const x = index * barWidth + spacing / 2;
                 const y = maxHeight - height;
 
-                // Color coding based on state
-                const stateColor = state === '00' ? '#10b981' :
-                    state === '01' ? '#3b82f6' :
-                        state === '10' ? '#f59e0b' :
-                            state === '11' ? '#ef4444' : '#8b5cf6';
+                // Monochrome shading based on count (highest gets dark-gray, lowest gets light-gray)
+                const ratio = maxCount > 0 ? (count / maxCount) : 1;
+                const stateColor = `rgba(18, 20, 24, ${0.35 + ratio * 0.55})`;
 
                 // Create bar
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -3433,31 +3489,31 @@ if (typeof QuantumWidgets === 'undefined') {
                 rect.setAttribute('width', actualBarWidth);
                 rect.setAttribute('height', height);
                 rect.setAttribute('fill', stateColor);
-                rect.setAttribute('rx', '2');
-                rect.setAttribute('ry', '2');
+                rect.setAttribute('rx', '1.5');
+                rect.setAttribute('ry', '1.5');
                 rect.style.transition = 'all 0.8s ease';
                 svg.appendChild(rect);
 
                 // Add state label
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', x + barWidth / 2);
-                text.setAttribute('y', maxHeight + 15);
+                text.setAttribute('y', maxHeight + 13);
                 text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('font-size', '10');
-                text.setAttribute('fill', '#9ca3af');
-                text.setAttribute('font-family', 'monospace');
-                text.textContent = state;
+                text.setAttribute('font-size', '9');
+                text.setAttribute('fill', '#6b7280');
+                text.setAttribute('font-family', 'var(--font-mono)');
+                text.textContent = `|${state}⟩`;
                 svg.appendChild(text);
 
                 // Add percentage label
                 const percentage = ((count / totalShots) * 100).toFixed(1);
                 const percentText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 percentText.setAttribute('x', x + barWidth / 2);
-                percentText.setAttribute('y', y - 5);
+                percentText.setAttribute('y', y - 4);
                 percentText.setAttribute('text-anchor', 'middle');
                 percentText.setAttribute('font-size', '8');
-                percentText.setAttribute('fill', '#e5e7eb');
-                percentText.setAttribute('font-weight', 'bold');
+                percentText.setAttribute('fill', '#111215');
+                percentText.setAttribute('font-weight', '600');
                 percentText.textContent = `${percentage}%`;
                 svg.appendChild(percentText);
             });
@@ -3950,7 +4006,7 @@ if (typeof QuantumWidgets === 'undefined') {
                 return;
             }
 
-            console.log('🌐 Updating Bloch sphere widget with clean 3D sphere...');
+            console.log('🌐 Updating Bloch sphere widget with premium animated canvas...');
 
             // Hide loading state
             const loadingElement = document.getElementById('bloch-loading');
@@ -3965,152 +4021,231 @@ if (typeof QuantumWidgets === 'undefined') {
                 container.style.height = '280px';
                 container.style.width = '100%';
                 container.style.position = 'relative';
-                container.style.background = 'linear-gradient(135deg, rgba(0,0,0,0.3), rgba(30,30,50,0.4))';
+                container.style.background = 'transparent';
                 container.style.borderRadius = '8px';
 
                 // Create the 3D canvas container
                 const canvasContainer = document.createElement('div');
-                canvasContainer.style.cssText = 'width: 100%; height: 240px;';
+                canvasContainer.style.cssText = 'width: 100%; height: 260px;';
+                canvasContainer.innerHTML = `
+                    <canvas id="bloch-widget-canvas" style="width: 100%; height: 100%;"></canvas>
+                `;
                 container.appendChild(canvasContainer);
 
-                // Check if Three.js is available
-                if (typeof THREE !== 'undefined') {
-                    this.render3DBlochSphere(canvasContainer);
-                } else {
-                    // Fallback to canvas-based 2D sphere
-                    canvasContainer.innerHTML = `
-                        <canvas id="bloch-widget-canvas" style="width: 100%; height: 100%;"></canvas>
-                    `;
-                    setTimeout(() => this.drawSimpleBlochSphere('bloch-widget-canvas'), 50);
-                }
-
-                // Add "Open Full Simulator" button inside container
-                const buttonContainer = document.createElement('div');
-                buttonContainer.style.cssText = 'text-align: center; padding: 8px 0;';
-                buttonContainer.innerHTML = `
-                    <button onclick="window.location.href='/static/bloch-sphere-simulator/index.html'" 
-                        style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                        color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
-                        transition: transform 0.2s, box-shadow 0.2s;"
-                        onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 15px rgba(102,126,234,0.4)';"
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
-                        🔮 Open Full Simulator
-                    </button>
-                `;
-                container.appendChild(buttonContainer);
+                // Start the high quality canvas animation
+                setTimeout(() => this.startAnimatedBlochSphere('bloch-widget-canvas'), 50);
 
                 this.showWidgetContent(contentElement);
-                console.log('✅ Clean 3D Bloch sphere rendered');
+                console.log('✅ Animated Bloch sphere rendered');
             } else {
                 console.error('❌ Bloch 3D container not found');
             }
         }
 
-        // Render a clean 3D Bloch sphere using Three.js
-        render3DBlochSphere(container) {
-            // Setup Three.js scene
-            const width = container.clientWidth;
-            const height = 280;
+        // Beautiful 3D vector-projected rotating Bloch Sphere on HTML5 Canvas
+        startAnimatedBlochSphere(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
 
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-            camera.position.set(0, 0, 3);
+            const ctx = canvas.getContext('2d');
+            let rotationAngle = 0;
+            const tilt = 0.35; // Tilt view slightly down (3D look)
 
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(width, height);
-            renderer.setClearColor(0x000000, 0);
-            container.appendChild(renderer.domElement);
+            // Cleanup any existing animation
+            if (canvas._animationId) {
+                cancelAnimationFrame(canvas._animationId);
+            }
 
-            // Create sphere
-            const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
-            const sphereMaterial = new THREE.MeshPhongMaterial({
-                color: 0x4a90d9,
-                transparent: true,
-                opacity: 0.3,
-                wireframe: false,
-                side: THREE.DoubleSide
-            });
-            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            scene.add(sphere);
+            const draw = () => {
+                if (!document.getElementById(canvasId)) return; // Stop if canvas removed from DOM
 
-            // Wireframe overlay
-            const wireframeMaterial = new THREE.MeshBasicMaterial({
-                color: 0x667eea,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.2
-            });
-            const wireframe = new THREE.Mesh(sphereGeometry, wireframeMaterial);
-            scene.add(wireframe);
+                const width = canvas.offsetWidth || 300;
+                const height = canvas.offsetHeight || 210;
+                if (canvas.width !== width || canvas.height !== height) {
+                    canvas.width = width;
+                    canvas.height = height;
+                }
 
-            // Add axes
-            const axesMaterial = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.6 });
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const radius = Math.min(width, height) * 0.38;
 
-            // Z-axis (|0⟩ to |1⟩)
-            const zAxis = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, -1.3, 0),
-                new THREE.Vector3(0, 1.3, 0)
-            ]);
-            scene.add(new THREE.Line(zAxis, new THREE.LineBasicMaterial({ color: 0x66ff66 })));
+                ctx.clearRect(0, 0, width, height);
 
-            // X-axis
-            const xAxis = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-1.3, 0, 0),
-                new THREE.Vector3(1.3, 0, 0)
-            ]);
-            scene.add(new THREE.Line(xAxis, new THREE.LineBasicMaterial({ color: 0xff6666 })));
+                // Helper to project 3D to 2D
+                const project = (x, y, z) => {
+                    // Rotate around Z-axis (yaw)
+                    const x1 = x * Math.cos(rotationAngle) - y * Math.sin(rotationAngle);
+                    const y1 = x * Math.sin(rotationAngle) + y * Math.cos(rotationAngle);
+                    const z1 = z;
 
-            // Y-axis
-            const yAxis = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, -1.3),
-                new THREE.Vector3(0, 0, 1.3)
-            ]);
-            scene.add(new THREE.Line(yAxis, new THREE.LineBasicMaterial({ color: 0x6666ff })));
+                    // Rotate around X-axis (pitch/tilt)
+                    const x2 = x1;
+                    const y2 = y1 * Math.cos(tilt) - z1 * Math.sin(tilt);
+                    const z2 = y1 * Math.sin(tilt) + z1 * Math.cos(tilt);
 
-            // State vector (|ψ⟩)
-            const psi = new THREE.Vector3(0.5, 0.7, 0.3).normalize();
-            const arrowHelper = new THREE.ArrowHelper(
-                psi,
-                new THREE.Vector3(0, 0, 0),
-                1,
-                0xffd700,
-                0.15,
-                0.08
-            );
-            scene.add(arrowHelper);
+                    return {
+                        x: centerX + x2 * radius,
+                        y: centerY - y2 * radius,
+                        z: z2
+                    };
+                };
 
-            // Add |0⟩ and |1⟩ points
-            const pointGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-            const point0 = new THREE.Mesh(pointGeometry, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
-            point0.position.set(0, 1, 0);
-            scene.add(point0);
+                // 1. Draw sphere background / gradient (liquid glass style)
+                const sphereGrad = ctx.createRadialGradient(
+                    centerX - radius/3, centerY - radius/3, radius/4,
+                    centerX, centerY, radius
+                );
+                sphereGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+                sphereGrad.addColorStop(0.5, 'rgba(235, 240, 245, 0.35)');
+                sphereGrad.addColorStop(1, 'rgba(180, 190, 200, 0.2)');
+                ctx.fillStyle = sphereGrad;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fill();
 
-            const point1 = new THREE.Mesh(pointGeometry, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-            point1.position.set(0, -1, 0);
-            scene.add(point1);
+                // 2. Draw Meridians (Longitudes)
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 6; i++) {
+                    const lon = (i * Math.PI) / 6;
+                    let first = true;
+                    
+                    // Trace meridian from South Pole to North Pole
+                    for (let lat = -Math.PI / 2; lat <= Math.PI / 2; lat += 0.1) {
+                        const x = Math.cos(lat) * Math.cos(lon);
+                        const y = Math.cos(lat) * Math.sin(lon);
+                        const z = Math.sin(lat);
+                        
+                        const pt = project(x, y, z);
+                        
+                        // Set style based on depth (front vs back of globe)
+                        ctx.strokeStyle = pt.z > 0 ? 'rgba(110, 115, 125, 0.18)' : 'rgba(110, 115, 125, 0.05)';
+                        
+                        if (first) {
+                            ctx.beginPath();
+                            ctx.moveTo(pt.x, pt.y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(pt.x, pt.y);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(pt.x, pt.y);
+                        }
+                    }
+                }
 
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 1);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(5, 5, 5);
-            scene.add(directionalLight);
+                // 3. Draw Parallels (Latitudes)
+                for (let latVal of [-Math.PI/6, 0, Math.PI/6]) {
+                    let first = true;
+                    for (let lon = 0; lon <= 2 * Math.PI; lon += 0.1) {
+                        const x = Math.cos(latVal) * Math.cos(lon);
+                        const y = Math.cos(latVal) * Math.sin(lon);
+                        const z = Math.sin(latVal);
+                        
+                        const pt = project(x, y, z);
+                        
+                        ctx.strokeStyle = pt.z > 0 ? 'rgba(110, 115, 125, 0.18)' : 'rgba(110, 115, 125, 0.05)';
+                        
+                        if (first) {
+                            ctx.beginPath();
+                            ctx.moveTo(pt.x, pt.y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(pt.x, pt.y);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(pt.x, pt.y);
+                        }
+                    }
+                }
 
-            // Animation
-            let animationId;
-            const animate = () => {
-                animationId = requestAnimationFrame(animate);
-                sphere.rotation.y += 0.003;
-                wireframe.rotation.y += 0.003;
-                renderer.render(scene, camera);
+                // 4. Draw Axes (X, Y, Z)
+                const axisLength = 1.25;
+                const origin = project(0, 0, 0);
+
+                // Z-axis (vertical)
+                const zTop = project(0, 0, axisLength);
+                const zBot = project(0, 0, -axisLength);
+                ctx.strokeStyle = 'rgba(17, 18, 21, 0.25)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(zBot.x, zBot.y);
+                ctx.lineTo(zTop.x, zTop.y);
+                ctx.stroke();
+
+                // X-axis
+                const xPos = project(axisLength, 0, 0);
+                const xNeg = project(-axisLength, 0, 0);
+                ctx.strokeStyle = 'rgba(17, 18, 21, 0.12)';
+                ctx.beginPath();
+                ctx.moveTo(xNeg.x, xNeg.y);
+                ctx.lineTo(xPos.x, xPos.y);
+                ctx.stroke();
+
+                // Y-axis
+                const yPos = project(0, axisLength, 0);
+                const yNeg = project(0, -axisLength, 0);
+                ctx.strokeStyle = 'rgba(17, 18, 21, 0.12)';
+                ctx.beginPath();
+                ctx.moveTo(yNeg.x, yNeg.y);
+                ctx.lineTo(yPos.x, yPos.y);
+                ctx.stroke();
+
+                // 5. Draw state vector |ψ⟩
+                // Point to a superposition that precesses slowly
+                const psiTheta = Math.PI / 3.5; // ~50 degrees from +Z
+                const psiPhi = rotationAngle * 0.4;
+                const psiX = Math.sin(psiTheta) * Math.cos(psiPhi);
+                const psiY = Math.sin(psiTheta) * Math.sin(psiPhi);
+                const psiZ = Math.cos(psiTheta);
+
+                const psiPt = project(psiX, psiY, psiZ);
+
+                // Draw vector line
+                ctx.strokeStyle = 'var(--text-primary, #111215)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(origin.x, origin.y);
+                ctx.lineTo(psiPt.x, psiPt.y);
+                ctx.stroke();
+
+                // Draw vector head (dot)
+                ctx.fillStyle = 'var(--text-primary, #111215)';
+                ctx.beginPath();
+                ctx.arc(psiPt.x, psiPt.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // 6. Draw labels
+                ctx.fillStyle = 'var(--text-primary, #111215)';
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const labelZTop = project(0, 0, axisLength + 0.18);
+                ctx.fillText('|0⟩', labelZTop.x, labelZTop.y);
+
+                const labelZBot = project(0, 0, -(axisLength + 0.18));
+                ctx.fillText('|1⟩', labelZBot.x, labelZBot.y);
+
+                const labelX = project(axisLength + 0.18, 0, 0);
+                ctx.fillText('|+⟩', labelX.x, labelX.y);
+
+                const labelY = project(0, axisLength + 0.18, 0);
+                ctx.fillText('|i⟩', labelY.x, labelY.y);
+
+                // Outer boundary sphere circle
+                ctx.strokeStyle = 'rgba(17, 18, 21, 0.25)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                // Increment rotation
+                rotationAngle += 0.005;
+                canvas._animationId = requestAnimationFrame(draw);
             };
-            animate();
 
-            // Cleanup on widget removal
-            container._cleanup = () => {
-                cancelAnimationFrame(animationId);
-                renderer.dispose();
-            };
+            draw();
         }
 
         // Circuit Widget - 3D Quantum Circuit Visualization
@@ -5062,8 +5197,8 @@ if (typeof QuantumWidgets === 'undefined') {
                             </p>
                             <div style="background: var(--glass-bg); border-radius: 8px; padding: 0.75rem; border: 1px solid var(--glass-border);">
                                 <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                                    <div>Latest Job: <span style="font-family: monospace; color: ${currentMode === 'ibm' ? '#06b6d4' : '#10b981'};">${jobId.substring(0, 16)}...</span></div>
-                                    <div style="margin-top: 0.25rem;">Backend: <span style="color: var(--text-primary);">${backend}</span></div>
+                                     <div>Latest Job: <span style="font-family: monospace; color: ${currentMode === 'ibm' ? '#06b6d4' : '#10b981'};">${jobId.substring(0, 16)}...</span></div>
+                                     <div style="margin-top: 0.25rem;">Backend: <span style="color: var(--text-primary);">${backend}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -5083,12 +5218,10 @@ if (typeof QuantumWidgets === 'undefined') {
                         this.renderEmptyState(contentElement, 'quantum-state', '💻', 'No Local Quantum State Data', 'Run local quantum simulations to see state representations.');
                     }
                 }
-            } catch (error) {
-                console.error('Error calculating quantum state:', error);
-                this.renderEmptyState(contentElement, 'quantum-state', '🔌', 'Error', 'Unable to calculate quantum state.');
+            } finally {
+                this.renderLocks.delete('quantum-state');
             }
         }
-        // }
 
         async updateAIChatWidget() {
             console.log('🤖 Updating AI Chat widget...');
@@ -5097,15 +5230,53 @@ if (typeof QuantumWidgets === 'undefined') {
             if (!contentElement) return;
             if (loadingElement) loadingElement.style.display = 'none';
             contentElement.style.display = 'block';
+            
             const sendBtn = document.getElementById('send-message');
             const chatInput = document.getElementById('chat-input');
             const chatMessages = document.getElementById('chat-messages');
+            const clearBtn = document.getElementById('clear-ai-chat');
+            
+            // Wire up clear chat button
+            if (clearBtn && chatMessages) {
+                clearBtn.onclick = () => {
+                    chatMessages.innerHTML = `
+                        <div class="chat-message bot" style="background: rgba(18, 20, 24, 0.04); border: 1px solid rgba(18, 20, 24, 0.06); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; align-self: flex-start; max-width: 85%;">
+                            <p style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary);">AI Copilot</p>
+                            <p style="font-size: 12.5px; margin: 0; line-height: 1.5;">Hello! I'm your quantum programming assistant. Ask me to generate templates or optimize circuit codes.</p>
+                        </div>
+                    `;
+                };
+            }
+
             if (sendBtn && chatInput && chatMessages) {
+                // Ensure correct flex alignment for messages container
+                chatMessages.style.display = 'flex';
+                chatMessages.style.flexDirection = 'column';
+
                 sendBtn.onclick = async () => {
                     const msg = chatInput.value.trim();
                     if (!msg) return;
-                    chatMessages.innerHTML += `<div class="message user-message"><div class="message-content">${msg}</div></div>`;
+                    
+                    // User Message (Monochrome)
+                    chatMessages.innerHTML += `
+                        <div class="chat-message user" style="background: rgba(18, 20, 24, 0.02); border: 1px solid rgba(18, 20, 24, 0.05); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; align-self: flex-end; max-width: 85%; margin-left: auto;">
+                            <p style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary);">You</p>
+                            <p style="font-size: 12.5px; margin: 0; line-height: 1.5; color: var(--text-primary);">${msg}</p>
+                        </div>
+                    `;
                     chatInput.value = '';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                    // Add typing indicator
+                    const typingIndicatorId = 'ai-chat-typing-indicator';
+                    chatMessages.innerHTML += `
+                        <div id="${typingIndicatorId}" class="chat-message bot" style="background: rgba(18, 20, 24, 0.03); border: 1px solid rgba(18, 20, 24, 0.05); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; align-self: flex-start; max-width: 85%;">
+                            <p style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--text-secondary);">AI Copilot</p>
+                            <p style="font-size: 12.5px; margin: 0; line-height: 1.5; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Copilot is thinking...</p>
+                        </div>
+                    `;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
                     try {
                         // Call the Gemini-powered quantum chat endpoint
                         const response = await fetch('/api/ai/quantum_chat', {
@@ -5114,14 +5285,36 @@ if (typeof QuantumWidgets === 'undefined') {
                             body: JSON.stringify({ message: msg })
                         });
                         const data = await response.json();
+                        
+                        // Remove typing indicator
+                        const indicator = document.getElementById(typingIndicatorId);
+                        if (indicator) indicator.remove();
+
                         // Extract the AI response from the proper field
                         const aiResponse = data.ai_response || data.response || 'I apologize, but I encountered an error. Please try again.';
 
                         // Format the response with syntax highlighting
                         const formattedResponse = this.formatAIResponse(aiResponse);
 
-                        chatMessages.innerHTML += `<div class="message ai-message"><div class="message-content"><i class="fas fa-robot"></i> ${formattedResponse}</div></div>`;
+                        // Bot Message (Monochrome)
+                        chatMessages.innerHTML += `
+                            <div class="chat-message bot" style="background: rgba(18, 20, 24, 0.04); border: 1px solid rgba(18, 20, 24, 0.06); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; align-self: flex-start; max-width: 85%;">
+                                <p style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary);">AI Copilot</p>
+                                <div style="font-size: 12.5px; margin: 0; line-height: 1.5; color: var(--text-primary);">${formattedResponse}</div>
+                            </div>
+                        `;
                         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                        // Check if circuit was generated by backend AI and update workspace
+                        if (data.circuit_generated && data.circuit_data) {
+                            console.log("⚡ AI generated a circuit: updating workspace state and redrawing circuit...");
+                            if (window.WorkspaceState) {
+                                window.WorkspaceState.setState('activeCircuit', data.circuit_data);
+                            }
+                            if (window.quantumWidgets) {
+                                window.quantumWidgets.updateWidgetSafely('circuit');
+                            }
+                        }
 
                         // Attach copy button listeners
                         chatMessages.querySelectorAll('.copy-code-btn').forEach(btn => {
@@ -5139,7 +5332,15 @@ if (typeof QuantumWidgets === 'undefined') {
                         });
                     } catch (error) {
                         console.error('AI Chat Error:', error);
-                        chatMessages.innerHTML += `<div class="message ai-message"><div class="message-content"><i class="fas fa-robot"></i> Sorry, I'm having trouble connecting to the AI service.</div></div>`;
+                        const indicator = document.getElementById(typingIndicatorId);
+                        if (indicator) indicator.remove();
+                        
+                        chatMessages.innerHTML += `
+                            <div class="chat-message bot" style="background: rgba(18, 20, 24, 0.04); border: 1px solid rgba(18, 20, 24, 0.06); padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; align-self: flex-start; max-width: 85%;">
+                                <p style="font-size: 11px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary);">AI Copilot</p>
+                                <p style="font-size: 12.5px; margin: 0; line-height: 1.5; color: var(--text-primary);"><i class="fas fa-exclamation-triangle"></i> Sorry, I\'m having trouble connecting to the AI service.</p>
+                            </div>
+                        `;
                     }
                 };
                 chatInput.onkeypress = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); } };
@@ -5346,7 +5547,6 @@ if (typeof QuantumWidgets === 'undefined') {
         }
 
 
-        // Historical Data Widget - Full Featured
         async updateHistoricalDataWidget() {
             console.log('📊 Updating Historical Data widget...');
             const contentElement = document.getElementById('historical-data-content');
@@ -5356,23 +5556,17 @@ if (typeof QuantumWidgets === 'undefined') {
             contentElement.style.display = 'none';
 
             try {
-                // Fetch directly to bypass cache issues
                 const response = await fetch('/api/historical_data?days_back=30');
                 const data = await response.json();
 
                 if (loadingElement) loadingElement.style.display = 'none';
                 contentElement.style.display = 'block';
 
-                console.log('📊 Historical Data API response:', data);
-
                 let snapshots = [];
-                // Check 'snapshots' key FIRST (raw snapshot objects)
                 if (data && data.snapshots && Array.isArray(data.snapshots)) {
                     snapshots = data.snapshots;
                     console.log('📊 Using data.snapshots:', snapshots.length);
                 } else if (data && data.data && Array.isArray(data.data)) {
-                    // Fallback: check if data.data contains snapshot objects (not chart data)
-                    // Snapshot objects have 'id', 'snapshot_name', 'backends_data' etc.
                     if (data.data.length > 0 && data.data[0].id !== undefined && data.data[0].backends_data !== undefined) {
                         snapshots = data.data;
                         console.log('📊 Using data.data (snapshot format):', snapshots.length);
@@ -5394,35 +5588,7 @@ if (typeof QuantumWidgets === 'undefined') {
         renderHistoricalDataContent(snapshots, container) {
             const hasSnapshots = snapshots && snapshots.length > 0;
             container.innerHTML = `
-                <div style="padding: 1rem;">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <button onclick="window.quantumWidgets && window.quantumWidgets.takeSnapshot()" 
-                            style="flex: 1; padding: 0.5rem; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                            <i class="fas fa-camera"></i> Snapshot
-                        </button>
-                        <button onclick="window.open('/api/historical_data/download?format=json', '_blank')" 
-                            style="flex: 1; padding: 0.5rem; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                            <i class="fas fa-download"></i> Download
-                        </button>
-                        <button onclick="window.quantumWidgets && window.quantumWidgets.updateHistoricalDataWidget()" 
-                            style="padding: 0.5rem; background: var(--glass-bg); color: white; border: 1px solid var(--glass-border); border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
-                        <div style="background: rgba(59, 130, 246, 0.2); padding: 0.5rem; border-radius: 6px; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #3b82f6;">${snapshots.length}</div>
-                            <div style="font-size: 0.65rem; color: var(--text-secondary);">Snapshots</div>
-                        </div>
-                        <div style="background: rgba(16, 185, 129, 0.2); padding: 0.5rem; border-radius: 6px; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #10b981;">24h</div>
-                            <div style="font-size: 0.65rem; color: var(--text-secondary);">Coverage</div>
-                        </div>
-                        <div style="background: rgba(139, 92, 246, 0.2); padding: 0.5rem; border-radius: 6px; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold; color: #8b5cf6;">Active</div>
-                            <div style="font-size: 0.65rem; color: var(--text-secondary);">Status</div>
-                        </div>
-                    </div>
+                <div style="padding: 0.5rem 0; height: 100%; overflow-y: auto;">
                     ${hasSnapshots ? this.renderSnapshotsList(snapshots) : this.renderEmptyHistoricalState()}
                 </div>
             `;
@@ -5433,34 +5599,33 @@ if (typeof QuantumWidgets === 'undefined') {
             const hasMore = snapshots.length > 5;
 
             let html = displaySnapshots.map((snap, i) => `
-                <div style="background: var(--glass-bg); padding: 0.6rem; margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid ${snap.snapshot_trigger === 'auto' ? '#10b981' : '#3b82f6'};">
+                <div style="background: rgba(18,20,24,0.02); padding: 0.5rem 0.6rem; margin-bottom: 0.4rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(18,20,24,0.05); border-left: 3px solid var(--text-primary);">
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${snap.snapshot_name || `Snapshot #${i + 1}`}</div>
-                        <div style="font-size: 0.7rem; color: var(--text-secondary); display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <span>🕐 ${snap.timestamp ? new Date(snap.timestamp).toLocaleString() : 'Just now'}</span>
+                        <div style="font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;">${snap.snapshot_name || `Snapshot #${i + 1}`}</div>
+                        <div style="font-size: 0.68rem; color: var(--text-secondary); display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.2rem;">
+                            <span>🕐 ${snap.timestamp ? new Date(snap.timestamp).toLocaleTimeString() : 'Just now'}</span>
                             <span>💻 ${(snap.backends_data || []).length} backends</span>
                             <span>📋 ${(snap.jobs_data || []).length} jobs</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.25rem;">
                         <button onclick="window.quantumWidgets && window.quantumWidgets.viewSnapshotDetails(${snap.id})" 
-                            style="padding: 0.25rem 0.4rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem;" title="View Details">
+                            style="padding: 0.2rem 0.35rem; background: transparent; color: var(--text-primary); border: 1px solid rgba(18,20,24,0.08); border-radius: 4px; cursor: pointer; font-size: 0.68rem;" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
                         <button onclick="window.quantumWidgets && window.quantumWidgets.deleteSnapshot(${snap.id || i})" 
-                            style="padding: 0.25rem 0.4rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem;" title="Delete">
+                            style="padding: 0.2rem 0.35rem; background: transparent; color: #4b5563; border: 1px solid rgba(18,20,24,0.08); border-radius: 4px; cursor: pointer; font-size: 0.68rem;" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
             `).join('');
 
-            // Add "View All" button if more than 5 snapshots
             if (hasMore) {
                 html += `
                     <button onclick="window.quantumWidgets && window.quantumWidgets.showAllSnapshotsModal()" 
-                        style="width: 100%; padding: 0.5rem; margin-top: 0.5rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3)); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                        <i class="fas fa-expand"></i> View All ${snapshots.length} Snapshots
+                        style="width: 100%; padding: 0.4rem; margin-top: 0.5rem; background: transparent; color: var(--text-primary); border: 1px solid rgba(18,20,24,0.1); border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 500; font-family: var(--font-sans);">
+                        View All ${snapshots.length} Snapshots
                     </button>
                 `;
             }
@@ -5470,12 +5635,12 @@ if (typeof QuantumWidgets === 'undefined') {
 
         renderEmptyHistoricalState() {
             return `
-                <div style="text-align: center; padding: 1.5rem;">
-                    <i class="fas fa-history" style="font-size: 2rem; color: rgba(255,255,255,0.3); margin-bottom: 0.75rem;"></i>
-                    <h4 style="color: var(--text-primary); margin-bottom: 0.5rem; font-size: 0.95rem;">No Snapshots Yet</h4>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.75rem;">Take snapshots to track history</p>
+                <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.3;">◯</div>
+                    <div style="font-weight: 500; font-size: 0.8rem; color: var(--text-primary);">No Snapshots Yet</div>
+                    <div style="font-size: 0.7rem; margin-top: 0.25rem; opacity: 0.7;">Take snapshots to track history</div>
                     <button onclick="window.quantumWidgets && window.quantumWidgets.takeSnapshot()" 
-                        style="padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                        style="padding: 0.4rem 0.8rem; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 500; margin-top: 1rem;">
                         <i class="fas fa-camera"></i> Take First Snapshot
                     </button>
                 </div>

@@ -6288,7 +6288,7 @@ class UnifiedIBMIntegration {
         const decoded = atob(encoded);
         let result = '';
         for (let i = 0; i < decoded.length; i++) {
-            result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(decoded.length - 1 - i));
+            result += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
         }
         return result;
     }
@@ -7287,7 +7287,30 @@ if (typeof window.initUnified3DQuantumCircuit === 'undefined') {
     console.warn('initUnified3DQuantumCircuit already defined, skipping export');
 }
 
-// ==================== IBM QUANTUM INTEGRATION ====================
+// Global Job Registry
+window.activeQuantumJobs = window.activeQuantumJobs || {};
+
+// Initialize Hide All button once
+document.addEventListener('DOMContentLoaded', () => {
+    const hideAllBtn = document.getElementById('hide-all-jobs-btn');
+    if (hideAllBtn) {
+        hideAllBtn.addEventListener('click', () => {
+            const progressModal = document.getElementById('execution-progress');
+            const miniContainer = document.getElementById('mini-progress-container');
+            if (progressModal) progressModal.style.display = 'none';
+            if (miniContainer) miniContainer.style.display = 'flex';
+            
+            // Mark all active jobs as minimized
+            Object.keys(window.activeQuantumJobs).forEach(trackId => {
+                window.activeQuantumJobs[trackId].minimized = true;
+                const miniCard = document.getElementById(`mini-${trackId}`);
+                if (miniCard) miniCard.style.display = 'flex';
+                const card = document.getElementById(`card-${trackId}`);
+                if (card) card.style.display = 'none';
+            });
+        });
+    }
+});
 
 window.runIBMQuantumJob = async function () {
     console.log('🚀 Starting Quantum Job Submission...');
@@ -7347,54 +7370,271 @@ window.runIBMQuantumJob = async function () {
         return gateObj;
     });
 
-    // 2. Show Process Tracker
-    const progressModal = document.getElementById('execution-progress');
-    const progressStatus = document.getElementById('progress-status');
-    const progressMessage = document.getElementById('progress-message');
+    // 2. Generate unique tracking ID and title
+    const trackId = 'job-' + Date.now();
+    const jobTitle = `Circuit #${Date.now().toString().slice(-4)} (${circuitData.qubits}Q, ${circuitData.gates.length}G)`;
 
-    if (progressModal) {
+    // 3. Create active job entry
+    const abortController = new AbortController();
+    window.activeQuantumJobs = window.activeQuantumJobs || {};
+    window.activeQuantumJobs[trackId] = {
+        trackId: trackId,
+        title: jobTitle,
+        minimized: false,
+        controller: abortController,
+        percent: 0,
+        backend: selectedBackend || 'auto',
+        elapsed: 0
+    };
+
+    // 4. Get Modal Containers
+    const progressModal = document.getElementById('execution-progress');
+    const jobsProgressList = document.getElementById('jobs-progress-list');
+    const miniContainer = document.getElementById('mini-progress-container');
+
+    // 5. Render Job Cards
+    if (progressModal && jobsProgressList) {
+        // Show main modal if not minimized
         progressModal.style.display = 'block';
-        // Reset steps
-        ['transpilation', 'validation', 'execution', 'analysis'].forEach(step => {
-            const el = document.getElementById(`step-${step}`);
-            if (el) {
-                const icon = el.querySelector('.step-icon');
-                if (icon) {
-                    icon.style.background = '#1a1a2e';
-                    icon.style.borderColor = '#334155';
-                    icon.style.color = '#94a3b8';
-                }
-            }
-        });
+        if (miniContainer) miniContainer.style.display = 'flex';
+
+        // Inject Card HTML
+        const cardHTML = `
+            <div id="card-${trackId}" class="job-card" style="background: rgba(25, 25, 45, 0.85); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; transition: all 0.3s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span style="color: #fff; font-size: 0.95rem; font-weight: 700;">${jobTitle}</span>
+                    <span id="status-${trackId}" style="color: #06b6d4; font-size: 0.85rem; font-weight: 600;">Initializing...</span>
+                </div>
+                
+                <div class="steps-container" style="display: flex; justify-content: space-between; position: relative; margin: 0.5rem 0;">
+                    <div style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.1); z-index: 0;"></div>
+                    
+                    <div class="step-item" id="step-transpilation-${trackId}" style="position: relative; z-index: 1; text-align: center; width: 25%;">
+                        <div class="step-icon" style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.25rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; transition: all 0.3s ease;">
+                           <i class="fas fa-code"></i>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">Transpile</div>
+                    </div>
+
+                    <div class="step-item" id="step-validation-${trackId}" style="position: relative; z-index: 1; text-align: center; width: 25%;">
+                        <div class="step-icon" style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.25rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; transition: all 0.3s ease;">
+                           <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">Validate</div>
+                    </div>
+
+                    <div class="step-item" id="step-execution-${trackId}" style="position: relative; z-index: 1; text-align: center; width: 25%;">
+                        <div class="step-icon" style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.25rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; transition: all 0.3s ease;">
+                           <i class="fas fa-microchip"></i>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">Execute</div>
+                    </div>
+
+                    <div class="step-item" id="step-analysis-${trackId}" style="position: relative; z-index: 1; text-align: center; width: 25%;">
+                        <div class="step-icon" style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.25rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.8rem; transition: all 0.3s ease;">
+                           <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">Analyze</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; padding: 0 0.1rem;">
+                    <div>Backend: <span id="backend-${trackId}" style="color: #a855f7; font-weight: 600;">auto</span></div>
+                    <div>Est. Queue: <span id="eta-${trackId}" style="color: #fbbf24; font-weight: 600;">Calculating...</span></div>
+                </div>
+
+                <div id="details-${trackId}" style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; color: #cbd5e1; min-height: 45px; display: flex; align-items: center; justify-content: center;">
+                    Waiting to start...
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.25rem;">
+                    <button id="cancel-${trackId}" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.4rem 1.25rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s;">
+                        Cancel
+                    </button>
+                    <button id="hide-${trackId}" style="background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4; color: #06b6d4; padding: 0.4rem 1.25rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s;">
+                        Hide
+                    </button>
+                </div>
+            </div>
+        `;
+        jobsProgressList.insertAdjacentHTML('beforeend', cardHTML);
     }
 
-    // Helper function to update process tracker UI
-    function updateProcessTracker(data) {
-        // Update the specific step
-        const stepEl = document.getElementById(`step-${data.step}`);
+    // 6. Inject Mini Card HTML
+    if (miniContainer) {
+        const miniCardHTML = `
+            <div id="mini-${trackId}" style="background: rgba(15, 15, 35, 0.95); border: 1px solid rgba(6, 182, 212, 0.5); border-radius: 12px; padding: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); cursor: pointer; backdrop-filter: blur(8px); display: none; flex-direction: column; gap: 0.5rem; pointer-events: auto; transition: all 0.3s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${jobTitle}</span>
+                    <span id="mini-percent-${trackId}" style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">0%</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                    <div id="mini-progress-fill-${trackId}" style="width: 0%; height: 100%; background: linear-gradient(90deg, #06b6d4, #3b82f6); transition: width 0.3s ease;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.4rem; margin-top: 0.2rem;">
+                    <span id="mini-backend-text-${trackId}"><i class="fas fa-server"></i> auto</span>
+                    <span id="mini-eta-text-${trackId}"><i class="fas fa-clock"></i> Calculating...</span>
+                </div>
+            </div>
+        `;
+        miniContainer.insertAdjacentHTML('beforeend', miniCardHTML);
+    }
+
+    // 7. Bind Minimize / Maximize click events for this job
+    const hideBtn = document.getElementById(`hide-${trackId}`);
+    const cardEl = document.getElementById(`card-${trackId}`);
+    const miniCardEl = document.getElementById(`mini-${trackId}`);
+    const cancelBtn = document.getElementById(`cancel-${trackId}`);
+
+    if (hideBtn) {
+        hideBtn.onclick = function () {
+            window.activeQuantumJobs[trackId].minimized = true;
+            if (cardEl) cardEl.style.display = 'none';
+            if (miniCardEl) miniCardEl.style.display = 'flex';
+            
+            // If all active jobs are minimized, hide the main progress modal
+            const allMinimized = Object.values(window.activeQuantumJobs).every(job => job.minimized);
+            if (allMinimized && progressModal) {
+                progressModal.style.display = 'none';
+            }
+        };
+    }
+
+    if (miniCardEl) {
+        miniCardEl.onclick = function () {
+            window.activeQuantumJobs[trackId].minimized = false;
+            if (miniCardEl) miniCardEl.style.display = 'none';
+            if (cardEl) cardEl.style.display = 'flex';
+            if (progressModal) progressModal.style.display = 'block';
+        };
+    }
+
+    const cleanUpJobUi = () => {
+        delete window.activeQuantumJobs[trackId];
+        if (cardEl) cardEl.remove();
+        if (miniCardEl) miniCardEl.remove();
+        
+        // Hide containers if no active jobs left
+        if (Object.keys(window.activeQuantumJobs).length === 0) {
+            if (progressModal) progressModal.style.display = 'none';
+            if (miniContainer) miniContainer.style.display = 'none';
+        }
+    };
+
+    if (cancelBtn) {
+        cancelBtn.onclick = function () {
+            abortController.abort();
+            cleanUpJobUi();
+        };
+    }
+
+    // Helper function to update single-job UI components
+    function updateIndividualJobTracker(data) {
+        // Update Step Icon
+        const stepEl = document.getElementById(`step-${data.step}-${trackId}`);
         if (stepEl) {
             const icon = stepEl.querySelector('.step-icon');
             if (icon) {
                 if (data.status === 'running') {
-                    icon.style.background = 'rgba(234, 179, 8, 0.2)';
-                    icon.style.borderColor = '#eab308';
-                    icon.style.color = '#eab308';
+                    icon.style.borderColor = '#06b6d4';
+                    icon.style.color = '#06b6d4';
+                    icon.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.5)';
                     icon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 } else if (data.status === 'completed' || data.status === 'complete') {
-                    icon.style.background = 'rgba(34, 197, 94, 0.2)';
-                    icon.style.borderColor = '#22c55e';
-                    icon.style.color = '#22c55e';
+                    icon.style.background = '#06b6d4';
+                    icon.style.borderColor = '#06b6d4';
+                    icon.style.color = '#fff';
+                    icon.style.boxShadow = 'none';
                     icon.innerHTML = '<i class="fas fa-check"></i>';
                 }
             }
         }
 
-        // Update progress message
-        if (progressStatus) progressStatus.textContent = data.step.charAt(0).toUpperCase() + data.step.slice(1);
-        if (progressMessage) progressMessage.textContent = data.message || '';
+        // Update Backend
+        const backendEl = document.getElementById(`backend-${trackId}`);
+        if (backendEl && data.backend) {
+            backendEl.textContent = data.backend;
+        }
+
+        // Update ETA
+        const etaEl = document.getElementById(`eta-${trackId}`);
+        if (etaEl) {
+            if (data.queue !== undefined) {
+                etaEl.textContent = `Position #${data.queue} (Est: ${data.est_wait}s)`;
+            } else if (data.elapsed) {
+                etaEl.textContent = `${data.elapsed}s elapsed`;
+            } else {
+                etaEl.textContent = 'Calculating...';
+            }
+        }
+
+        // Update status label
+        const statusEl = document.getElementById(`status-${trackId}`);
+        if (statusEl) {
+            statusEl.textContent = data.step.charAt(0).toUpperCase() + data.step.slice(1);
+        }
+
+        // Update details text box
+        const detailsEl = document.getElementById(`details-${trackId}`);
+        if (detailsEl) {
+            let detailMsg = data.message || '';
+            if (data.elapsed) detailMsg += ` (${data.elapsed}s elapsed)`;
+            if (data.job_id) detailMsg += ` • Job: ${data.job_id.substring(0, 10)}`;
+            detailsEl.textContent = detailMsg;
+            detailsEl.style.color = data.status === 'running' ? '#06b6d4' : '#cbd5e1';
+        }
+
+        // Calculate progress percentage
+        let percent = 0;
+        if (data.step === 'transpilation') percent = (data.status === 'completed' || data.status === 'complete') ? 25 : 10;
+        else if (data.step === 'validation') percent = (data.status === 'completed' || data.status === 'complete') ? 50 : 35;
+        else if (data.step === 'execution') {
+            if (data.status === 'completed' || data.status === 'complete') percent = 90;
+            else if (data.queue !== undefined) {
+                percent = Math.max(55, Math.min(88, 88 - data.queue * 4));
+            } else {
+                percent = 70;
+            }
+        }
+        else if (data.step === 'analysis') percent = (data.status === 'completed' || data.status === 'complete') ? 100 : 95;
+
+        // Update Mini Card elements
+        const miniPercentEl = document.getElementById(`mini-percent-${trackId}`);
+        const miniFillEl = document.getElementById(`mini-progress-fill-${trackId}`);
+        const miniStatusTextEl = document.getElementById(`mini-status-text-${trackId}`);
+        const miniBackendTextEl = document.getElementById(`mini-backend-text-${trackId}`);
+        const miniEtaTextEl = document.getElementById(`mini-eta-text-${trackId}`);
+
+        if (miniPercentEl) miniPercentEl.textContent = `${percent}%`;
+        if (miniFillEl) miniFillEl.style.width = `${percent}%`;
+
+        if (miniStatusTextEl) {
+            let label = 'Running...';
+            if (data.step === 'transpilation') label = data.status === 'running' ? '<i class="fas fa-spinner fa-spin"></i> Transpiling...' : 'Transpiled';
+            else if (data.step === 'validation') label = data.status === 'running' ? '<i class="fas fa-spinner fa-spin"></i> Validating...' : 'Validated';
+            else if (data.step === 'execution') {
+                if (data.status === 'completed' || data.status === 'complete') label = 'Executed';
+                else label = data.queue !== undefined ? `<i class="fas fa-clock fa-spin"></i> Queued (#${data.queue})` : '<i class="fas fa-spinner fa-spin"></i> Executing...';
+            }
+            else if (data.step === 'analysis') label = data.status === 'running' ? '<i class="fas fa-spinner fa-spin"></i> Analyzing...' : 'Completed';
+            miniStatusTextEl.innerHTML = label;
+        }
+
+        if (miniBackendTextEl && data.backend) {
+            miniBackendTextEl.innerHTML = `<i class="fas fa-server"></i> ${data.backend}`;
+        }
+        if (miniEtaTextEl) {
+            if (data.queue !== undefined) {
+                miniEtaTextEl.innerHTML = `<i class="fas fa-clock"></i> ${data.est_wait}s`;
+            } else if (data.elapsed) {
+                miniEtaTextEl.innerHTML = `<i class="fas fa-clock"></i> ${data.elapsed}s`;
+            } else {
+                miniEtaTextEl.innerHTML = `<i class="fas fa-clock"></i> --`;
+            }
+        }
     }
 
-    // 3. Stream Execution using Server-Sent Events
+    // 8. Submit Circuit Stream Submission via Fetch API
     try {
         const response = await fetch('/api/ibm/run-circuit-stream', {
             method: 'POST',
@@ -7403,9 +7643,10 @@ window.runIBMQuantumJob = async function () {
             },
             body: JSON.stringify({
                 circuit: circuitData,
-                backend: 'auto',  // Let backend auto-select available backend
+                backend: selectedBackend || 'auto',
                 shots: 1024
-            })
+            }),
+            signal: abortController.signal
         });
 
         if (!response.ok) {
@@ -7413,51 +7654,44 @@ window.runIBMQuantumJob = async function () {
             throw new Error(error.error || 'Failed to start execution');
         }
 
-        // Read streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
-
             if (done) break;
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n\n');
-            buffer = lines.pop(); // Keep incomplete line in buffer
+            buffer = lines.pop();
 
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     const data = JSON.parse(line.slice(6));
-                    console.log('📥 Received event:', data);
+                    console.log(`📥 [${trackId}] Event:`, data);
 
-                    // Update UI based on step
                     if (data.step) {
-                        updateProcessTracker(data);
-
-                        // Update ETA if available
-                        if (data.elapsed) {
-                            const etaText = data.job_id ? `Elapsed: ${data.elapsed}s | Job ID: ${data.job_id}` : `Elapsed: ${data.elapsed}s`;
-                            if (progressMessage) progressMessage.textContent = data.message + ' • ' + etaText;
-                        }
+                        updateIndividualJobTracker(data);
                     }
 
-                    // If final step complete, show results
+                    // Success handling
                     if (data.step === 'analysis' && (data.status === 'completed' || data.status === 'complete') && data.data) {
-                        console.log('✅ Job Complete! Data:', data.data);
-                        setTimeout(() => {
-                            showResultsModal(data.data);
-                        }, 1000);
+                        console.log(`✅ [${trackId}] Complete! Data:`, data.data);
+                        cleanUpJobUi();
+                        showResultsModal(data.data);
                     }
 
-                    // Handle errors
+                    // Error handling
                     if (data.error) {
-                        console.error('❌ Execution error:', data.error);
-                        if (progressStatus) progressStatus.textContent = 'Execution Failed';
-                        if (progressMessage) progressMessage.textContent = data.error;
+                        console.error(`❌ [${trackId}] Error:`, data.error);
+                        const detailsEl = document.getElementById(`details-${trackId}`);
+                        if (detailsEl) {
+                            detailsEl.textContent = `Error: ${data.error}`;
+                            detailsEl.style.color = '#ef4444';
+                        }
                         setTimeout(() => {
-                            if (progressModal) progressModal.style.display = 'none';
+                            cleanUpJobUi();
                         }, 5000);
                     }
                 }
@@ -7465,18 +7699,23 @@ window.runIBMQuantumJob = async function () {
         }
 
     } catch (error) {
-        console.error('Execution failed:', error);
-        if (progressStatus) progressStatus.textContent = 'Execution Failed';
-        if (progressMessage) progressMessage.textContent = error.message;
-        if (progressModal) {
-            setTimeout(() => {
-                progressModal.style.display = 'none';
-            }, 3000);
+        if (error.name === 'AbortError') {
+            console.log(`[${trackId}] Execution aborted by user.`);
+            return;
         }
-        alert('Execution failed: ' + error.message);
+        console.error(`[${trackId}] Connection error:`, error);
+        const detailsEl = document.getElementById(`details-${trackId}`);
+        if (detailsEl) {
+            detailsEl.textContent = `Failed: ${error.message}`;
+            detailsEl.style.color = '#ef4444';
+        }
+        setTimeout(() => {
+            cleanUpJobUi();
+        }, 5000);
     }
 };
 
+// Placeholder function to maintain compatibility
 function updateProcessTracker(data) {
     const stepMap = {
         'transpilation': 1,
@@ -7727,14 +7966,6 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Execution cancelled');
     };
 
-    // Attach to Run Button
-    const runBtn = document.getElementById('runCircuit');
-    if (runBtn) {
-        // Remove old listeners to prevent duplicates (simple way)
-        const newBtn = runBtn.cloneNode(true);
-        runBtn.parentNode.replaceChild(newBtn, runBtn);
-        newBtn.addEventListener('click', window.runIBMQuantumJob);
-    }
 });
 
 console.log('UnifiedQuantumCircuitApp class exported');

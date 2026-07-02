@@ -1,0 +1,135 @@
+/* Floating Navigation Header & QDE Status Strip */
+.workspace-header {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 16px 32px;
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        var(--shadow-medium);
+    position: sticky;
+    top: var(--space-md);
+    z-index: 1000;
+}
+
+.workspace-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.workspace-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.workspace-logo-icon {
+    font-size: 24px;
+    color: var(--text-primary);
+    animation: rotate-slow 15s linear infinite;
+}
+
+@keyframes rotate-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.workspace-logo-text h1 {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.workspace-logo-text span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Active Session Status Strip (Right or Center in Header) */
+.workspace-status-strip {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(18, 20, 24, 0.08);
+    border-radius: var(--radius-md);
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-soft);
+}
+
+.workspace-status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-status-item span {
+    color: var(--text-primary);
+}
+
+/* Action Controls (Right Group) */
+.workspace-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.workspace-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-left: 16px;
+    border-left: 1px solid rgba(18, 20, 24, 0.1);
+}
+
+.workspace-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.workspace-user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-user-info .email {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.workspace-user-info .status {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent-aqua);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}

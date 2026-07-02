@@ -1,0 +1,31 @@
+<!-- Insights & Performance Panel -->
+<div class="panel-card liquid-glass widget" id="performance-widget" data-widget="performance">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-chart-line" style="color: var(--accent-aqua);"></i>
+            <h4>Performance Tracker</h4>
+        </div>
+        <div class="panel-header-actions">
+            <select id="performance-range" style="padding: 2px 6px; font-size: 11px;">
+                <option value="30">Last 30 Days</option>
+                <option value="7">Last 7 Days</option>
+            </select>
+        </div>
+    </div>
+    <div class="panel-body" style="height: 340px; display: flex; flex-direction: column; gap: var(--space-sm);" id="performance-content">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(18,20,24,0.06); padding-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <h4 style="font-size: 18px; font-weight: 700; color: var(--accent-aqua);" id="perf-success-rate">100%</h4>
+                <span class="caption">Success Rate</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 13px; font-weight: 600;" id="perf-avg-time">2.43s</span>
+                <p class="caption">Avg. Exec. Time</p>
+            </div>
+        </div>
+
+        <div id="performance-chart-container" style="flex: 1; height: 180px; width: 100%;">
+            <!-- Plotly charts for performance -->
+        </div>
+    </div>
+</div>

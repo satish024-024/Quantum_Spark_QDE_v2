@@ -105,10 +105,10 @@ class DashboardMetrics {
 
         // DOM element IDs
         this.elements = {
-            activeBackends: 'active-backends',
-            totalJobs: 'total-jobs',
-            runningJobs: 'running-jobs',
-            successRate: 'success-rate'
+            activeBackends: 'metric-backends-count',
+            totalJobs: 'metric-jobs-count',
+            runningJobs: 'metric-running-count',
+            successRate: 'metric-success-rate'
         };
 
         // Expose globally

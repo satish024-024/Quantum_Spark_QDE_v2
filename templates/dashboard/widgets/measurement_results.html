@@ -1,0 +1,63 @@
+<!-- Measurement Results Panel -->
+<div class="panel-card liquid-glass widget" id="measurement-results-widget" data-widget="results">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-chart-bar" style="color: var(--accent-aqua);"></i>
+            <h4>Measurement Results</h4>
+        </div>
+        <div class="panel-header-actions" style="display: flex; gap: 8px;">
+            <button class="btn btn-ghost" id="refresh-results-btn" onclick="window.quantumWidgets.updateResultsWidget()" style="padding: 4px 10px; font-size: 11px;">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-ghost" id="view-all-results" style="padding: 4px 10px; font-size: 11px;">View All</button>
+        </div>
+    </div>
+    
+    <div class="panel-body" style="height: 340px; display: flex; flex-direction: column; gap: var(--space-sm);" id="results-content">
+        <!-- Tabbed view header: Probability Distribution | Tabular Data -->
+        <div style="display: flex; gap: 8px; border-bottom: 1px solid rgba(18,20,24,0.06); padding-bottom: 8px;">
+            <button class="btn btn-ghost active" id="tab-prob-dist" style="padding: 2px 10px; font-size: 11px;">Probability Distribution</button>
+            <button class="btn btn-ghost" id="tab-raw-counts" style="padding: 2px 10px; font-size: 11px;">Raw Counts</button>
+        </div>
+
+        <div id="prob-dist-pane" style="flex: 1; height: 180px; width: 100%;">
+            <!-- Plotly histogram container targeted by widgets.js / plot.js -->
+            <div id="results-histogram-container" style="width: 100%; height: 100%; min-height: 180px;"></div>
+        </div>
+
+        <div id="raw-counts-pane" style="display: none; flex: 1; overflow-y: auto;">
+            <table id="raw-counts-table">
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Counts</th>
+                        <th>Probability</th>
+                    </tr>
+                </thead>
+                <tbody id="raw-counts-tbody">
+                    <!-- Injected dynamically -->
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: var(--text-secondary);">No Data Available</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Switch between visuals and QASM tab view
+document.getElementById('tab-prob-dist').addEventListener('click', () => {
+    document.getElementById('tab-prob-dist').classList.add('active');
+    document.getElementById('tab-raw-counts').classList.remove('active');
+    document.getElementById('prob-dist-pane').style.display = 'block';
+    document.getElementById('raw-counts-pane').style.display = 'none';
+});
+
+document.getElementById('tab-raw-counts').addEventListener('click', () => {
+    document.getElementById('tab-prob-dist').classList.remove('active');
+    document.getElementById('tab-raw-counts').classList.add('active');
+    document.getElementById('prob-dist-pane').style.display = 'none';
+    document.getElementById('raw-counts-pane').style.display = 'block';
+});
+</script>

@@ -1,0 +1,75 @@
+/* Responsive Grid Layout Conversions */
+
+/* Laptop screens (1440px) */
+@media (max-width: 1440px) {
+    .workspace-wrapper {
+        padding: var(--space-sm);
+    }
+    
+    .workspace-content {
+        grid-template-columns: 240px 1fr 300px;
+    }
+}
+
+/* Tablet screens (1024px and below) */
+@media (max-width: 1024px) {
+    .workspace-grid {
+        grid-template-columns: 1fr; /* Stack activity bar top or hide */
+    }
+    
+    .activity-bar {
+        display: none; /* Hide vertical activity bar, use bottom dock instead */
+    }
+    
+    .workspace-content {
+        grid-template-columns: 240px 1fr; /* Hide right sidebar inspect by default */
+    }
+    
+    .right-sidebar-panel {
+        display: none;
+    }
+}
+
+/* Small tablets / Large Mobiles (768px and below) */
+@media (max-width: 768px) {
+    .workspace-content {
+        grid-template-columns: 1fr; /* Single column flow */
+    }
+    
+    .sidebar-panel {
+        display: none; /* Collapsed view sidebar */
+    }
+    
+    .workspace-header {
+        padding: 12px 16px;
+        height: auto;
+        flex-direction: column;
+        gap: var(--space-xs);
+        align-items: stretch;
+    }
+    
+    .workspace-status-strip {
+        justify-content: center;
+    }
+}
+
+/* Mobile screens (480px and below) */
+@media (max-width: 480px) {
+    .bottom-dock {
+        width: calc(100vw - 32px);
+        justify-content: space-around;
+        padding: 8px 12px;
+        gap: 4px;
+        border-radius: var(--radius-md);
+        bottom: 12px;
+    }
+    
+    .bottom-dock-item {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    
+    .bottom-dock-item span {
+        display: none; /* Show only icons on small screens */
+    }
+}

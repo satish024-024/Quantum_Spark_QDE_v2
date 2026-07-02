@@ -1,0 +1,57 @@
+<!-- Activity Bar -->
+<div class="activity-bar">
+    <div class="activity-item active" data-mode="builder" title="Builder Mode">
+        <i class="fas fa-atom"></i>
+    </div>
+    <div class="activity-item" data-mode="copilot" title="AI Copilot Mode">
+        <i class="fas fa-brain"></i>
+    </div>
+    <div class="activity-item" data-mode="hardware" title="Hardware Explorer">
+        <i class="fas fa-server"></i>
+    </div>
+    <div class="activity-item" data-mode="insights" title="Insights & Performance">
+        <i class="fas fa-chart-line"></i>
+    </div>
+    <div class="activity-item" data-mode="timeline" title="Timeline history">
+        <i class="fas fa-history"></i>
+    </div>
+    
+    <div class="activity-bar-footer">
+        <div class="activity-item" id="preferences-toggle-btn" title="Workspace Preferences">
+            <i class="fas fa-cog"></i>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.activity-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const mode = item.getAttribute('data-mode');
+        if (mode) {
+            document.querySelectorAll('.activity-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            if (window.WorkspaceState) {
+                window.WorkspaceState.setState('layout.mode', mode);
+            }
+            
+            // Scroll to the corresponding widget
+            let targetId = '';
+            if (mode === 'builder') targetId = 'circuit-builder-widget';
+            else if (mode === 'copilot') targetId = 'ai-assistant-widget';
+            else if (mode === 'hardware') targetId = 'backends-widget';
+            else if (mode === 'insights') targetId = 'measurement-results-widget';
+            else if (mode === 'timeline') targetId = 'history-widget';
+            
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight the widget briefly
+                targetEl.style.outline = '2px solid var(--accent-aqua)';
+                targetEl.style.borderRadius = 'var(--radius-lg)';
+                targetEl.style.transition = 'outline 0.3s ease';
+                setTimeout(() => { targetEl.style.outline = 'none'; }, 1500);
+            }
+        }
+    });
+});
+</script>

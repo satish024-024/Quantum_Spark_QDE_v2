@@ -1,0 +1,30 @@
+<!-- Entanglement Analysis Panel -->
+<div class="panel-card liquid-glass widget" id="entanglement-widget" data-widget="entanglement">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-link" style="color: var(--accent-aqua);"></i>
+            <h4>Entanglement Insights</h4>
+        </div>
+    </div>
+    <div class="panel-body" style="height: 340px; display: flex; flex-direction: column; gap: var(--space-sm);" id="entanglement-content">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+            <div style="background: rgba(18,20,24,0.03); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Entangled Qubits</p>
+                <h4 id="entangled-qubits-val" style="font-size: 20px; margin-top: 4px;">2</h4>
+            </div>
+            <div style="background: rgba(18,20,24,0.03); padding: 12px; border-radius: var(--radius-sm); text-align: center;">
+                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Bell States</p>
+                <h4 id="bell-states-val" style="font-size: 20px; margin-top: 4px;">1</h4>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid rgba(18,20,24,0.05); padding-bottom: 8px; margin-bottom: 8px;">
+            <span>Concurrence: <strong id="concurrence-val" style="color: var(--accent-aqua);">0.998</strong></span>
+            <span>Readability: <strong id="readability-val" style="color: #d97706;">98.6%</strong></span>
+        </div>
+
+        <div id="entanglement-chart-container" style="flex: 1; height: 120px; width: 100%;">
+            <!-- Plotly charts for concurrence -->
+        </div>
+    </div>
+</div>

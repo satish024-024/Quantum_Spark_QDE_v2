@@ -1,0 +1,42 @@
+<!-- Timeline Snapshots Panel -->
+<div class="panel-card liquid-glass widget" id="history-widget" data-widget="historical-data">
+    <div class="panel-header">
+        <div class="panel-header-title">
+            <i class="fas fa-history" style="color: var(--accent-aqua);"></i>
+            <h4>Timeline History</h4>
+        </div>
+        <div class="panel-header-actions">
+            <button class="btn btn-ghost" id="take-snapshot-btn" onclick="window.quantumWidgets.takeSnapshot()" style="padding: 4px 10px; font-size: 11px;">
+                <i class="fas fa-camera"></i> Snapshot
+            </button>
+            <button class="btn btn-ghost" id="download-history-btn" onclick="window.quantumWidgets.downloadHistoricalData()" style="padding: 4px 10px; font-size: 11px;">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+    </div>
+    <div class="panel-body" style="height: 320px; display: flex; flex-direction: column; gap: var(--space-md);">
+        <div style="display: flex; justify-content: space-around; text-align: center; border-bottom: 1px solid rgba(18,20,24,0.06); padding-bottom: 12px;">
+            <div>
+                <span style="font-size: 14px; font-weight: 700;" id="history-total-snapshots">0</span>
+                <p class="caption">Snapshots</p>
+            </div>
+            <div style="border-right: 1px solid rgba(18,20,24,0.1); height: 20px; margin-top: 8px;"></div>
+            <div>
+                <span style="font-size: 14px; font-weight: 700; color: var(--accent-aqua);">100%</span>
+                <p class="caption">24h Success</p>
+            </div>
+            <div style="border-right: 1px solid rgba(18,20,24,0.1); height: 20px; margin-top: 8px;"></div>
+            <div>
+                <span style="font-size: 14px; font-weight: 700;" id="history-active-state">Live</span>
+                <p class="caption">Active State</p>
+            </div>
+        </div>
+
+        <div id="historical-data-content" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; position: relative;">
+            <div id="historical-data-loading" style="display: none; padding: 24px; text-align: center;">
+                <i class="fas fa-spinner fa-spin"></i> Loading Snapshots...
+            </div>
+            <div style="padding: 24px; text-align: center; color: var(--text-secondary);">No Snapshots Yet</div>
+        </div>
+    </div>
+</div>

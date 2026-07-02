@@ -72,77 +72,6 @@
             </div>
         </div>
 
-        <!-- Enhanced Process Tracker -->
-        <div id="execution-progress" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(8px); z-index: 9999;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 15, 35, 0.95); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 12px; padding: 1.5rem; min-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-
-            <div class="progress-header" style="text-align: center; margin-bottom: 1.5rem;">
-                <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 0.5rem;">Quantum Execution</h3>
-                <div id="progress-status-text" style="color: #06b6d4; font-size: 0.9rem;">Initializing...</div>
-            </div>
-
-            <div class="steps-container"
-                style="display: flex; justify-content: space-between; position: relative; margin-bottom: 1.5rem;">
-                <!-- Connecting Line -->
-                <div
-                    style="position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.1); z-index: 0;">
-                </div>
-
-                <!-- Step 1: Transpile -->
-                <div class="step-item" id="step-transpilation"
-                    style="position: relative; z-index: 1; text-align: center; width: 25%;">
-                    <div class="step-icon"
-                        style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.5rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s ease;">
-                        <i class="fas fa-code"></i>
-                    </div>
-                    <div class="step-label" style="font-size: 0.75rem; color: #94a3b8;">Transpile</div>
-                </div>
-
-                <!-- Step 2: Validate -->
-                <div class="step-item" id="step-validation"
-                    style="position: relative; z-index: 1; text-align: center; width: 25%;">
-                    <div class="step-icon"
-                        style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.5rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s ease;">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="step-label" style="font-size: 0.75rem; color: #94a3b8;">Validate</div>
-                </div>
-
-                <!-- Step 3: Execute -->
-                <div class="step-item" id="step-execution"
-                    style="position: relative; z-index: 1; text-align: center; width: 25%;">
-                    <div class="step-icon"
-                        style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.5rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s ease;">
-                        <i class="fas fa-microchip"></i>
-                    </div>
-                    <div class="step-label" style="font-size: 0.75rem; color: #94a3b8;">Execute</div>
-                </div>
-
-                <!-- Step 4: Analyze -->
-                <div class="step-item" id="step-analysis"
-                    style="position: relative; z-index: 1; text-align: center; width: 25%;">
-                    <div class="step-icon"
-                        style="width: 32px; height: 32px; background: #1a1a2e; border: 2px solid #334155; border-radius: 50%; margin: 0 auto 0.5rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s ease;">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="step-label" style="font-size: 0.75rem; color: #94a3b8;">Analyze</div>
-                </div>
-            </div>
-
-            <div id="progress-details"
-                style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-size: 0.85rem; color: #cbd5e1; min-height: 60px; display: flex; align-items: center; justify-content: center;">
-                Waiting to start...
-            </div>
-
-            <div style="text-align: center; margin-top: 1rem;">
-                <button id="cancel-execution-btn"
-                    style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.5rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
-                    Cancel
-                </button>
-            </div>
-        </div>
-        </div>
-
         <div class="header-center">
             <div class="circuit-controls"
                 style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.3); padding: 0.5rem 1rem; border-radius: 8px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);">
@@ -216,6 +145,26 @@
             </button>
         </div>
     </header>
+
+    <!-- Enhanced Process Tracker (Concurrent) -->
+    <div id="execution-progress" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 20, 0.85); backdrop-filter: blur(8px); z-index: 9999;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 15, 35, 0.95); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 12px; padding: 1.5rem; min-width: 500px; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                <h3 style="color: #fff; font-size: 1.1rem; font-weight: 600;">Quantum Execution Queue</h3>
+                <button id="hide-all-jobs-btn" style="background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4; color: #06b6d4; padding: 0.35rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s;">
+                    Hide All
+                </button>
+            </div>
+            <div id="jobs-progress-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.25rem;">
+                <!-- Job cards will be dynamically injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Progress Containers Stack (Concurrent) -->
+    <div id="mini-progress-container" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 10000; flex-direction: column; gap: 0.75rem; max-height: 60vh; overflow-y: auto; padding: 0.25rem; width: 340px;">
+        <!-- Mini progress cards will be dynamically injected here -->
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -734,6 +683,41 @@
         // Initialize 3D Quantum Circuit Visualizer
         document.addEventListener('DOMContentLoaded', async function () {
             console.log('DOM Content Loaded, checking for visualizer...');
+
+            // Fetch credentials from the backend to auto-login the circuit builder
+            try {
+                const response = await fetch('/api/quantum_credentials');
+                const data = await response.json();
+                if (data.success && data.token) {
+                    console.log('Got quantum credentials from backend');
+                    
+                    // Simple XOR encryption for local storage
+                    const xorEncode = (text) => {
+                        const key = 'quantumVisualizer2024';
+                        let result = '';
+                        for (let i = 0; i < text.length; i++) {
+                            result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+                        }
+                        return btoa(result);
+                    };
+                    
+                    let hub = 'ibm-q', group = 'open', project = 'main';
+                    if (data.crn && data.crn.includes('/')) {
+                        const parts = data.crn.split('/');
+                        if (parts.length >= 3) {
+                            hub = parts[0];
+                            group = parts[1];
+                            project = parts[2];
+                        }
+                    }
+                    
+                    const credsStr = JSON.stringify({ token: data.token, hub, group, project });
+                    localStorage.setItem('ibmCredsX', xorEncode(credsStr));
+                    console.log('Quantum credentials saved to localStorage');
+                }
+            } catch (e) {
+                console.warn('Failed to fetch quantum credentials from backend:', e);
+            }
 
             // Auto-update circuit info on page load
             autoUpdateCircuitInfo();
@@ -3078,7 +3062,17 @@
                 // Prevent double submission by checking if already running
                 let isRunning = false;
 
-                runCircuitBtn.addEventListener('click', async function () {
+                runCircuitBtn.addEventListener('click', async function (e) {
+                    const headerProvider = document.getElementById('headerProviderSelect');
+                    const selectedProvider = headerProvider ? headerProvider.value : 'ibm';
+                    if (selectedProvider === 'ibm') {
+                        e.stopImmediatePropagation();
+                        if (typeof window.runIBMQuantumJob === 'function') {
+                            window.runIBMQuantumJob();
+                        }
+                        return;
+                    }
+
                     // Prevent double submission
                     if (isRunning) {
                         console.log('🚫 Circuit execution already in progress, ignoring click');

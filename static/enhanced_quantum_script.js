@@ -334,7 +334,13 @@ class EnhancedQuantumDashboard {
     }
 
     // Enhanced loading animation system
+    // NOTE: widgets owned by widgets.js (results, quantum-state, circuit, entanglement, bloch-sphere)
+    //       are excluded from this loader to prevent content conflicts.
     showLoadingAnimation(widgetId, message = "Loading...") {
+        // These widget IDs are rendered exclusively by widgets.js — skip loading overlays for them
+        const widgetsJsOwned = ['results', 'quantum-state', 'circuit', 'entanglement', 'bloch-sphere', 'historical-data'];
+        if (widgetsJsOwned.includes(widgetId)) return;
+
         const loadingElement = document.getElementById(`${widgetId}-loading`);
         const contentElement = document.getElementById(`${widgetId}-content`) || 
                               document.getElementById(`${widgetId}-container`) ||
@@ -970,26 +976,18 @@ class EnhancedQuantumDashboard {
     
     // Fetch real measurement results from API
     async fetchRealMeasurementResults() {
-        try {
-            const response = await fetch('/api/results');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            
-            if (data.real_data) {
-                this.updateResultsDisplay(data);
-            } else {
-                this.showNoRealDataMessage('results', 'No real measurement results available');
-            }
-        } catch (error) {
-            console.error('Error fetching real measurement results:', error);
-            this.showNoRealDataMessage('results', 'Error loading measurement results');
+        // Deferred to widgets.js which owns the #results-content element.
+        // Trigger a refresh via widgets.js if available, otherwise skip.
+        if (window.quantumWidgets && typeof window.quantumWidgets.updateResultsWidget === 'function') {
+            try { await window.quantumWidgets.updateResultsWidget(); } catch (e) {}
         }
     }
     
     // Show no real data message for specific widgets
     showNoRealDataMessage(widgetType, message) {
+        // Only show messages for widgets NOT owned by widgets.js
+        const widgetsJsOwned = ['results', 'quantum-state', 'circuit', 'entanglement', 'bloch-sphere'];
+        if (widgetsJsOwned.includes(widgetType)) return;
         const widget = document.querySelector(`.${widgetType}-widget .widget-content`);
         if (widget) {
             widget.innerHTML = `
@@ -999,6 +997,15 @@ class EnhancedQuantumDashboard {
                     <p class="real-data-note">Real IBM Quantum data required</p>
                 </div>
             `;
+        }
+    }
+
+    // updateResultsDisplay — no-op: widgets.js owns #results-content rendering
+    updateResultsDisplay(data) {
+        // Intentionally disabled — widgets.js handles measurement results display.
+        // Call widgets.js refresh instead:
+        if (window.quantumWidgets && typeof window.quantumWidgets.updateResultsWidget === 'function') {
+            window.quantumWidgets.updateResultsWidget().catch(() => {});
         }
     }
     

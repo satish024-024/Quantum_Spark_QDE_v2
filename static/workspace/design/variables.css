@@ -1,0 +1,32 @@
+:root {
+    /* Pantone Light Color Palette */
+    --bg-primary: #F7F7F4;
+    --bg-secondary: #FFFFFF;
+    
+    --surface-primary: #FFFFFF;
+    --surface-secondary: rgba(255, 255, 255, 0.55);
+    
+    --glass-white: rgba(255, 255, 255, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    
+    --shadow-soft: 0 10px 40px rgba(18, 20, 24, 0.04);
+    --shadow-medium: 0 12px 32px rgba(18, 20, 24, 0.06);
+    
+    --accent-aqua: #00A896;
+    --accent-yellow: #FDF4B2;
+    
+    --text-primary: #111215;
+    --text-secondary: #6E737D;
+    
+    /* Spacing & Borders */
+    --radius-sm: 12px;
+    --radius-md: 20px;
+    --radius-lg: 30px;
+    --radius-xl: 32px;
+    
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 24px;
+    --space-lg: 28px;
+    --space-xl: 32px;
+}
