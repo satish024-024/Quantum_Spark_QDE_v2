@@ -59,10 +59,66 @@
                     Online
                 </span>
             </div>
+            <button class="btn btn-ghost" id="change-pw-btn" style="padding: 6px 12px; font-size: 12px;">Change password</button>
             <button class="btn btn-ghost" id="logout-btn" style="padding: 6px 12px; font-size: 12px;">Logout</button>
         </div>
     </div>
 </header>
+
+<!-- Change password modal -->
+<div id="cpw-modal" style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; padding:1rem; background:rgba(5,10,20,0.6);">
+    <div style="width:100%; max-width:380px; background:#1a2634; color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:1.5rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h3 style="font-size:1.1rem;"><i class="fas fa-key" style="color:#6ee7ff;"></i> Change password</h3>
+            <button id="cpw-close" style="background:none; border:0; color:rgba(255,255,255,0.6); font-size:1.2rem; cursor:pointer;"><i class="fas fa-xmark"></i></button>
+        </div>
+        <input type="password" id="cpw-current" placeholder="Current password" style="width:100%; padding:0.75rem 1rem; border-radius:10px; margin-bottom:0.8rem; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); color:#fff;">
+        <input type="password" id="cpw-new" placeholder="New password (min 6 characters)" style="width:100%; padding:0.75rem 1rem; border-radius:10px; margin-bottom:0.8rem; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); color:#fff;">
+        <input type="password" id="cpw-confirm" placeholder="Confirm new password" style="width:100%; padding:0.75rem 1rem; border-radius:10px; margin-bottom:1rem; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); color:#fff;">
+        <button id="cpw-save" style="width:100%; padding:0.85rem; border:0; border-radius:10px; background:linear-gradient(90deg,#00c6ff,#0072ff); color:#fff; font-weight:600; cursor:pointer;">Update password</button>
+        <div id="cpw-msg" style="margin-top:0.8rem; font-size:0.88rem; display:none;"></div>
+    </div>
+</div>
+<script>
+(function () {
+    var modal = document.getElementById('cpw-modal');
+    var msg = document.getElementById('cpw-msg');
+    function showMsg(t, ok) {
+        msg.style.display = 'block';
+        msg.style.color = ok ? '#a9f0c6' : '#ffb3ab';
+        msg.textContent = t;
+    }
+    var openBtn = document.getElementById('change-pw-btn');
+    if (openBtn) openBtn.addEventListener('click', function () {
+        msg.style.display = 'none'; msg.textContent = '';
+        document.getElementById('cpw-current').value = '';
+        document.getElementById('cpw-new').value = '';
+        document.getElementById('cpw-confirm').value = '';
+        modal.style.display = 'flex';
+    });
+    document.getElementById('cpw-close').addEventListener('click', function () { modal.style.display = 'none'; });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.style.display = 'none'; });
+    document.getElementById('cpw-save').addEventListener('click', async function () {
+        var cur = document.getElementById('cpw-current').value;
+        var nw = document.getElementById('cpw-new').value;
+        var cf = document.getElementById('cpw-confirm').value;
+        if (!cur || !nw) { showMsg('Please fill in all fields.', false); return; }
+        if (nw.length < 6) { showMsg('New password must be at least 6 characters.', false); return; }
+        if (nw !== cf) { showMsg('New passwords do not match.', false); return; }
+        var btn = this; btn.disabled = true; btn.textContent = 'Updating…';
+        try {
+            const r = await fetch('/api/change-password', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({current_password: cur, new_password: nw})
+            });
+            const d = await r.json();
+            showMsg(d.message, d.success);
+            if (d.success) setTimeout(function () { modal.style.display = 'none'; }, 1500);
+        } catch (e) { showMsg('Connection error. Please try again.', false); }
+        btn.disabled = false; btn.textContent = 'Update password';
+    });
+})();
+</script>
 
 <script>
 // Keep Header active backend synced with central state

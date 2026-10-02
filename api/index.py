@@ -31,37 +31,6 @@ if os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'):
     # Force use of writeable SQLite database in /tmp
     os.environ['DATABASE_URL'] = 'sqlite:////tmp/quantum_data.db'
 
-# ---------------------------------------------------------------------------
-# TEMPORARY OWNER PASSWORD RESET (added 2026-10-02, remove after use)
-# The app has no change-password UI and the owner lost their login password.
-# On every cold start this resets the password of the owner accounts below,
-# using the app's own SHA-256+salt scheme from core/user_auth.py.
-# Set the OWNER_RESET_PASSWORD env var in Vercel to choose your own password;
-# otherwise the temporary password below applies. DELETE THIS BLOCK after
-# logging in (ask your agent to push a cleanup commit).
-# ---------------------------------------------------------------------------
-try:
-    import sqlite3 as _sqlite3
-    import hashlib as _hashlib
-    import secrets as _secrets
-    _reset_db = '/tmp/quantum_data.db' if (os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV')) else os.path.join(project_root, 'quantum_data.db')
-    if os.path.exists(_reset_db):
-        _rconn = _sqlite3.connect(_reset_db)
-        _rcur = _rconn.cursor()
-        _rcur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-        if _rcur.fetchone():
-            _new_pw = os.environ.get('OWNER_RESET_PASSWORD') or 'Satish123@'
-            for _email in ['satishkumarkadali24@gmail.com', 'satishkadali@gmail.com', 'satishkadali24@gmail.com']:
-                _salt = _secrets.token_hex(16)
-                _ph = _hashlib.sha256((_new_pw + _salt).encode()).hexdigest()
-                _rcur.execute('UPDATE users SET password_hash=?, salt=? WHERE email=?', (_ph, _salt, _email))
-            _rconn.commit()
-            print('✅ Temporary owner password reset applied')
-        _rconn.close()
-except Exception as _e:
-    print(f'⚠️ Temporary password reset skipped: {_e}')
-# ------------------------- END TEMPORARY RESET -----------------------------
-
 # Import the Flask application from hybrid_quantum_app
 from hybrid_quantum_app import app as flask_app
 

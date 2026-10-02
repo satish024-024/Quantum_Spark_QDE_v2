@@ -102,6 +102,122 @@ class UserAuthSystem:
             return None
         except jwt.InvalidTokenError:
             return None
+
+    # ------------------------------------------------------------------
+    # Password reset (forgot password / change password)
+    # ------------------------------------------------------------------
+    def _init_reset_table(self):
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                    token TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    email TEXT NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    used INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+        finally:
+            conn.close()
+
+    def create_password_reset_token(self, email):
+        """Create a single-use reset token valid for 1 hour. Returns token or None."""
+        self._init_reset_table()
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            user_id = row[0]
+            # Invalidate any previous unused tokens for this user
+            cursor.execute('UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0', (user_id,))
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(hours=1)
+            cursor.execute(
+                'INSERT INTO password_reset_tokens (token, user_id, email, expires_at) VALUES (?, ?, ?, ?)',
+                (token, user_id, email, expires_at.strftime('%Y-%m-%d %H:%M:%S'))
+            )
+            conn.commit()
+            return token
+        finally:
+            conn.close()
+
+    def verify_password_reset_token(self, token):
+        """Return (user_id, email) if the reset token is valid, unused and unexpired."""
+        self._init_reset_table()
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT user_id, email, expires_at, used FROM password_reset_tokens WHERE token = ?',
+                (token,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            user_id, email, expires_at, used = row
+            if used:
+                return None
+            try:
+                exp = datetime.strptime(expires_at, '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                return None
+            if datetime.utcnow() > exp:
+                return None
+            return user_id, email
+        finally:
+            conn.close()
+
+    def reset_password_with_token(self, token, new_password):
+        """Set a new password using a valid reset token. Single-use."""
+        if not new_password or len(new_password) < 6:
+            return False, "Password must be at least 6 characters"
+        verified = self.verify_password_reset_token(token)
+        if not verified:
+            return False, "Reset link is invalid or has expired"
+        user_id, _email = verified
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            pw_hash, salt = self.hash_password(new_password)
+            cursor.execute(
+                'UPDATE users SET password_hash = ?, salt = ? WHERE id = ?',
+                (pw_hash, salt, user_id)
+            )
+            cursor.execute('UPDATE password_reset_tokens SET used = 1 WHERE token = ?', (token,))
+            conn.commit()
+            return True, "Password has been reset successfully"
+        finally:
+            conn.close()
+
+    def change_password(self, user_id, current_password, new_password):
+        """Change password for a logged-in user after verifying the current one."""
+        if not new_password or len(new_password) < 6:
+            return False, "New password must be at least 6 characters"
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('SELECT password_hash, salt FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                return False, "User not found"
+            pw_hash, salt = row
+            if not self.verify_password(current_password, pw_hash, salt):
+                return False, "Current password is incorrect"
+            new_hash, new_salt = self.hash_password(new_password)
+            cursor.execute(
+                'UPDATE users SET password_hash = ?, salt = ? WHERE id = ?',
+                (new_hash, new_salt, user_id)
+            )
+            conn.commit()
+            return True, "Password changed successfully"
+        finally:
+            conn.close()
     
     def register_user(self, email, password, api_key, crn):
         """Register a new user"""
