@@ -2,14 +2,19 @@
  * Mobile tap-to-place circuit builder.
  *
  * Additive module: drives the existing CircuitBuilder engine through its public
- * API (addGate / removeGate / undo / redo). Activates only on mobile
+ * API (addGate) plus careful post-processing. Activates only on mobile
  * (coarse pointer + narrow viewport) or ?mobile_builder=1. Desktop behavior
  * is untouched: this file returns early before wiring anything.
+ *
+ * Why post-processing: addGate() derives qubits from the mesh Y position,
+ * which loses explicit control->target direction for two-qubit gates. We call
+ * the stock two-arg addGate(), then correct the circuit record in place
+ * (qubits / params) and refresh. No engine files are modified.
  *
  * Interaction (Q.js-style, proven on touch):
  *   1. Tap a gate tile in the palette  -> gate is "armed".
  *   2. Tap a qubit rail in the 3D view -> gate snaps to (qubit, depth) and is
- *      placed through the existing addGate() (validation, Qiskit, Bloch, …).
+ *      placed (validation, Qiskit, Bloch all flow through the engine).
  *   3. Two-qubit gates: tap CONTROL rail, then TARGET rail (explicit order).
  * ========================================================================== */
 (function () {
@@ -46,11 +51,14 @@
     };
 
     /* ---------------- state ---------------- */
-    var armed = null;        // {type, step, controlQubit, angle}
-    var selectedMesh = null; // placed gate mesh selected for delete
-    var ui = {};             // hint bar nodes
+    var armed = null;        // {type, kind, step, controlQubit, depthHint, angle}
+    var selectedMesh = null;
+    var ui = {};
     var raycaster = null;
-    var circuitPlane = null; // THREE.Plane z=0
+    var circuitPlane = null;
+
+    /* mobile undo/redo: inverse ops on top of engine primitives */
+    var undoStack = [], redoStack = [];
 
     /* ---------------- engine access ---------------- */
     function app() { return window.unifiedQuantumApp || null; }
@@ -59,6 +67,11 @@
 
     function vibrate(ms) {
         try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignore */ }
+    }
+
+    function refreshUI(b) {
+        if (typeof b.updateMiniBlochSpheres === 'function') { try { b.updateMiniBlochSpheres(); } catch (e) {} }
+        if (typeof b.updateLiveCodePanel === 'function') { try { b.updateLiveCodePanel(); } catch (e) {} }
     }
 
     /* ---------------- hint bar ---------------- */
@@ -85,8 +98,8 @@
             bar.appendChild(b);
             return b;
         }
-        ui.undoBtn = mkBtn('↺', 'Undo', function () { var b = builder(); if (b && b.undo()) { vibrate(10); } });
-        ui.redoBtn = mkBtn('↻', 'Redo', function () { var b = builder(); if (b && b.redo()) { vibrate(10); } });
+        mkBtn('↺', 'Undo', function () { mUndo(); });
+        mkBtn('↻', 'Redo', function () { mRedo(); });
         mkBtn('✕', 'Cancel placement', function () { disarm(); });
 
         document.body.appendChild(bar);
@@ -96,7 +109,7 @@
 
     function setHint(text) {
         ensureHintBar();
-        ui.hintText.textContent = text; // textContent: never HTML (user-safe)
+        ui.hintText.textContent = text; // textContent only: user-safe
         ui.bar.style.display = 'flex';
     }
 
@@ -119,11 +132,11 @@
     }
 
     function snapCameraFront() {
-        var a = app(), b = builder(), T = three();
-        if (!a || !b || !a.camera || !a.controls || !T) return;
-        var n = b.qubits || 3;
+        var a = app(), b = builder();
+        if (!a || !a.camera || !a.controls) return;
+        var n = (b && b.qubits) || 3;
         var maxDepth = 0;
-        (b.circuit || []).forEach(function (g) { if (g.depth > maxDepth) maxDepth = g.depth; });
+        if (b && b.circuit) b.circuit.forEach(function (g) { if (g.depth > maxDepth) maxDepth = g.depth; });
         var cx = Math.max(1.5, (maxDepth * SPACING_X) / 2);
         var dist = Math.max(6.5, maxDepth * SPACING_X + 4.5, n * 1.4);
         a.camera.position.set(cx, 0, dist);
@@ -142,8 +155,7 @@
 
     function armGate(type) {
         disarm(true);
-        armed = { type: type, kind: kindOf(type), step: 0, controlQubit: null, angle: 'pi/2' };
-        // highlight the armed tile
+        armed = { type: type, kind: kindOf(type), step: 0, controlQubit: null, depthHint: 0, angle: 'pi/2' };
         document.querySelectorAll('.gate-item.mplace-armed').forEach(function (el) {
             el.classList.remove('mplace-armed');
         });
@@ -239,7 +251,6 @@
 
         document.body.appendChild(sh);
         angleSheet = sh;
-        // pause placement until an angle is chosen
         if (ui.bar) ui.bar.style.display = 'none';
     }
 
@@ -254,7 +265,7 @@
         angleSheet = null;
     }
 
-    /* ---------------- tap handling ---------------- */
+    /* ---------------- placement core ---------------- */
     function canvas() {
         var a = app();
         return (a && a.renderer) ? a.renderer.domElement : document.getElementById('quantumCanvas');
@@ -316,8 +327,120 @@
         return d;
     }
 
-    function handlePlacementTap(e, b) {
+    function recData(type, qubits, depth, params, x, y) {
+        return { type: type, qubits: qubits.slice(), depth: depth,
+                 params: params ? params.slice() : undefined, x: x, y: y };
+    }
+
+    /* Place through the stock two-arg addGate, then correct the circuit record
+       in place (explicit qubits / params). Keeps engine files untouched. */
+    function placeGate(b, type, depth, qubits, params) {
         var T = three();
+        var n = b.qubits || 3;
+        var ySum = 0;
+        qubits.forEach(function (q) { ySum += railY(n, q); });
+        var x = depth * SPACING_X, y = ySum / qubits.length;
+        var mesh = b.addGate(type, new T.Vector3(x, y, 0));
+        if (!mesh) { vibrate([30, 50, 30]); return null; } // engine showed validation toast
+        var rec = b.circuit[b.circuit.length - 1];
+        if (rec) {
+            rec.qubits = qubits.slice();
+            rec.qubit = qubits[0];
+            if (params) rec.params = params.slice();
+        }
+        // addGate saved a history entry with derived qubits; replace with corrected
+        try {
+            if (b.history && b.history.length) {
+                b.history.pop();
+                b.historyIndex = b.history.length - 1;
+                if (typeof b.saveState === 'function') b.saveState();
+            }
+        } catch (e) { /* non-fatal */ }
+        refreshUI(b);
+        vibrate(15);
+        return { mesh: mesh, rec: recData(type, qubits, depth, params, x, y) };
+    }
+
+    /* Remove a placed gate without relying on the engine's removeGate
+       (its circuit-array lookup can't match records). */
+    function removePlaced(b, mesh) {
+        var gi = b.gateInstances.indexOf(mesh);
+        if (gi < 0) return null;
+        var type = mesh.userData.gate.type;
+        var px = mesh.position.x, py = mesh.position.y;
+        b.scene.remove(mesh);
+        b.gateInstances.splice(gi, 1);
+        var ci = -1;
+        for (var i = 0; i < b.circuit.length; i++) {
+            var r = b.circuit[i];
+            if (r.gate === type && r.position &&
+                Math.abs(r.position.x - px) < 1e-6 && Math.abs(r.position.y - py) < 1e-6) { ci = i; break; }
+        }
+        var rec = null;
+        if (ci >= 0) {
+            var gone = b.circuit.splice(ci, 1)[0];
+            rec = recData(gone.gate, gone.qubits || [gone.qubit], gone.depth,
+                          gone.params, gone.position.x, gone.position.y);
+        }
+        if (typeof b.updateRailsForNewDepth === 'function') { try { b.updateRailsForNewDepth(); } catch (e) {} }
+        try { if (typeof b.saveState === 'function') b.saveState(); } catch (e) {}
+        refreshUI(b);
+        return rec;
+    }
+
+    function rePlace(b, rec) {
+        var placed = placeGate(b, rec.type, rec.depth, rec.qubits, rec.params);
+        return placed ? placed.mesh : null;
+    }
+
+    /* ---- mobile undo/redo (inverse ops; independent of engine history) ---- */
+    function mRecord(entry) {
+        undoStack.push(entry);
+        if (undoStack.length > 100) undoStack.shift();
+        redoStack = [];
+    }
+
+    function mUndo() {
+        var b = builder();
+        if (!b || !undoStack.length) return;
+        var e = undoStack.pop();
+        if (e.op === 'add') {
+            if (e.mesh && b.gateInstances.indexOf(e.mesh) >= 0) removePlaced(b, e.mesh);
+        } else if (e.op === 'del') {
+            var p = rePlace(b, e.rec);
+            if (p) e.mesh = p;
+        }
+        redoStack.push(e);
+        vibrate(10);
+    }
+
+    function mRedo() {
+        var b = builder();
+        if (!b || !redoStack.length) return;
+        var e = redoStack.pop();
+        if (e.op === 'add') {
+            var p = rePlace(b, e.rec);
+            if (p) { e.mesh = p; undoStack.push(e); }
+        } else if (e.op === 'del') {
+            var mesh = e.mesh && b.gateInstances.indexOf(e.mesh) >= 0 ? e.mesh
+                : findMesh(b, e.rec);
+            if (mesh) { removePlaced(b, mesh); undoStack.push(e); }
+        }
+        vibrate(10);
+    }
+
+    function findMesh(b, rec) {
+        for (var i = 0; i < b.gateInstances.length; i++) {
+            var m = b.gateInstances[i];
+            if (m.userData.gate.type === rec.type &&
+                Math.abs(m.position.x - rec.x) < 1e-6 &&
+                Math.abs(m.position.y - rec.y) < 1e-6) return m;
+        }
+        return null;
+    }
+
+    /* ---------------- tap flows ---------------- */
+    function handlePlacementTap(e, b) {
         var hit = raycastPlane(e);
         if (!hit) { flashHint('Tap a qubit rail'); return; }
         var n = b.qubits || 3;
@@ -330,31 +453,27 @@
             return;
         }
 
-        if (armed.kind === 'two') {
-            handleTwoQubitTap(near.qubit, depth, b, T);
-            return;
-        }
+        if (armed.kind === 'two') { handleTwoQubitTap(near.qubit, depth, b); return; }
         if (armed.kind === 'three') {
             var qs3 = [near.qubit - 1, near.qubit, near.qubit + 1].filter(function (q) { return q >= 0 && q < n; });
             if (qs3.length < 2) { flashHint('Need room for 3 qubits here'); return; }
             var d3 = nextFreeDepth(b, qs3, depth);
-            placeGate(b, armed.type, d3, qs3, null, T);
+            var p3 = placeGate(b, armed.type, d3, qs3, undefined);
+            if (p3) mRecord({ op: 'add', mesh: p3.mesh, rec: p3.rec });
             disarm();
             return;
         }
-        // single-qubit (or barrier/measure/reset)
         var d1 = nextFreeDepth(b, [near.qubit], depth);
         var params = PARAMETRIC.indexOf(armed.type) >= 0 ? [armed.angle] : undefined;
-        placeGate(b, armed.type, d1, [near.qubit], params, T);
-        // stay armed for rapid placement
-        enterPlacement();
+        var p1 = placeGate(b, armed.type, d1, [near.qubit], params);
+        if (p1) { mRecord({ op: 'add', mesh: p1.mesh, rec: p1.rec }); enterPlacement(); }
     }
 
-    function handleTwoQubitTap(qubit, depth, b, T) {
+    function handleTwoQubitTap(qubit, depth, b) {
         if (armed.step === 0) {
             armed.controlQubit = qubit;
-            armed.step = 1;
             armed.depthHint = depth;
+            armed.step = 1;
             setHint('Control: q' + qubit + ' — now tap the TARGET rail');
             vibrate(10);
             return;
@@ -362,25 +481,9 @@
         var c = armed.controlQubit, t = qubit;
         if (t === c) { flashHint('Pick a different rail for the target'); return; }
         var d = nextFreeDepth(b, [c, t], Math.max(depth, armed.depthHint || 0));
-        placeGate(b, armed.type, d, [c, t], undefined, T);
+        var p = placeGate(b, armed.type, d, [c, t], undefined);
+        if (p) mRecord({ op: 'add', mesh: p.mesh, rec: p.rec });
         disarm();
-    }
-
-    function placeGate(b, type, depth, qubits, params, T) {
-        var n = b.qubits || 3;
-        // mesh position: x from depth; y = midpoint of involved qubits
-        var ySum = 0;
-        qubits.forEach(function (q) { ySum += railY(n, q); });
-        var pos = new T.Vector3(depth * SPACING_X, ySum / qubits.length, 0);
-        var opts = { qubits: qubits.slice() };
-        if (params) opts.params = params;
-        var mesh = b.addGate(type, pos, opts);
-        if (mesh) {
-            vibrate(15);
-        } else {
-            // addGate shows its own validation toast on failure
-            vibrate([30, 50, 30]);
-        }
     }
 
     /* ---------------- select / delete placed gate ---------------- */
@@ -395,11 +498,11 @@
 
     function selectGateAt(e, b) {
         var a = app(), T = three();
-        if (!a || !a.camera || !T) return false;
+        if (!a || !a.camera || !T || !b.gateInstances) return false;
         if (!raycaster) raycaster = new T.Raycaster();
         var ndc = ndcFromEvent(e);
         raycaster.setFromCamera({ x: ndc.x, y: ndc.y }, a.camera);
-        var hits = raycaster.intersectObjects(b.gateInstances || [], true);
+        var hits = raycaster.intersectObjects(b.gateInstances, true);
         for (var i = 0; i < hits.length; i++) {
             var root = meshRoot(hits[i].object);
             if (root) { showGatePopup(root, e); return true; }
@@ -410,10 +513,8 @@
     var popup = null;
     function showGatePopup(mesh, e) {
         hideGatePopup();
-        deselectGate();
         selectedMesh = mesh;
         var b = builder();
-        var rec = b ? (b.circuit || []).find(function (g) { return g.id === mesh.userData.gate.id; }) : null;
 
         popup = document.createElement('div');
         popup.id = 'mplace-gatepopup';
@@ -424,6 +525,14 @@
         popup.appendChild(title);
 
         var sub = document.createElement('span');
+        var rec = null;
+        if (b) {
+            for (var i = 0; i < b.circuit.length; i++) {
+                var r = b.circuit[i];
+                if (r.position && Math.abs(r.position.x - mesh.position.x) < 1e-6 &&
+                    Math.abs(r.position.y - mesh.position.y) < 1e-6 && r.gate === mesh.userData.gate.type) { rec = r; break; }
+            }
+        }
         var qs = rec && rec.qubits ? rec.qubits.join(', ') : '?';
         sub.textContent = 'q[' + qs + '] · depth ' + (rec ? rec.depth : '?');
         popup.appendChild(sub);
@@ -436,16 +545,14 @@
             ev.stopPropagation();
             var bb = builder();
             if (bb && selectedMesh) {
-                bb.removeGate(selectedMesh);
-                refreshAfterEdit(bb);
+                var gone = removePlaced(bb, selectedMesh);
+                if (gone) mRecord({ op: 'del', rec: gone, mesh: null });
                 vibrate(15);
             }
-            hideGatePopup();
             deselectGate();
         });
         popup.appendChild(del);
 
-        // clamp inside viewport
         popup.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
         popup.style.top = Math.max(8, e.clientY - 40) + 'px';
         document.body.appendChild(popup);
@@ -462,13 +569,6 @@
         hideGatePopup();
     }
 
-    function refreshAfterEdit(b) {
-        // mirror the refresh tail of addGate
-        if (typeof b.updateMiniBlochSpheres === 'function') b.updateMiniBlochSpheres();
-        if (typeof b.updateLiveCodePanel === 'function') b.updateLiveCodePanel();
-        if (typeof b.saveState === 'function') b.saveState();
-    }
-
     /* ---------------- wire up ---------------- */
     function onPaletteClick(e) {
         var item = e.target && e.target.closest ? e.target.closest('.gate-item') : null;
@@ -476,7 +576,6 @@
         // capture phase: block the engine's click-to-place, arm instead
         e.preventDefault();
         e.stopPropagation();
-        // close the mobile sheet if open (user returns to the 3D view)
         var sb = document.querySelector('.sidebar');
         if (sb && sb.classList.contains('cb-sheet-open')) {
             sb.classList.remove('cb-sheet-open');
@@ -486,11 +585,11 @@
         armGate(item.dataset.gate);
     }
 
+    var tapStart = null;
     function onCanvasPointerDown(e) {
         tapStart = { x: e.clientX, y: e.clientY, t: Date.now() };
     }
 
-    var tapStart = null;
     function onCanvasPointerUp(e) {
         if (!tapStart) return;
         var dx = e.clientX - tapStart.x, dy = e.clientY - tapStart.y;
@@ -504,19 +603,16 @@
     }
 
     function boot() {
-        // 1. intercept palette taps (capture) so the engine's click-place doesn't fire
         var pal = document.querySelector('.sidebar') || document;
         pal.addEventListener('click', onPaletteClick, true);
 
-        // 2. tap detection on the 3D canvas
         var c = canvas();
         if (c) {
             c.addEventListener('pointerdown', onCanvasPointerDown);
             c.addEventListener('pointerup', onCanvasPointerUp);
-            c.style.touchAction = 'pan-y'; // vertical page scroll still works; taps are ours
+            c.style.touchAction = 'pan-y';
         }
 
-        // 3. cancel placement on tab switch / hide
         document.querySelectorAll('.cb-tab').forEach(function (t) {
             t.addEventListener('click', function () { disarm(); deselectGate(); });
         });
@@ -524,26 +620,25 @@
             if (document.hidden) { disarm(); deselectGate(); }
         });
 
-        // 4. cap pixel ratio for mobile GPUs (additive; engine default is uncapped)
         var a = app();
         if (a && a.renderer && a.renderer.setPixelRatio) {
             try { a.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); } catch (e) { /* ignore */ }
         }
 
-        // 5. dismiss popup on any canvas tap handled elsewhere
         document.addEventListener('click', function (e) {
-            if (popup && !popup.contains(e.target)) { hideGatePopup(); deselectGate(); }
+            if (popup && !popup.contains(e.target)) deselectGate();
         }, true);
 
         window.mplace = {
             arm: armGate,
             disarm: disarm,
-            isArmed: function () { return !!armed; }
+            isArmed: function () { return !!armed; },
+            undo: mUndo,
+            redo: mRedo
         };
         console.log('[mplace] mobile tap-to-place builder active');
     }
 
-    // wait for the engine (visualizer inits async after a credentials fetch)
     var tries = 0;
     var timer = setInterval(function () {
         var b = builder();
