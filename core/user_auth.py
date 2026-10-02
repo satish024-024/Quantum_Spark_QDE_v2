@@ -54,6 +54,10 @@ class UserAuthSystem:
             if 'is_active' not in columns:
                 cursor.execute("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT 1")
                 print("✅ Added is_active column to users table")
+            
+            if 'pwd_version' not in columns:
+                cursor.execute("ALTER TABLE users ADD COLUMN pwd_version INTEGER DEFAULT 0")
+                print("✅ Added pwd_version column to users table")
         else:
             # Create new table with all columns
             cursor.execute('''
@@ -66,7 +70,8 @@ class UserAuthSystem:
                     salt TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_login TIMESTAMP,
-                    is_active BOOLEAN DEFAULT 1
+                    is_active BOOLEAN DEFAULT 1,
+                    pwd_version INTEGER DEFAULT 0
                 )
             ''')
             print("✅ Created new users table with all columns")
@@ -186,7 +191,7 @@ class UserAuthSystem:
             cursor = conn.cursor()
             pw_hash, salt = self.hash_password(new_password)
             cursor.execute(
-                'UPDATE users SET password_hash = ?, salt = ? WHERE id = ?',
+                'UPDATE users SET password_hash = ?, salt = ?, pwd_version = COALESCE(pwd_version, 0) + 1 WHERE id = ?',
                 (pw_hash, salt, user_id)
             )
             cursor.execute('UPDATE password_reset_tokens SET used = 1 WHERE token = ?', (token,))
@@ -211,7 +216,7 @@ class UserAuthSystem:
                 return False, "Current password is incorrect"
             new_hash, new_salt = self.hash_password(new_password)
             cursor.execute(
-                'UPDATE users SET password_hash = ?, salt = ? WHERE id = ?',
+                'UPDATE users SET password_hash = ?, salt = ?, pwd_version = COALESCE(pwd_version, 0) + 1 WHERE id = ?',
                 (new_hash, new_salt, user_id)
             )
             conn.commit()
@@ -267,7 +272,8 @@ class UserAuthSystem:
         try:
             # Get user data
             cursor.execute('''
-                SELECT id, email, password_hash, api_key, crn, salt, is_active
+                SELECT id, email, password_hash, api_key, crn, salt, is_active,
+                       COALESCE(pwd_version, 0)
                 FROM users WHERE email = ?
             ''', (email,))
             
@@ -328,18 +334,39 @@ class UserAuthSystem:
         finally:
             conn.close()
     
-    def validate_user_session(self, user_id):
-        """Validate if user session is still valid"""
+    def get_pwd_version(self, user_id):
+        """Get the current password version for session validation."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COALESCE(pwd_version, 0) FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            return row[0] if row else 0
+        finally:
+            conn.close()
+
+    def validate_user_session(self, user_id, session_pwd_version=None):
+        """Validate if user session is still valid.
+        If session_pwd_version is given, it must match the DB — a password
+        change/reset bumps pwd_version, invalidating older sessions.
+        """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         try:
-            cursor.execute('SELECT is_active FROM users WHERE id = ?', (user_id,))
+            cursor.execute('SELECT is_active, pwd_version FROM users WHERE id = ?', (user_id,))
             result = cursor.fetchone()
             # Handle both old schema (no is_active column) and new schema
             if result:
                 # Check if is_active column exists and is 1, or if it's None (old schema)
-                return result[0] is None or result[0] == 1
+                is_active_ok = result[0] is None or result[0] == 1
+                if not is_active_ok:
+                    return False
+                if session_pwd_version is not None:
+                    db_version = result[1] if len(result) > 1 else 0
+                    if (db_version or 0) != (session_pwd_version or 0):
+                        return False
+                return True
             return False
         except Exception as e:
             print(f"Error validating user session: {e}")

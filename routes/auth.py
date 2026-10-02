@@ -64,6 +64,10 @@ def register():
                 session['quantum_token'] = user_api_key
                 session['quantum_crn'] = user_crn
                 session['auth_token'] = token
+                try:
+                    session['pwd_version'] = user_auth.get_pwd_version(user_data['user_id'])
+                except Exception:
+                    session['pwd_version'] = 0
                 # Keep the login alive across browser restarts (30-day cookie).
                 session.permanent = True
                 
@@ -116,6 +120,12 @@ def login():
             user_data = user_auth.verify_token(token)
             if user_data:
                 session['user_id'] = user_data.get('user_id')
+                # Track password version so a later password change/reset
+                # invalidates this session.
+                try:
+                    session['pwd_version'] = user_auth.get_pwd_version(user_data.get('user_id'))
+                except Exception:
+                    session['pwd_version'] = 0
             session['user_email'] = email
             session['quantum_token'] = api_key
             session['quantum_crn'] = crn
@@ -361,6 +371,19 @@ def get_api_instances():
 # ---------------------------------------------------------------------------
 # Forgot password / reset password / change password
 # ---------------------------------------------------------------------------
+# Simple in-memory rate limiter for password-reset requests.
+# (Resets on server restart; sufficient to blunt token-DoS/spam.)
+_forgot_attempts = {}
+def _forgot_rate_limited(key, max_hits=5, window_s=3600):
+    import time
+    now = time.time()
+    hits = [t for t in _forgot_attempts.get(key, []) if now - t < window_s]
+    if len(hits) >= max_hits:
+        return True
+    hits.append(now)
+    _forgot_attempts[key] = hits
+    return False
+
 @auth_bp.route('/api/forgot-password', methods=['POST'])
 def forgot_password():
     """Start a password reset: generate a single-use token for the email.
@@ -374,6 +397,12 @@ def forgot_password():
         email = (data.get('email') or '').strip().lower()
         if not email:
             return jsonify({'success': False, 'message': 'Email is required'}), 400
+
+        # Throttle: max 5 reset requests per email per hour (also blunts
+        # token-invalidation DoS against a legitimate reset).
+        if _forgot_rate_limited('fp:' + email):
+            return jsonify({'success': False,
+                            'message': 'Too many requests. Please try again later.'}), 429
 
         token = user_auth.create_password_reset_token(email)
         # Always respond generically to avoid email enumeration.

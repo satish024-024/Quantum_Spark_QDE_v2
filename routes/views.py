@@ -17,7 +17,7 @@ def dashboard():
     if 'user_id' not in session:
         return redirect('/auth')
     
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
     
@@ -39,7 +39,7 @@ def production_dashboard():
         if 'user_id' not in session:
             return redirect('/auth')
         
-        if not user_auth.validate_user_session(session['user_id']):
+        if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
             session.clear()
             return redirect('/auth')
         
@@ -60,7 +60,7 @@ def production_dashboard():
 def advanced_dashboard():
     if 'user_id' not in session:
         return redirect('/auth')
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
     return render_template('advanced_dashboard.html')
@@ -69,7 +69,7 @@ def advanced_dashboard():
 def modern_dashboard_auth():
     if 'user_id' not in session:
         return redirect('/auth')
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
     return render_template('modern_dashboard.html')
@@ -78,7 +78,7 @@ def modern_dashboard_auth():
 def professional_dashboard():
     if 'user_id' not in session:
         return redirect('/auth')
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
     return render_template('professional_dashboard.html')
@@ -87,7 +87,7 @@ def professional_dashboard():
 def ultimate_dashboard():
     if 'user_id' not in session:
         return redirect('/auth')
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
     
@@ -110,7 +110,7 @@ def hackathon_dashboard():
 def dashboard_selector():
     if 'user_id' not in session:
         return redirect('/auth')
-    if not user_auth.validate_user_session(session['user_id']):
+    if not user_auth.validate_user_session(session['user_id'], session.get('pwd_version')):
         session.clear()
         return redirect('/auth')
 
