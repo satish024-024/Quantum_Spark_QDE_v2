@@ -602,7 +602,7 @@
 
         var mv = document.createElement('button');
         mv.type = 'button';
-        mv.className = 'mplace-delbtn';
+        mv.className = 'mplace-movebtn';
         mv.textContent = 'Move gate';
         mv.addEventListener('click', function (ev) {
             ev.stopPropagation();

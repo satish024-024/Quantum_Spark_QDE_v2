@@ -523,6 +523,8 @@
             var sb = $('.sidebar');
             var open = sb.classList.toggle('cb-sheet-open');
             ensureScrim().classList.toggle('show', open);
+            // Hide the FAB while the sheet is open (it would float over the sheet).
+            fab.style.visibility = open ? 'hidden' : 'visible';
         });
 
         $$('.cb-tab', bar).forEach(function (tab) {
