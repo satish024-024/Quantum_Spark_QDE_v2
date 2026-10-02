@@ -365,8 +365,8 @@ def get_api_instances():
 def forgot_password():
     """Start a password reset: generate a single-use token for the email.
 
-    No email service is configured, so the reset link is returned directly.
-    (Plug in SMTP later via env vars and send the link by email instead.)
+    If SMTP is configured (see core/mailer.py), the reset link is emailed.
+    Otherwise the link is returned directly in the response.
     The response never reveals whether the email exists.
     """
     try:
@@ -380,10 +380,22 @@ def forgot_password():
         resp = {'success': True,
                 'message': 'If an account exists for this email, a reset link has been created.'}
         if token:
-            # No mailer configured: hand the link back directly.
             base = request.host_url.rstrip('/')
-            resp['reset_url'] = f'{base}/reset-password?token={token}'
-            resp['note'] = 'Email sending is not configured; use this link directly. It expires in 1 hour.'
+            reset_url = f'{base}/reset-password?token={token}'
+            emailed = False
+            try:
+                from core.mailer import is_configured, send_password_reset_email
+                if is_configured():
+                    ok, _msg = send_password_reset_email(email, reset_url)
+                    emailed = ok
+            except Exception as mail_err:
+                print(f'⚠️ Reset email failed, falling back to direct link: {mail_err}')
+            if emailed:
+                resp['message'] = 'If an account exists for this email, a reset link has been sent.'
+            else:
+                # No mailer configured (or send failed): hand the link back directly.
+                resp['reset_url'] = reset_url
+                resp['note'] = 'Email sending is not configured; use this link directly. It expires in 1 hour.'
         return jsonify(resp)
     except Exception as e:
         return jsonify({'success': False, 'message': f'Request failed: {str(e)}'}), 500
