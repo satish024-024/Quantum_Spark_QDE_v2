@@ -6,12 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bloch Sphere Simulator</title>
     <style>
+        :root {
+            --bs-bg: #0f1114;
+            --bs-surface: #17191d;
+            --bs-surface-2: #202329;
+            --bs-surface-3: #2b3038;
+            --bs-on: #e9eaee;
+            --bs-on-var: #a9aeb9;
+            --bs-outline: rgba(255, 255, 255, 0.09);
+            --bs-accent: #5eead4;
+            --bs-accent-ink: #05302a;
+            --bs-accent-soft: rgba(94, 234, 212, 0.12);
+            --bs-good: #4ade80;
+            --bs-warm: #fbbf24;
+            --bs-danger: #f87171;
+            --bs-radius: 16px;
+            --bs-font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --bs-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+        }
+
+        * { -webkit-tap-highlight-color: transparent; }
+
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bs-bg);
+            color: var(--bs-on);
+            font-family: var(--bs-font);
             overflow: hidden;
         }
 
@@ -21,6 +42,7 @@
             position: relative;
         }
 
+        /* ---------- loading ---------- */
         .loading-screen {
             position: absolute;
             top: 50%;
@@ -28,86 +50,123 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
+            background: var(--bs-surface);
+            border: 1px solid var(--bs-outline);
             padding: 2rem;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            color: var(--bs-on-var);
+            font-size: 14px;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(6, 182, 212, 0.2);
-            border-top: 4px solid #06b6d4;
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--bs-surface-3);
+            border-top: 4px solid var(--bs-accent);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
+        /* ---------- navbar ---------- */
+        .navbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bs-surface);
+            border-bottom: 1px solid var(--bs-outline);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .navbar h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--bs-on);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 0.01em;
+        }
+
+        .navbar h1::before {
+            content: '';
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--bs-accent);
+            flex-shrink: 0;
+        }
+
+        .navbar-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .navbar-btn {
+            background: transparent;
+            color: var(--bs-on-var);
+            border: 1px solid var(--bs-outline);
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .navbar-btn:active {
+            background: var(--bs-surface-2);
+            color: var(--bs-on);
+        }
+
+        .navbar-btn.exit {
+            color: var(--bs-danger);
+            border-color: rgba(248, 113, 113, 0.35);
+        }
+
+        /* ---------- toolbox panel (desktop) ---------- */
         .toolbox {
             position: absolute;
-            right: 20px;
-            top: 80px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            padding: 20px;
-            border-radius: 16px;
-            min-width: 220px;
-            max-width: 250px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            max-height: calc(100vh - 100px);
+            right: 16px;
+            top: 72px;
+            background: rgba(23, 25, 29, 0.96);
+            padding: 18px;
+            border-radius: 20px;
+            width: 252px;
+            max-width: calc(100vw - 32px);
+            border: 1px solid var(--bs-outline);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+            max-height: calc(100vh - 96px);
             overflow-y: auto;
+            overscroll-behavior: contain;
         }
 
-        .toolbox::-webkit-scrollbar {
-            width: 6px;
-        }
+        .toolbox::-webkit-scrollbar { width: 6px; }
+        .toolbox::-webkit-scrollbar-track { background: transparent; }
+        .toolbox::-webkit-scrollbar-thumb { background: var(--bs-surface-3); border-radius: 3px; }
 
-        .toolbox::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-
-        .toolbox::-webkit-scrollbar-thumb {
-            background: rgba(6, 182, 212, 0.5);
-            border-radius: 10px;
-        }
-
-        .gate-section {
-            margin-bottom: 24px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        /* ---------- gate sections ---------- */
+        .gate-section { margin-bottom: 20px; }
 
         .gate-section h4 {
-            margin: 0 0 12px 0;
-            color: #06b6d4;
-            font-size: 13px;
-            font-weight: 600;
+            margin: 0 0 10px 0;
+            color: var(--bs-on-var);
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.09em;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -116,227 +175,373 @@
         .gate-section h4::before {
             content: '';
             width: 3px;
-            height: 14px;
-            background: linear-gradient(180deg, #06b6d4, #8b5cf6);
+            height: 12px;
+            background: var(--bs-accent);
             border-radius: 2px;
+            flex-shrink: 0;
         }
 
         .gate-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
+            gap: 8px;
         }
 
         .gate-btn {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2));
-            color: white;
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            padding: 10px 6px;
-            border-radius: 8px;
+            background: var(--bs-surface-2);
+            color: var(--bs-on);
+            border: 1px solid var(--bs-outline);
+            min-height: 48px;
+            padding: 10px 4px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .gate-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .gate-btn:hover {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.4), rgba(139, 92, 246, 0.4));
-            border-color: #06b6d4;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
-        }
-
-        .gate-btn:hover::before {
-            left: 100%;
+            font-family: var(--bs-font);
+            transition: background 0.15s ease, border-color 0.15s ease;
         }
 
         .gate-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 6px rgba(6, 182, 212, 0.3);
+            background: var(--bs-accent-soft);
+            border-color: var(--bs-accent);
         }
 
-        .angle-controls {
-            margin-top: 24px;
+        /* ---------- angle controls ---------- */
+        .angle-controls { margin-top: 20px; }
+
+        .angle-controls > h4 {
+            margin: 0 0 10px 0;
+            color: var(--bs-on-var);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .angle-controls > h4::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--bs-accent);
+            border-radius: 2px;
+            flex-shrink: 0;
         }
 
         .angle-control {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: var(--bs-surface-2);
+            border-radius: 12px;
+            border: 1px solid var(--bs-outline);
         }
 
         .angle-control label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             font-size: 12px;
-            color: #06b6d4;
-            font-weight: 500;
+            color: var(--bs-on-var);
+            font-weight: 600;
         }
+
+        .angle-control label span { color: var(--bs-on); font-family: var(--bs-mono); }
 
         .angle-control input[type="range"] {
             width: 100%;
-            margin-bottom: 10px;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(6, 182, 212, 0.2);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .angle-control input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            margin: 0 0 8px 0;
+            height: 32px;
+            accent-color: var(--bs-accent);
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.5);
         }
 
         .angle-control button {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
+            background: var(--bs-accent);
+            color: var(--bs-accent-ink);
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 16px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
             width: 100%;
-            transition: all 0.3s ease;
+            min-height: 44px;
         }
 
-        .angle-control button:hover {
-            background: linear-gradient(135deg, #10b981, #059669);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-            transform: translateY(-1px);
-        }
+        .angle-control button:active { filter: brightness(0.9); }
 
+        /* ---------- state readout ---------- */
         .state-display {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            padding: 16px 20px;
-            border-radius: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
-        .state-display div {
-            margin-bottom: 6px;
             display: flex;
-            justify-content: space-between;
-            gap: 15px;
+            gap: 18px;
+            background: var(--bs-surface);
+            border: 1px solid var(--bs-outline);
+            padding: 12px 18px;
+            border-radius: var(--bs-radius);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+            font-variant-numeric: tabular-nums;
+            z-index: 55;
         }
 
-        .state-display div:last-child {
-            margin-bottom: 0;
-        }
-
-        .state-display strong {
-            color: #06b6d4;
-            min-width: 60px;
-        }
-
-        .state-display span {
-            color: #10b981;
-            font-weight: 600;
-        }
-
-        .navbar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-            padding: 12px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 100;
-        }
-
-        .navbar h1 {
-            margin: 0;
-            font-size: 20px;
+        .sd-group { display: flex; gap: 16px; }
+        .sd-group + .sd-group { border-left: 1px solid var(--bs-outline); padding-left: 18px; }
+        .sd-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .sd-label {
+            font-size: 10px;
             font-weight: 700;
-            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--bs-on-var);
+        }
+        .sd-val {
+            font-family: var(--bs-mono);
+            font-size: 13px;
+            color: var(--bs-on);
+            white-space: nowrap;
+        }
+        .sd-angles .sd-val { color: var(--bs-accent); font-size: 16px; font-weight: 700; }
+
+        /* ---------- measurement probabilities ---------- */
+        .prob-card {
+            margin-top: 20px;
+            padding: 14px;
+            background: var(--bs-surface-2);
+            border: 1px solid var(--bs-outline);
+            border-radius: var(--bs-radius);
+        }
+
+        .prob-card > h4 {
+            margin: 0 0 12px 0;
+            color: var(--bs-on-var);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .navbar h1::before {
-            content: '⚛️';
-            font-size: 24px;
+        .prob-card > h4::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--bs-good);
+            border-radius: 2px;
+            flex-shrink: 0;
         }
 
-        .navbar-buttons {
+        .prob-row { margin-bottom: 12px; }
+        .prob-row:last-child { margin-bottom: 0; }
+        .prob-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .prob-name { font-size: 12px; color: var(--bs-on-var); font-weight: 600; }
+        .prob-val { font-size: 13px; font-weight: 700; font-family: var(--bs-mono); }
+        .prob-val.p0 { color: var(--bs-good); }
+        .prob-val.p1 { color: var(--bs-warm); }
+        .prob-track { height: 8px; background: var(--bs-bg); border-radius: 4px; overflow: hidden; }
+        .prob-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+        .prob-fill.p0 { background: var(--bs-good); }
+        .prob-fill.p1 { background: var(--bs-warm); }
+
+        /* ---------- quick states / export ---------- */
+        .qs-card { margin-top: 16px; }
+        .qs-card > h4, .exp-card > h4 {
+            margin: 0 0 10px 0;
+            color: var(--bs-on-var);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 8px;
+        }
+        .qs-card > h4::before, .exp-card > h4::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--bs-accent);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .exp-card { margin-top: 16px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .qs-btn, .exp-btn {
+            background: var(--bs-surface-2);
+            border: 1px solid var(--bs-outline);
+            border-radius: 12px;
+            color: var(--bs-on);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--bs-font);
+            min-height: 48px;
+            padding: 10px 8px;
+            transition: background 0.15s ease, border-color 0.15s ease;
         }
 
-        .navbar-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 8px;
+        .qs-btn:active, .exp-btn:active {
+            background: var(--bs-accent-soft);
+            border-color: var(--bs-accent);
+        }
+
+        .exp-btn { font-size: 12px; }
+
+        /* ---------- custom gate form ---------- */
+        .cg-form {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bs-surface-2);
+            border-radius: 12px;
+            border: 1px solid var(--bs-outline);
+        }
+        .cg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 6px;
+            min-height: 44px;
+            background: transparent;
+            border: 1px solid var(--bs-outline);
+            border-radius: 10px;
+            color: var(--bs-on-var);
             cursor: pointer;
             font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            font-weight: 600;
         }
-
-        .navbar-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(6, 182, 212, 0.5);
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+        .tab-btn.active {
+            background: var(--bs-accent-soft);
+            border-color: var(--bs-accent);
+            color: var(--bs-accent);
         }
-
-        .navbar-btn.exit {
-            background: linear-gradient(135deg, #dc2626, #ef4444);
-            border-color: #dc2626;
+        .cg-field { margin-bottom: 10px; }
+        .cg-field label { display: block; font-size: 11px; color: var(--bs-on-var); font-weight: 600; margin-bottom: 4px; }
+        .cg-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            min-height: 44px;
+            background: var(--bs-bg);
+            border: 1px solid var(--bs-outline);
+            border-radius: 8px;
+            color: var(--bs-on);
+            font-size: 13px;
+            font-family: var(--bs-mono);
         }
+        .cg-input:focus { outline: none; border-color: var(--bs-accent); }
+        .cg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .cg-create {
+            width: 100%;
+            padding: 12px;
+            min-height: 48px;
+            background: var(--bs-accent);
+            border: none;
+            border-radius: 10px;
+            color: var(--bs-accent-ink);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .cg-create:active { filter: brightness(0.9); }
 
-        .navbar-btn.exit:hover {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        /* ---------- welcome overlay ---------- */
+        #welcome-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 11, 14, 0.72);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .welcome-card {
+            text-align: center;
+            width: 100%;
+            max-width: 420px;
+            padding: 32px 28px;
+            background: var(--bs-surface);
+            border-radius: 24px;
+            border: 1px solid var(--bs-outline);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+        }
+        .welcome-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--bs-accent);
+            margin: 0 auto 18px;
+            box-shadow: 0 0 24px rgba(94, 234, 212, 0.6);
+        }
+        .welcome-card h2 {
+            color: var(--bs-on);
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+        .welcome-card p {
+            color: var(--bs-on-var);
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+        .welcome-points {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .welcome-point {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--bs-on-var);
+        }
+        .welcome-point::before {
+            content: '';
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--bs-accent);
+            flex-shrink: 0;
+        }
+        .welcome-cta {
+            width: 100%;
+            max-width: 280px;
+            padding: 14px 24px;
+            background: var(--bs-accent);
+            border: none;
+            border-radius: 999px;
+            color: var(--bs-accent-ink);
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .welcome-cta:active { filter: brightness(0.92); }
+        .welcome-tip {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--bs-outline);
+            color: var(--bs-on-var);
+            opacity: 0.75;
+            font-size: 12px;
         }
     </style>
     <style>
-        /* ============ Mobile layout for Bloch Sphere Simulator (2026-10-02, redesigned) ============ */
-        /* UX rules: progressive disclosure (sections collapsed, tap to open), 44px touch
-           targets, primary actions in the thumb zone, one compact type scale. Desktop untouched. */
+        /* ============ Mobile layout — Bloch Sphere Simulator ============
+           Material 3 dark tokens above. Rules: progressive disclosure (sections
+           start collapsed, tap to open), 48px touch targets, solid surfaces
+           (no backdrop blur over WebGL — Android GPU safety), compact type. */
         .sheet-toggle { display: none; } /* desktop: hidden */
 
         @media (max-width: 768px) {
+            /* Canvas height: fill viewport minus navbar; shrink when toolbox expands */
             #bloch-sphere {
                 height: calc(100dvh - 56px) !important;
             }
@@ -345,111 +550,112 @@
             }
 
             /* ---------- Compact navbar ---------- */
-            .navbar { padding: 8px 10px; gap: 8px; }
+            .navbar { padding: 8px 12px; gap: 8px; }
             .navbar h1 { font-size: 14px; white-space: nowrap; }
-            .navbar h1::before { font-size: 16px; }
             .navbar-buttons { gap: 6px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
             .navbar-buttons::-webkit-scrollbar { display: none; }
-            .navbar-btn { padding: 8px 10px; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+            .navbar-btn { padding: 9px 12px; font-size: 10px; white-space: nowrap; flex-shrink: 0; min-height: 40px; }
 
-            /* ---------- Toolbox becomes a bottom sheet ---------- */
+            /* ---------- Toolbox becomes a native-feeling bottom sheet ---------- */
             .toolbox {
                 left: 0; right: 0; top: auto; bottom: 0;
-                width: 100%; min-width: 0; max-width: none;
-                max-height: 52vh; max-height: 52dvh;
-                border-radius: 20px 20px 0 0;
-                border-left: none; border-right: none; border-bottom: none;
-                padding: 8px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+                width: 100%; max-width: none;
+                max-height: 54vh; max-height: 54dvh;
+                border-radius: 24px 24px 0 0;
+                border: none;
+                border-top: 1px solid var(--bs-outline);
+                background: var(--bs-surface);
+                padding: 6px 16px calc(16px + env(safe-area-inset-bottom, 0px));
                 z-index: 60;
-                transition: max-height 0.32s cubic-bezier(.22,.61,.36,1);
+                box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+                transition: max-height 0.3s cubic-bezier(0.2, 0, 0, 1);
             }
             .toolbox::before {
                 content: '';
                 display: block;
-                width: 44px; height: 5px; border-radius: 3px;
-                background: rgba(255,255,255,0.28);
-                margin: 2px auto 10px;
+                width: 40px; height: 4px; border-radius: 2px;
+                background: var(--bs-surface-3);
+                margin: 6px auto 8px;
             }
-            .toolbox.collapsed { max-height: 56px; overflow: hidden; }
+            .toolbox.collapsed { max-height: 60px; overflow: hidden; }
 
-            /* ---------- Accordion sections: tap a category header to open it ---------- */
+            /* ---------- Accordion sections: tap a header to open ---------- */
             .toolbox .gate-section > h4,
             .toolbox .angle-controls > h4,
             .toolbox .tool-accordion > h4 {
                 position: relative;
                 cursor: pointer;
-                min-height: 44px;
+                min-height: 48px;
                 display: flex !important;
                 align-items: center;
-                padding: 10px 34px 10px 0 !important;
+                padding: 12px 36px 12px 0 !important;
                 margin: 0 !important;
                 font-size: 12px !important;
-                letter-spacing: 0.06em !important;
+                letter-spacing: 0.08em !important;
                 -webkit-tap-highlight-color: transparent;
             }
             .toolbox .gate-section > h4::after,
             .toolbox .angle-controls > h4::after,
             .toolbox .tool-accordion > h4::after {
                 content: '\203A';
-                position: absolute; right: 10px; top: 50%;
+                position: absolute; right: 8px; top: 50%;
                 transform: translateY(-50%) rotate(90deg);
-                font-size: 20px; line-height: 1;
-                color: rgba(255,255,255,0.55);
-                transition: transform 0.25s ease;
+                font-size: 22px; line-height: 1;
+                color: var(--bs-on-var);
+                transition: transform 0.2s ease;
             }
+            .toolbox .gate-section > h4::before,
+            .toolbox .angle-controls > h4::before,
+            .toolbox .tool-accordion > h4::before { display: none; }
             .toolbox .open > h4::after { transform: translateY(-50%) rotate(-90deg); }
             .toolbox .acc-body { display: none; }
-            .toolbox .open > .acc-body { display: block; padding-bottom: 10px; }
+            .toolbox .open > .acc-body { display: block; padding-bottom: 12px; }
 
             .gate-buttons { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-            .gate-btn { padding: 13px 6px; font-size: 14px; min-height: 50px; }
+            .gate-btn { min-height: 52px; font-size: 15px; }
 
             /* Collapse chevron for the whole sheet */
             .sheet-toggle {
                 display: flex;
-                position: absolute; top: 10px; right: 12px;
-                width: 34px; height: 34px; border-radius: 50%;
-                background: rgba(255,255,255,0.12);
-                border: 1px solid rgba(255,255,255,0.2);
-                color: #fff; font-size: 16px; cursor: pointer;
+                position: absolute; top: 12px; right: 14px;
+                width: 36px; height: 36px; border-radius: 50%;
+                background: var(--bs-surface-2);
+                border: 1px solid var(--bs-outline);
+                color: var(--bs-on); font-size: 16px; cursor: pointer;
                 align-items: center; justify-content: center;
                 z-index: 2;
             }
             .toolbox.collapsed .sheet-toggle { transform: rotate(180deg); }
 
-            /* ---------- State readout: compact strip under the navbar ---------- */
+            /* ---------- State readout: compact grouped strip ---------- */
             .state-display {
-                top: 58px; bottom: auto; left: 8px; right: 8px;
-                padding: 8px 12px;
-                display: flex; flex-wrap: wrap; gap: 3px 12px;
-                font-size: 11px; line-height: 1.5;
+                top: 60px; bottom: auto; left: 10px; right: 10px;
+                padding: 10px 14px;
+                gap: 12px;
+                border-radius: 14px;
                 z-index: 55;
-                border-radius: 12px;
+                overflow-x: auto;
+                scrollbar-width: none;
             }
-            .state-display div { margin-bottom: 0; gap: 6px; display: inline-flex; }
-            .state-display strong { min-width: 0; }
+            .state-display::-webkit-scrollbar { display: none; }
+            .state-display .sd-group { gap: 12px; flex-shrink: 0; }
+            .state-display .sd-group + .sd-group { padding-left: 12px; }
+            .state-display .sd-val { font-size: 12px; }
+            .state-display .sd-angles .sd-val { font-size: 14px; }
 
-            /* ---------- Welcome overlay: compact card above the sheet ---------- */
-            #welcome-overlay { position: fixed !important; z-index: 80 !important; }
-            #welcome-overlay > div {
-                width: calc(100vw - 48px) !important;
-                max-width: 380px !important;
-                max-height: calc(100dvh - 120px);
-                overflow-y: auto;
-                padding: 22px 18px !important;
-                margin: 0 24px;
-            }
-            #welcome-overlay .welcome-grid { display: none !important; }
-            #welcome-overlay h2 { font-size: 22px !important; margin-bottom: 10px !important; }
-            #welcome-overlay p { font-size: 14px !important; margin-bottom: 18px !important; }
-            #welcome-overlay > div > div:first-child { font-size: 36px !important; margin-bottom: 12px !important; }
-            #welcome-overlay button { width: 100%; max-width: 280px; }
+            /* ---------- Welcome: compact card ---------- */
+            #welcome-overlay { padding: 16px; }
+            .welcome-card { padding: 26px 22px; border-radius: 20px; }
+            .welcome-card h2 { font-size: 20px; }
+            .welcome-card p { font-size: 13px; }
+            .welcome-cta { min-height: 52px; font-size: 15px; }
 
-            /* ---------- Thumb-friendly sliders and apply buttons ---------- */
-            .angle-control input[type="range"] { height: 8px; }
-            .angle-control input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; }
-            .angle-control button { padding: 12px 16px; font-size: 13px; min-height: 46px; }
-            .tool-accordion .acc-body button { min-height: 44px; }
+            /* ---------- Touch-friendly controls ---------- */
+            .angle-control input[type="range"] { height: 36px; }
+            .angle-control button { min-height: 48px; font-size: 13px; }
+            .qs-btn, .exp-btn { min-height: 52px; }
+            .cg-create { min-height: 52px; }
+            .cg-input { min-height: 48px; font-size: 14px; }
         }
     </style>
 </head>
@@ -472,109 +678,22 @@
     </div>
 
     <!-- Beautiful Welcome Overlay -->
-    <div id="welcome-overlay"
-        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15), transparent); backdrop-filter: blur(10px); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.5s ease;">
-        <div
-            style="text-align: center; max-width: 600px; padding: 40px; background: rgba(0, 0, 0, 0.8); border-radius: 20px; border: 2px solid rgba(6, 182, 212, 0.5); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(6, 182, 212, 0.3); animation: slideUp 0.5s ease;">
-            <div style="font-size: 48px; margin-bottom: 20px; animation: pulse 2s infinite;">⚛️</div>
-            <h2
-                style="background: linear-gradient(135deg, #06b6d4, #8b5cf6, #10b981); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-size: 32px; margin-bottom: 16px; font-weight: 700;">
-                Quantum Bloch Sphere</h2>
-            <p style="color: rgba(255, 255, 255, 0.8); margin-bottom: 24px; font-size: 16px; line-height: 1.6;">
-                Visualize and manipulate quantum states in 3D space
-            </p>
-
-            <div class="welcome-grid"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; text-align: left;">
-                <div
-                    style="background: rgba(6, 182, 212, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.3);">
-                    <div style="color: #06b6d4; font-weight: 600; margin-bottom: 4px; font-size: 14px;">🎯 Quick States
-                    </div>
-                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Click |0⟩, |1⟩, |+⟩, |−⟩</div>
-                </div>
-                <div
-                    style="background: rgba(139, 92, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.3);">
-                    <div style="color: #8b5cf6; font-weight: 600; margin-bottom: 4px; font-size: 14px;">🔧 Apply Gates
-                    </div>
-                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Pauli, Hadamard, Custom</div>
-                </div>
-                <div
-                    style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                    <div style="color: #10b981; font-weight: 600; margin-bottom: 4px; font-size: 14px;">📊 Live
-                        Probabilities</div>
-                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Real-time P(|0⟩) & P(|1⟩)</div>
-                </div>
-                <div
-                    style="background: rgba(245, 158, 11, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);">
-                    <div style="color: #f59e0b; font-weight: 600; margin-bottom: 4px; font-size: 14px;">💾 Export</div>
-                    <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px;">Copy to Qiskit code</div>
-                </div>
+    <div id="welcome-overlay">
+        <div class="welcome-card">
+            <div class="welcome-dot"></div>
+            <h2>Quantum Bloch Sphere</h2>
+            <p>Visualize and manipulate single-qubit quantum states in 3D. Apply gates, set states, and watch the state vector move.</p>
+            <div class="welcome-points">
+                <div class="welcome-point">Tap a gate to rotate the state vector</div>
+                <div class="welcome-point">Use quick states to jump to |0&rang;, |1&rang;, |+&rang;, |&minus;&rang;</div>
+                <div class="welcome-point">Drag to orbit &middot; pinch or scroll to zoom</div>
             </div>
-
-            <button onclick="document.getElementById('welcome-overlay').style.display='none'"
-                style="padding: 14px 32px; background: linear-gradient(135deg, #06b6d4, #8b5cf6); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; font-size: 16px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4); transition: all 0.3s ease; animation: glowPulse 2s infinite;">
-                🚀 START EXPLORING
-            </button>
-
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <p style="color: rgba(255, 255, 255, 0.5); font-size: 12px;">
-                    💡 Tip: Rotate the sphere by dragging • Zoom with mouse wheel
-                </p>
-            </div>
+            <button class="welcome-cta" onclick="document.getElementById('welcome-overlay').style.display='none'">Start exploring</button>
+            <div class="welcome-tip">Tip: open the control sheet below the sphere for gates and measurements.</div>
         </div>
-
-        <!-- Animated particles -->
-        <canvas id="particles-canvas"
-            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
     </div>
 
-    <style>
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
 
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        @keyframes glowPulse {
-
-            0%,
-            100% {
-                box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
-            }
-
-            50% {
-                box-shadow: 0 4px 30px rgba(6, 182, 212, 0.7), 0 0 40px rgba(139, 92, 246, 0.5);
-            }
-        }
-    </style>
 
     <div class="toolbox">
         <div class="gate-section">
@@ -620,96 +739,51 @@
             </div>
 
             <!-- Custom Gate Creation Form (collapsible) -->
-            <div id="custom-gate-form"
-                style="display: none; margin-top: 12px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 1px solid rgba(6, 182, 212, 0.3);">
-                <div style="margin-bottom: 12px;">
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <button class="tab-btn active" id="rotations-tab" onclick="switchTab('rotations')"
-                            style="flex: 1; padding: 6px; background: rgba(6, 182, 212, 0.3); border: 1px solid #06b6d4; border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">Rotations</button>
-                        <button class="tab-btn" id="matrix-tab" onclick="switchTab('matrix')"
-                            style="flex: 1; padding: 6px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 11px;">Matrix</button>
-                    </div>
-
-                    <!-- Rotations Form -->
-                    <div id="rotations-form" style="display: block;">
-                        <div style="margin-bottom: 8px;">
-                            <label style="font-size: 11px; color: #06b6d4;">X:</label>
-                            <input type="number" id="using-rotations-custom-gate-x" step="0.1"
-                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
-                        </div>
-                        <div style="margin-bottom: 8px;">
-                            <label style="font-size: 11px; color: #06b6d4;">Y:</label>
-                            <input type="number" id="using-rotations-custom-gate-y" step="0.1"
-                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
-                        </div>
-                        <div style="margin-bottom: 8px;">
-                            <label style="font-size: 11px; color: #06b6d4;">Z:</label>
-                            <input type="number" id="using-rotations-custom-gate-z" step="0.1"
-                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label style="font-size: 11px; color: #06b6d4;">Rotation (degrees):</label>
-                            <input type="number" id="using-rotations-custom-gate-rotation" step="1"
-                                style="width: 100%; padding: 6px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 11px;">
-                        </div>
-                    </div>
-
-                    <!-- Matrix Form -->
-                    <div id="matrix-form" style="display: none;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A11 Real:</label>
-                                <input type="number" id="using-matrix-custom-gate-a11-real" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A11 Img:</label>
-                                <input type="number" id="using-matrix-custom-gate-a11-img" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A12 Real:</label>
-                                <input type="number" id="using-matrix-custom-gate-a12-real" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A12 Img:</label>
-                                <input type="number" id="using-matrix-custom-gate-a12-img" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A21 Real:</label>
-                                <input type="number" id="using-matrix-custom-gate-a21-real" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A21 Img:</label>
-                                <input type="number" id="using-matrix-custom-gate-a21-img" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A22 Real:</label>
-                                <input type="number" id="using-matrix-custom-gate-a22-real" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                            <div>
-                                <label style="font-size: 10px; color: #06b6d4;">A22 Img:</label>
-                                <input type="number" id="using-matrix-custom-gate-a22-img" step="0.01"
-                                    style="width: 100%; padding: 4px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 4px; color: white; font-size: 10px;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <button id="custom-gate-create" onclick="createCustomGate()"
-                        style="width: 100%; padding: 8px; background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600;">CREATE
-                        GATE</button>
+            <div id="custom-gate-form" class="cg-form">
+                <div class="cg-tabs">
+                    <button class="tab-btn active" id="rotations-tab" onclick="switchTab('rotations')">Rotations</button>
+                    <button class="tab-btn" id="matrix-tab" onclick="switchTab('matrix')">Matrix</button>
                 </div>
+
+                <div id="rotations-form">
+                    <div class="cg-field">
+                        <label>X axis</label>
+                        <input type="number" id="using-rotations-custom-gate-x" step="0.1" class="cg-input">
+                    </div>
+                    <div class="cg-field">
+                        <label>Y axis</label>
+                        <input type="number" id="using-rotations-custom-gate-y" step="0.1" class="cg-input">
+                    </div>
+                    <div class="cg-field">
+                        <label>Z axis</label>
+                        <input type="number" id="using-rotations-custom-gate-z" step="0.1" class="cg-input">
+                    </div>
+                    <div class="cg-field">
+                        <label>Rotation (degrees)</label>
+                        <input type="number" id="using-rotations-custom-gate-rotation" step="1" class="cg-input">
+                    </div>
+                </div>
+
+                <div id="matrix-form" style="display: none;">
+                    <div class="cg-grid">
+                        <div class="cg-field"><label>A11 real</label><input type="number" id="using-matrix-custom-gate-a11-real" step="0.01" class="cg-input"></div>
+                        <div class="cg-field"><label>A11 imag</label><input type="number" id="using-matrix-custom-gate-a11-img" step="0.01" class="cg-input"></div>
+                    </div>
+                    <div class="cg-grid">
+                        <div class="cg-field"><label>A12 real</label><input type="number" id="using-matrix-custom-gate-a12-real" step="0.01" class="cg-input"></div>
+                        <div class="cg-field"><label>A12 imag</label><input type="number" id="using-matrix-custom-gate-a12-img" step="0.01" class="cg-input"></div>
+                    </div>
+                    <div class="cg-grid">
+                        <div class="cg-field"><label>A21 real</label><input type="number" id="using-matrix-custom-gate-a21-real" step="0.01" class="cg-input"></div>
+                        <div class="cg-field"><label>A21 imag</label><input type="number" id="using-matrix-custom-gate-a21-img" step="0.01" class="cg-input"></div>
+                    </div>
+                    <div class="cg-grid">
+                        <div class="cg-field"><label>A22 real</label><input type="number" id="using-matrix-custom-gate-a22-real" step="0.01" class="cg-input"></div>
+                        <div class="cg-field"><label>A22 imag</label><input type="number" id="using-matrix-custom-gate-a22-img" step="0.01" class="cg-input"></div>
+                    </div>
+                </div>
+
+                <button id="custom-gate-create" class="cg-create" onclick="createCustomGate()">Create gate</button>
             </div>
         </div>
 
@@ -730,76 +804,63 @@
         <!-- USEFUL QUANTUM FEATURES -->
 
         <!-- Measurement Probabilities -->
-        <div class="tool-accordion"
-            style="margin-top: 24px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px;">
-            <h4
-                style="margin: 0 0 12px 0; color: #10b981; font-size: 13px; font-weight: 600; text-transform: uppercase;">
-                📊 Measurement Probabilities</h4>
-            <div style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-size: 12px; color: #06b6d4;">P(|0⟩):</span>
-                    <span id="prob-0" style="font-size: 13px; font-weight: 700; color: #10b981;">50.00%</span>
+        <div class="tool-accordion prob-card">
+            <h4>Measurement Probabilities</h4>
+            <div class="prob-row">
+                <div class="prob-top">
+                    <span class="prob-name">P(|0&rang;)</span>
+                    <span class="prob-val p0" id="prob-0">50.00%</span>
                 </div>
-                <div style="height: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; overflow: hidden;">
-                    <div id="prob-0-bar"
-                        style="width: 50%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.3s ease;">
-                    </div>
+                <div class="prob-track">
+                    <div class="prob-fill p0" id="prob-0-bar" style="width: 50%;"></div>
                 </div>
             </div>
-            <div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-size: 12px; color: #06b6d4;">P(|1⟩):</span>
-                    <span id="prob-1" style="font-size: 13px; font-weight: 700; color: #8b5cf6;">50.00%</span>
+            <div class="prob-row">
+                <div class="prob-top">
+                    <span class="prob-name">P(|1&rang;)</span>
+                    <span class="prob-val p1" id="prob-1">50.00%</span>
                 </div>
-                <div style="height: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; overflow: hidden;">
-                    <div id="prob-1-bar"
-                        style="width: 50%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #7c3aed); transition: width 0.3s ease;">
-                    </div>
+                <div class="prob-track">
+                    <div class="prob-fill p1" id="prob-1-bar" style="width: 50%;"></div>
                 </div>
             </div>
         </div>
 
         <!-- Quick State Presets -->
-        <div class="tool-accordion" style="margin-top: 20px;">
-            <h4
-                style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
-                ⚡ Quick States</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <button onclick="setState('zero')"
-                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|0⟩</button>
-                <button onclick="setState('one')"
-                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|1⟩</button>
-                <button onclick="setState('plus')"
-                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|+⟩</button>
-                <button onclick="setState('minus')"
-                    style="padding: 8px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2)); border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 6px; color: white; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.3s;">|−⟩</button>
+        <div class="tool-accordion qs-card">
+            <h4>Quick States</h4>
+            <div class="btn-grid">
+                <button class="qs-btn" onclick="setState('zero')">|0&rang;</button>
+                <button class="qs-btn" onclick="setState('one')">|1&rang;</button>
+                <button class="qs-btn" onclick="setState('plus')">|+&rang;</button>
+                <button class="qs-btn" onclick="setState('minus')">|&minus;&rang;</button>
             </div>
         </div>
 
         <!-- State Export -->
-        <div class="tool-accordion" style="margin-top: 20px;">
-            <h4
-                style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
-                💾 Export State</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <button onclick="copyStateVector()"
-                    style="padding: 8px; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 10px; font-weight: 600; transition: all 0.3s;">📋
-                    Copy Vector</button>
-                <button onclick="exportQiskit()"
-                    style="padding: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 10px; font-weight: 600; transition: all 0.3s;">🐍
-                    Qiskit Code</button>
+        <div class="tool-accordion exp-card">
+            <h4>Export State</h4>
+            <div class="btn-grid">
+                <button class="exp-btn" onclick="copyStateVector()">Copy vector</button>
+                <button class="exp-btn" onclick="exportQiskit()">Qiskit code</button>
             </div>
         </div>
     </div>
 
-    <div class="state-display">
-        <div><strong>Theta:</strong> <span id="theta-value">0.0000</span></div>
-        <div><strong>Phi:</strong> <span id="phi-value">90.0000</span></div>
-        <div><strong>Alpha:</strong> <span id="alpha-value">0.7071</span></div>
-        <div><strong>Beta:</strong> <span id="beta-value">0.7071i</span></div>
-        <div><strong>X:</strong> <span id="x-value">0.0000</span></div>
-        <div><strong>Y:</strong> <span id="y-value">0.0000</span></div>
-        <div><strong>Z:</strong> <span id="z-value">1.0000</span></div>
+    <div class="state-display" aria-label="Current quantum state">
+        <div class="sd-group sd-angles">
+            <div class="sd-item"><span class="sd-label">&theta;</span><span class="sd-val" id="theta-value">0.0000</span></div>
+            <div class="sd-item"><span class="sd-label">&phi;</span><span class="sd-val" id="phi-value">90.0000</span></div>
+        </div>
+        <div class="sd-group">
+            <div class="sd-item"><span class="sd-label">&alpha;</span><span class="sd-val" id="alpha-value">0.7071</span></div>
+            <div class="sd-item"><span class="sd-label">&beta;</span><span class="sd-val" id="beta-value">0.7071i</span></div>
+        </div>
+        <div class="sd-group">
+            <div class="sd-item"><span class="sd-label">x</span><span class="sd-val" id="x-value">0.0000</span></div>
+            <div class="sd-item"><span class="sd-label">y</span><span class="sd-val" id="y-value">0.0000</span></div>
+            <div class="sd-item"><span class="sd-label">z</span><span class="sd-val" id="z-value">1.0000</span></div>
+        </div>
     </div>
 
     <!-- Load THREE.js -->
@@ -907,17 +968,13 @@
             if (tab === 'rotations') {
                 rotationsForm.style.display = 'block';
                 matrixForm.style.display = 'none';
-                rotationsTab.style.background = 'rgba(6, 182, 212, 0.3)';
-                rotationsTab.style.borderColor = '#06b6d4';
-                matrixTab.style.background = 'rgba(255, 255, 255, 0.1)';
-                matrixTab.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                rotationsTab.classList.add('active');
+                matrixTab.classList.remove('active');
             } else {
                 rotationsForm.style.display = 'none';
                 matrixForm.style.display = 'block';
-                matrixTab.style.background = 'rgba(6, 182, 212, 0.3)';
-                matrixTab.style.borderColor = '#06b6d4';
-                rotationsTab.style.background = 'rgba(255, 255, 255, 0.1)';
-                rotationsTab.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                matrixTab.classList.add('active');
+                rotationsTab.classList.remove('active');
             }
         };
 
