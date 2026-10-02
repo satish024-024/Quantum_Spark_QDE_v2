@@ -795,3 +795,195 @@
     border-color: #a855f7 !important;
     box-shadow: 0 0 10px rgba(168, 85, 247, 0.6) !important;
 }
+
+/* ==================== MOBILE REDESIGN (<=768px) — 3D Circuit Builder ==================== */
+/* Design rules applied: 8px spacing rhythm, one consistent type scale, sticky two-row
+   header (grid areas), canvas first at a fixed viewport height, gate palette as a
+   collapsible card below it, run controls as a bottom bar inside the canvas, and
+   toasts as bottom snackbars. Desktop styles above are untouched. */
+@media (max-width: 768px) {
+    /* ---------- Header: sticky grid, 3 rows ---------- */
+    .header {
+        position: sticky !important;
+        top: 0;
+        display: grid !important;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "back logo actions"
+            "info info info"
+            "controls controls controls";
+        gap: 0.4rem 0.5rem !important;
+        padding: 0.5rem 0.75rem !important;
+        min-height: 0 !important;
+        align-items: center;
+    }
+    .header-left { display: contents !important; }
+    .header-left > a.btn { grid-area: back; }
+    .header-left .logo {
+        grid-area: logo;
+        font-size: 1rem !important;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .header-left .logo span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+    }
+    .header-left .circuit-info-inline {
+        grid-area: info;
+        margin-left: 0 !important;
+        justify-content: flex-start;
+        overflow-x: auto;
+        scrollbar-width: none;
+        max-width: 100%;
+    }
+    .header-left .circuit-info-inline::-webkit-scrollbar { display: none; }
+    .header-center { grid-area: controls; min-width: 0; }
+    .circuit-controls {
+        overflow-x: auto !important;
+        max-width: 100%;
+        justify-content: flex-start !important;
+        scrollbar-width: none;
+    }
+    .circuit-controls::-webkit-scrollbar { display: none; }
+    .circuit-controls > * { flex-shrink: 0; }
+    .header-right { grid-area: actions; margin-left: 0 !important; }
+    .connection-status .status-text { display: none; }
+
+    /* ---------- Main: canvas first, gate palette as a card ---------- */
+    .main-content {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 60vh;
+        padding-top: 0 !important;
+    }
+    .canvas-container {
+        order: -1;
+        flex: none !important;
+        width: auto !important;
+        height: 52vh !important;
+        height: 52dvh !important;
+        min-height: 340px !important;
+        margin: 0.5rem !important;
+    }
+    .sidebar {
+        width: auto !important;
+        flex: none !important;
+        max-height: none !important;
+        margin: 0 0.5rem calc(0.5rem + env(safe-area-inset-bottom)) !important;
+    }
+    .gate-categories { max-height: 42vh; max-height: 42dvh; }
+    .sidebar.cb-gates-collapsed .gate-categories { display: none; }
+
+    /* Sheet collapse toggle (added by circuit_builder_mobile_patch.js) */
+    .cb-sheet-toggle {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        padding: 0 !important;
+        flex-shrink: 0;
+    }
+
+    /* ---------- Gate palette: type scale + touch targets ---------- */
+    .gate-category { margin-bottom: 1rem !important; }
+    .gate-category h4 {
+        font-size: 0.68rem !important;
+        letter-spacing: 0.08em !important;
+        margin-bottom: 0.5rem !important;
+        padding-bottom: 0.25rem !important;
+    }
+    .gate-palette {
+        grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)) !important;
+        gap: 0.5rem !important;
+    }
+    .gate-item {
+        padding: 0.5rem 0.25rem !important;
+        gap: 0.3rem !important;
+        min-height: 66px;
+        justify-content: center;
+    }
+    .gate-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.75rem !important;
+        flex-shrink: 0;
+    }
+    .gate-item span {
+        font-size: 0.62rem !important;
+        line-height: 1.25 !important;
+    }
+
+    /* ---------- IBM run controls: bottom bar inside the canvas ---------- */
+    #ibm-execution-controls {
+        top: auto !important;
+        bottom: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        min-width: 0 !important;
+        padding: 8px !important;
+        gap: 6px !important;
+    }
+    #ibm-execution-controls button {
+        flex: 1 1 30% !important;
+        padding: 8px 6px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+        white-space: nowrap;
+    }
+    #ibm-execution-controls #execution-status {
+        flex: 1 1 100% !important;
+        order: -1 !important;
+        font-size: 11px !important;
+        padding: 6px !important;
+    }
+
+    /* ---------- Toasts become bottom snackbars ---------- */
+    #status-message {
+        top: auto !important;
+        bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+        left: 12px !important;
+        right: 12px !important;
+        max-width: none !important;
+        font-size: 0.85rem !important;
+        text-align: center;
+    }
+
+    /* ---------- Overlays fit the viewport ---------- */
+    #execution-progress > div {
+        min-width: 0 !important;
+        width: calc(100vw - 2rem) !important;
+        max-width: 600px;
+        max-height: 84vh;
+        max-height: 84dvh;
+    }
+    #mini-progress-container {
+        left: 1rem !important;
+        right: 1rem !important;
+        width: auto !important;
+        bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+    }
+    #circuit-selection-interface {
+        left: 8px !important;
+        right: 8px !important;
+        max-width: none !important;
+    }
+    #live-code-panel {
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        bottom: 84px !important;
+        max-height: 150px !important;
+    }
+    #mini-bloch-panel { right: 8px !important; }
+
+    /* Keep the canvas stat overlay clear of the run bar */
+    .canvas-overlay { pointer-events: none; }
+    .circuit-info { max-width: calc(100% - 1rem); overflow-x: auto; scrollbar-width: none; }
+    .circuit-info::-webkit-scrollbar { display: none; }
+}

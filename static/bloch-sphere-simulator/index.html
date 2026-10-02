@@ -329,26 +329,30 @@
             background: linear-gradient(135deg, #ef4444, #dc2626);
             box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
         }
+    </style>
     <style>
-        /* ============ Mobile layout for Bloch Sphere Simulator (2026-10-02) ============ */
+        /* ============ Mobile layout for Bloch Sphere Simulator (2026-10-02, redesigned) ============ */
+        /* UX rules: progressive disclosure (sections collapsed, tap to open), 44px touch
+           targets, primary actions in the thumb zone, one compact type scale. Desktop untouched. */
         .sheet-toggle { display: none; } /* desktop: hidden */
 
         @media (max-width: 768px) {
-            /* Compact navbar */
-            .navbar { padding: 10px 12px; }
-            .navbar h1 { font-size: 15px; }
-            .navbar h1::before { font-size: 18px; }
-            .navbar-buttons { gap: 6px; }
-            .navbar-btn { padding: 8px 10px; font-size: 11px; white-space: nowrap; }
+            /* ---------- Compact navbar ---------- */
+            .navbar { padding: 8px 10px; gap: 8px; }
+            .navbar h1 { font-size: 14px; white-space: nowrap; }
+            .navbar h1::before { font-size: 16px; }
+            .navbar-buttons { gap: 6px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+            .navbar-buttons::-webkit-scrollbar { display: none; }
+            .navbar-btn { padding: 8px 10px; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
 
-            /* Toolbox becomes a bottom sheet */
+            /* ---------- Toolbox becomes a bottom sheet ---------- */
             .toolbox {
                 left: 0; right: 0; top: auto; bottom: 0;
                 width: 100%; min-width: 0; max-width: none;
-                max-height: 48vh;
+                max-height: 52vh; max-height: 52dvh;
                 border-radius: 20px 20px 0 0;
                 border-left: none; border-right: none; border-bottom: none;
-                padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+                padding: 8px 14px calc(14px + env(safe-area-inset-bottom, 0px));
                 z-index: 60;
                 transition: max-height 0.32s cubic-bezier(.22,.61,.36,1);
             }
@@ -357,14 +361,43 @@
                 display: block;
                 width: 44px; height: 5px; border-radius: 3px;
                 background: rgba(255,255,255,0.28);
-                margin: 2px auto 12px;
+                margin: 2px auto 10px;
             }
-            .toolbox.collapsed { max-height: 54px; overflow: hidden; }
+            .toolbox.collapsed { max-height: 56px; overflow: hidden; }
+
+            /* ---------- Accordion sections: tap a category header to open it ---------- */
+            .toolbox .gate-section > h4,
+            .toolbox .angle-controls > h4,
+            .toolbox .tool-accordion > h4 {
+                position: relative;
+                cursor: pointer;
+                min-height: 44px;
+                display: flex !important;
+                align-items: center;
+                padding: 10px 34px 10px 0 !important;
+                margin: 0 !important;
+                font-size: 12px !important;
+                letter-spacing: 0.06em !important;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .toolbox .gate-section > h4::after,
+            .toolbox .angle-controls > h4::after,
+            .toolbox .tool-accordion > h4::after {
+                content: '\203A';
+                position: absolute; right: 10px; top: 50%;
+                transform: translateY(-50%) rotate(90deg);
+                font-size: 20px; line-height: 1;
+                color: rgba(255,255,255,0.55);
+                transition: transform 0.25s ease;
+            }
+            .toolbox .open > h4::after { transform: translateY(-50%) rotate(-90deg); }
+            .toolbox .acc-body { display: none; }
+            .toolbox .open > .acc-body { display: block; padding-bottom: 10px; }
 
             .gate-buttons { grid-template-columns: repeat(4, 1fr); gap: 8px; }
             .gate-btn { padding: 13px 6px; font-size: 14px; min-height: 50px; }
 
-            /* Collapse chevron */
+            /* Collapse chevron for the whole sheet */
             .sheet-toggle {
                 display: flex;
                 position: absolute; top: 10px; right: 12px;
@@ -377,32 +410,39 @@
             }
             .toolbox.collapsed .sheet-toggle { transform: rotate(180deg); }
 
-            /* State readout becomes a compact strip under the navbar */
+            /* ---------- State readout: compact strip under the navbar ---------- */
             .state-display {
-                top: 62px; bottom: auto; left: 8px; right: 8px;
+                top: 58px; bottom: auto; left: 8px; right: 8px;
                 padding: 8px 12px;
-                display: flex; flex-wrap: wrap; gap: 2px 14px;
-                font-size: 11px;
+                display: flex; flex-wrap: wrap; gap: 3px 12px;
+                font-size: 11px; line-height: 1.5;
                 z-index: 55;
                 border-radius: 12px;
             }
-            .state-display div { margin-bottom: 0; gap: 6px; }
+            .state-display div { margin-bottom: 0; gap: 6px; display: inline-flex; }
             .state-display strong { min-width: 0; }
 
-            /* Welcome overlay fits phones */
+            /* ---------- Welcome overlay: compact card above the sheet ---------- */
+            #welcome-overlay { position: fixed !important; z-index: 80 !important; }
             #welcome-overlay > div {
-                max-width: calc(100vw - 32px) !important;
-                max-height: calc(100dvh - 60px);
+                width: calc(100vw - 48px) !important;
+                max-width: 380px !important;
+                max-height: calc(100dvh - 120px);
                 overflow-y: auto;
-                padding: 24px 18px !important;
-                margin: 0 16px;
+                padding: 22px 18px !important;
+                margin: 0 24px;
             }
-            #welcome-overlay h2 { font-size: 24px !important; }
+            #welcome-overlay .welcome-grid { display: none !important; }
+            #welcome-overlay h2 { font-size: 22px !important; margin-bottom: 10px !important; }
+            #welcome-overlay p { font-size: 14px !important; margin-bottom: 18px !important; }
+            #welcome-overlay > div > div:first-child { font-size: 36px !important; margin-bottom: 12px !important; }
+            #welcome-overlay button { width: 100%; max-width: 280px; }
 
-            /* Thumb-friendly sliders and apply buttons */
+            /* ---------- Thumb-friendly sliders and apply buttons ---------- */
             .angle-control input[type="range"] { height: 8px; }
             .angle-control input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; }
             .angle-control button { padding: 12px 16px; font-size: 13px; min-height: 46px; }
+            .tool-accordion .acc-body button { min-height: 44px; }
         }
     </style>
 </head>
@@ -437,7 +477,7 @@
                 Visualize and manipulate quantum states in 3D space
             </p>
 
-            <div
+            <div class="welcome-grid"
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; text-align: left;">
                 <div
                     style="background: rgba(6, 182, 212, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.3);">
@@ -683,7 +723,7 @@
         <!-- USEFUL QUANTUM FEATURES -->
 
         <!-- Measurement Probabilities -->
-        <div
+        <div class="tool-accordion"
             style="margin-top: 24px; padding: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px;">
             <h4
                 style="margin: 0 0 12px 0; color: #10b981; font-size: 13px; font-weight: 600; text-transform: uppercase;">
@@ -713,7 +753,7 @@
         </div>
 
         <!-- Quick State Presets -->
-        <div style="margin-top: 20px;">
+        <div class="tool-accordion" style="margin-top: 20px;">
             <h4
                 style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
                 ⚡ Quick States</h4>
@@ -730,7 +770,7 @@
         </div>
 
         <!-- State Export -->
-        <div style="margin-top: 20px;">
+        <div class="tool-accordion" style="margin-top: 20px;">
             <h4
                 style="margin: 0 0 12px 0; color: #06b6d4; font-size: 13px; font-weight: 600; text-transform: uppercase;">
                 💾 Export State</h4>
@@ -1096,22 +1136,58 @@ print("Probabilities:", state.probabilities())`;
         }
     </script>
     <script>
-        /* Mobile bottom-sheet behavior for the simulator toolbox (2026-10-02):
-           adds a collapse chevron so the 3D sphere gets full room on phones. */
+        /* Mobile bottom-sheet behavior for the simulator toolbox (2026-10-02, redesigned):
+           - Sheet collapse chevron so the 3D sphere gets full room on phones.
+           - Accordion sections: gate categories start collapsed (progressive disclosure);
+             tap a category header to open it. Desktop behavior is untouched. */
         (function () {
+            'use strict';
             if (!window.matchMedia || !window.matchMedia('(max-width: 768px)').matches) return;
             var tb = document.querySelector('.toolbox');
             if (!tb) return;
-            var toggle = document.createElement('button');
-            toggle.className = 'sheet-toggle';
-            toggle.setAttribute('aria-label', 'Collapse or expand controls');
-            toggle.textContent = '\u2304'; /* ⌄ */
-            toggle.addEventListener('click', function (e) {
-                e.stopPropagation();
-                var collapsed = tb.classList.toggle('collapsed');
-                toggle.textContent = collapsed ? '\u2303' : '\u2304'; /* ⌃ / ⌄ */
+
+            /* Build accordions: wrap every section's non-header content in .acc-body. */
+            var sections = tb.querySelectorAll('.gate-section, .angle-controls, .tool-accordion');
+            sections.forEach(function (sec) {
+                if (sec.classList.contains('acc-ready')) return;
+                var h = sec.querySelector(':scope > h4');
+                if (!h) return;
+                sec.classList.add('acc-ready');
+                var body = document.createElement('div');
+                body.className = 'acc-body';
+                var node = h.nextSibling;
+                while (node) {
+                    var next = node.nextSibling;
+                    body.appendChild(node);
+                    node = next;
+                }
+                sec.appendChild(body);
+                h.setAttribute('role', 'button');
+                h.setAttribute('tabindex', '0');
+                h.setAttribute('aria-expanded', 'false');
+                var toggleSec = function () {
+                    var open = sec.classList.toggle('open');
+                    h.setAttribute('aria-expanded', String(open));
+                };
+                h.addEventListener('click', toggleSec);
+                h.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSec(); }
+                });
             });
-            tb.appendChild(toggle);
+
+            /* Sheet collapse chevron. */
+            if (!tb.querySelector('.sheet-toggle')) {
+                var toggle = document.createElement('button');
+                toggle.className = 'sheet-toggle';
+                toggle.setAttribute('aria-label', 'Collapse or expand controls');
+                toggle.textContent = '⌄';
+                toggle.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var collapsed = tb.classList.toggle('collapsed');
+                    toggle.textContent = collapsed ? '⌃' : '⌄';
+                });
+                tb.appendChild(toggle);
+            }
         })();
     </script>
 </body>
