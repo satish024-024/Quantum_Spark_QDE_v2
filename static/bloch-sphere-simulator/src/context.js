@@ -148,7 +148,7 @@ var GlobalContext = {
         // init renderer
         GlobalContext.renderer = new THREE.WebGLRenderer();
         GlobalContext.renderer.setSize(canvasWidth, canvasHeight);
-        GlobalContext.renderer.setPixelRatio(window.devicePixelRatio);
+        GlobalContext.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
         // init label renderer
         GlobalContext.labelRenderer = new THREE.CSS2DRenderer();
@@ -200,6 +200,14 @@ var GlobalContext = {
 
         // update camera
         GlobalContext.camera.aspect = canvasWidth / canvasHeight;
+
+        // Dynamically scale the camera's zoom based on aspect ratio for narrow mobile screens
+        if (GlobalContext.camera.aspect < 1) {
+            GlobalContext.camera.zoom = GlobalContext.camera.aspect;
+        } else {
+            GlobalContext.camera.zoom = 1;
+        }
+
         GlobalContext.camera.updateProjectionMatrix();
 
         // update renderer and label renderer
