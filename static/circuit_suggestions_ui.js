@@ -544,3 +544,16 @@ document.head.appendChild(style);
 if (typeof window !== 'undefined' && !window.CircuitSuggestionsUI) {
     window.CircuitSuggestionsUI = CircuitSuggestionsUI;
 }
+
+/* Mobile patch bootstrap (2026-10-02): this bundle loads only on the circuit
+   builder page, so pull in the small mobile-layout helper kept alongside the
+   other workspace UI patches. The helper itself is pathname-guarded and only
+   adds a collapse toggle + resize handling on small screens. */
+(function () {
+    if (document.querySelector('script[data-cb-mobile-patch]')) return;
+    var s = document.createElement('script');
+    s.src = '/static/workspace/ui/circuit_builder_mobile_patch.js';
+    s.setAttribute('data-cb-mobile-patch', '1');
+    s.defer = true;
+    document.head.appendChild(s);
+})();
