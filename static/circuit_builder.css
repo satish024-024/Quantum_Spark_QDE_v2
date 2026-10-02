@@ -809,6 +809,16 @@ button { font-family: var(--cb-font); }
     .cb-tabpane { display: none; }
     .cb-tabpane.active { display: block; }
 
+    /* GPU SAFETY (Android): backdrop-filter + WebGL causes compositor corruption
+       (full-page RGB noise, dead touch). Kill every blur on mobile; use solids. */
+    .header, .cb-card, .cb-tabbar, .cb-scrim, .cb-leftnav, .sidebar,
+    #mplace-hintbar, #mplace-anglesheet, #mplace-gatepopup {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+    .header, .cb-card, .cb-tabbar { background: var(--cb-surface-solid) !important; }
+    .cb-scrim { background: rgba(15, 23, 42, 0.5) !important; }
+
     .canvas-overlay { flex-wrap: wrap; }
     .circuit-info { gap: 0.6rem; padding: 0.5rem 0.65rem; }
     .info-item .value { font-size: 0.82rem; }

@@ -610,7 +610,8 @@
         if (c) {
             c.addEventListener('pointerdown', onCanvasPointerDown);
             c.addEventListener('pointerup', onCanvasPointerUp);
-            c.style.touchAction = 'pan-y';
+            // NOTE: do not override touch-action here; OrbitControls manages it.
+            // Overriding it broke pinch-zoom on some Android devices.
         }
 
         document.querySelectorAll('.cb-tab').forEach(function (t) {
@@ -620,10 +621,8 @@
             if (document.hidden) { disarm(); deselectGate(); }
         });
 
-        var a = app();
-        if (a && a.renderer && a.renderer.setPixelRatio) {
-            try { a.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); } catch (e) { /* ignore */ }
-        }
+        // NOTE: pixel-ratio cap removed — the engine's default worked reliably;
+        // overriding it correlated with rendering corruption on Android GPUs.
 
         document.addEventListener('click', function (e) {
             if (popup && !popup.contains(e.target)) deselectGate();
