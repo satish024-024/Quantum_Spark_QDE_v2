@@ -36,7 +36,13 @@ var NavbarEventsNamespace = {
     
         // remove '#' from hash & parse workspace properties
         let workspacePropertiesJson = hash.substring(1);
-        let workspaceProperties = JSON.parse(workspacePropertiesJson);
+        let workspaceProperties = null;
+        try {
+            workspaceProperties = JSON.parse(workspacePropertiesJson);
+        } catch (e) {
+            console.warn('Ignoring malformed workspace hash:', e);
+        }
+        if (!workspaceProperties) return;
     
         // load blochsphere state properties
         if (workspaceProperties.blochSphereStateProperties != null) {

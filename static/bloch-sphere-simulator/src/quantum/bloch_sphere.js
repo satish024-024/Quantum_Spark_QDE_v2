@@ -78,6 +78,16 @@ class BlochSphere extends BaseGroup {
         // Update BlochSphereState
         this.blochSphereState.update(this.statePointer.theta(), this.statePointer.phi());
     }
+
+    updateState(theta, phi) {
+        // Reset the state pointer to |0⟩ (pointing up), then apply the new angles.
+        // This is a "set" operation, not incremental like updateBlochSphereState.
+        var radius = this.statePointer.radius || 1;
+        this.statePointer.position.set(0, 0, radius);
+        this.statePointer.rotation.set(0, 0, 0);
+        this.updateBlochSphereState(CartesianAxes.YAxis, theta);
+        this.updateBlochSphereState(CartesianAxes.ZAxis, phi);
+    }
 }
 
 export {

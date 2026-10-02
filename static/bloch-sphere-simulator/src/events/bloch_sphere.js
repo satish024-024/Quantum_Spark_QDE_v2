@@ -17,17 +17,17 @@ var BlochSphereEventsNamespace = {
         let blochSphereState = GlobalContext.blochSphere.blochSphereState;
     
         // update theta & phi
-        $("#bloch-sphere-state-theta").html(blochSphereState.theta.toString());
-        $("#bloch-sphere-state-phi").html(blochSphereState.phi.toString());
+        $("#theta-value").html(blochSphereState.theta.toString());
+        $("#phi-value").html(blochSphereState.phi.toString());
     
         // update alpha & beta
-        $("#bloch-sphere-state-alpha").html(blochSphereState.alpha.toString());
-        $("#bloch-sphere-state-beta").html(blochSphereState.beta.toString());
+        $("#alpha-value").html(blochSphereState.alpha.toString());
+        $("#beta-value").html(blochSphereState.beta.toString());
     
         // update x, y & z
-        $("#bloch-sphere-state-x").html(blochSphereState.x.toString());
-        $("#bloch-sphere-state-y").html(blochSphereState.y.toString());
-        $("#bloch-sphere-state-z").html(blochSphereState.z.toString());
+        $("#x-value").html(blochSphereState.x.toString());
+        $("#y-value").html(blochSphereState.y.toString());
+        $("#z-value").html(blochSphereState.z.toString());
     },
     
     blochSphereOperation: function() {
