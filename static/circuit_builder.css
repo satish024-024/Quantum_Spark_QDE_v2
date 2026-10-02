@@ -819,6 +819,12 @@ button { font-family: var(--cb-font); }
     .header, .cb-card, .cb-tabbar { background: var(--cb-surface-solid) !important; }
     .cb-scrim { background: rgba(15, 23, 42, 0.5) !important; }
 
+    /* STACKING FIX: .cb-workspace (z-index:1) traps the gate bottom-sheet inside
+       its stacking context, so the scrim (z-400 on body) renders ABOVE the sheet
+       and eats all gate taps. Release the workspace on mobile so the sheet's
+       z-401 wins globally. */
+    .cb-workspace { z-index: auto; }
+
     .canvas-overlay { flex-wrap: wrap; }
     .circuit-info { gap: 0.6rem; padding: 0.5rem 0.65rem; }
     .info-item .value { font-size: 0.82rem; }

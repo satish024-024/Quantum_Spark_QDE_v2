@@ -6,7 +6,9 @@ views_bp = Blueprint('views', __name__)
 
 @views_bp.route('/')
 def index():
-    """Default route - redirect to authentication page"""
+    """Default route - send logged-in users to the dashboard, others to login"""
+    if 'user_id' in session:
+        return redirect('/dashboard')
     return redirect('/auth')
 
 @views_bp.route('/dashboard')
