@@ -10,8 +10,17 @@ sys.path.insert(0, os.path.join(project_root, 'quantum'))
 sys.path.insert(0, os.path.join(project_root, 'routes'))
 
 from flask import Flask
+from datetime import timedelta
 
 app = Flask(__name__)
+
+# Session persistence: keep users logged in across browser restarts.
+# Without this, Flask uses a browser-session cookie that dies when the
+# browser closes, forcing a login every time the app is reopened.
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Secure cookie only on HTTPS (Vercel); harmless on http://localhost.
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('VERCEL') is not None
 
 # Configure a consistent secret key to prevent user sessions from invalidating
 secret_key_file = os.path.join(project_root, '.secret_key')

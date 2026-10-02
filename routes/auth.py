@@ -8,7 +8,10 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/auth')
 def auth_selection():
     """User authentication page with animated login and registration"""
-    from flask import render_template
+    from flask import render_template, redirect
+    # Already logged in? Skip the login form and go straight to the dashboard.
+    if session.get('user_id'):
+        return redirect('/dashboard')
     return render_template('auth_animated.html')
 
 @auth_bp.route('/api/register', methods=['POST'])
@@ -61,6 +64,8 @@ def register():
                 session['quantum_token'] = user_api_key
                 session['quantum_crn'] = user_crn
                 session['auth_token'] = token
+                # Keep the login alive across browser restarts (30-day cookie).
+                session.permanent = True
                 
                 print(f"  User automatically logged in: ID={user_data['user_id']}, Email={email}")
                 
@@ -115,6 +120,8 @@ def login():
             session['quantum_token'] = api_key
             session['quantum_crn'] = crn
             session['auth_token'] = token
+            # Keep the login alive across browser restarts (30-day cookie).
+            session.permanent = True
             
             # Seed provider credentials cache
             if api_key:
