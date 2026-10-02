@@ -897,3 +897,16 @@ button { font-family: var(--cb-font); }
 
 /* Hide empty legacy wrappers after the shell moves their children */
 .header-left:empty { display: none; }
+
+/* Library drawer: hidden until toggled (restores pre-redesign behavior) */
+#circuit-selection-interface {
+    opacity: 0 !important;
+    transform: translateY(-12px) !important;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease, transform 0.25s ease !important;
+}
+#circuit-selection-interface.active {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+}

@@ -76,14 +76,13 @@
         var conn = $('#connection-status');
         if (conn) conn.classList.add('cb-conn');
 
-        // Move camera buttons into the 3D viewport
-        var canvas = $('#canvas-container');
-        var tools = el('<div class="cb-viewtools"></div>');
+        // Camera buttons stay in the header: the visualizer binds them by ID at
+        // init time AND wipes #canvas-container (innerHTML=''), so moving them
+        // into the viewport would destroy them. Just give them icon styling.
         ['#resetCamera', '#toggleAnimation'].forEach(function (sel) {
             var b = $(sel);
-            if (b) { b.classList.add('btn', 'btn-icon'); tools.appendChild(b); }
+            if (b) { b.classList.add('btn', 'btn-icon'); }
         });
-        canvas.appendChild(tools);
 
         // Control card
         var cc = card('fa-sliders', 'Circuit Controls');
@@ -272,20 +271,28 @@
         canvas.before(hero);
         hero.appendChild(canvas);
 
-        // Keep hero-bar depth chip in sync with the real depth value
+        // Keep hero-bar depth chip in sync with the real depth value (number only)
         var depthVal = $('#circuit-depth');
         var chipB = hero.querySelector('#cb-depth-chip b');
         if (depthVal && chipB) {
-            new MutationObserver(function () { chipB.textContent = depthVal.textContent; })
-                .observe(depthVal, { childList: true, characterData: true, subtree: true });
-            chipB.textContent = depthVal.textContent;
+            var syncDepth = function () {
+                var m = (depthVal.textContent || '').match(/[0-9]+/);
+                chipB.textContent = m ? m[0] : '–';
+            };
+            if (typeof MutationObserver !== 'undefined') {
+                new MutationObserver(syncDepth).observe(depthVal, { childList: true, characterData: true, subtree: true });
+            }
+            syncDepth();
         }
 
         var row = el('<div class="cb-stats-row"></div>');
         var statsCard = card('fa-chart-column', 'Circuit Stats');
         statsCard.classList.add('cb-stats-card');
         var overlayInfo = canvas.querySelector('.canvas-overlay .circuit-info');
-        if (overlayInfo) statsCard.querySelector('.cb-card-b').appendChild(overlayInfo);
+        if (overlayInfo) {
+            statsCard.querySelector('.cb-card-b').appendChild(overlayInfo);
+            mirrorStats(overlayInfo);
+        }
         else statsCard.querySelector('.cb-card-b').appendChild(el('<p style="color:var(--cb-text-2);font-size:0.85rem">Build a circuit to see live statistics.</p>'));
 
         var qsCard = card('fa-atom', 'Qubit States');
@@ -299,6 +306,27 @@
         hero.after(row);
 
         pollForInjected();
+    }
+
+    /* Mirror live circuit numbers into the stats card.
+       The template carries two sets of #circuit-qubits/#circuit-gates/#circuit-depth
+       (a pre-existing duplicate-ID quirk); updateCircuitInfo only ever updates the
+       first set (now in the control card), so mirror those into the stats card. */
+    function mirrorStats(statsInfo) {
+        if (!statsInfo || typeof MutationObserver === 'undefined') return;
+        ['circuit-qubits', 'circuit-gates', 'circuit-depth'].forEach(function (id) {
+            var all = document.querySelectorAll('#' + id);
+            if (all.length < 2) return;
+            var src = all[0];
+            var dst = statsInfo.querySelector('#' + id) || all[1];
+            if (src === dst) return;
+            var sync = function () {
+                var m = (src.textContent || '').match(/[0-9]+/);
+                dst.textContent = m ? m[0] : '0';
+            };
+            new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+            sync();
+        });
     }
 
     function pollForInjected() {
