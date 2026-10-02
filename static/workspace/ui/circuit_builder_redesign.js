@@ -270,6 +270,11 @@
         );
         canvas.before(hero);
         hero.appendChild(canvas);
+        // The template carries inline height:100% on #canvas-container, which beats
+        // stylesheets and collapses the viewport inside the auto-height hero.
+        // Clear it so the shell's CSS height (vh/dvh) controls the box.
+        canvas.style.height = '';
+        canvas.style.minHeight = '';
 
         // Keep hero-bar depth chip in sync with the real depth value (number only)
         var depthVal = $('#circuit-depth');
@@ -348,6 +353,10 @@
                 placeCodeCard(code);
                 moved = true;
             }
+            // The visualizer re-asserts inline min-height on #canvas-container at
+            // init; keep the shell's CSS height in charge of the viewport box.
+            var cc = $('#canvas-container');
+            if (cc && cc.style.height) { cc.style.height = ''; moved = true; }
             if ((slot && slot.dataset.done && code && code.dataset.placed) || tries > 60) {
                 clearInterval(timer);
             }

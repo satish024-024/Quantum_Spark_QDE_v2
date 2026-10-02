@@ -557,3 +557,16 @@ if (typeof window !== 'undefined' && !window.CircuitSuggestionsUI) {
     s.defer = true;
     document.head.appendChild(s);
 })();
+
+/* Mobile tap-to-place builder (2026-10-02): additive module that turns gate
+   palette taps into armed placement on the 3D rails. Self-activates only on
+   mobile (coarse pointer + narrow viewport) or ?mobile_builder=1; it drives
+   the existing CircuitBuilder engine and changes no desktop behavior. */
+(function () {
+    if (document.querySelector('script[data-mplace]')) return;
+    var s = document.createElement('script');
+    s.src = '/static/workspace/ui/mobile_place_mode.js';
+    s.setAttribute('data-mplace', '1');
+    s.defer = true;
+    document.head.appendChild(s);
+})();
