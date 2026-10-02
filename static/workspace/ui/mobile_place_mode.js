@@ -473,8 +473,17 @@
         if (moveMesh) {
             var mm = moveMesh;
             var mtype = mm.userData.gate.type;
-            var mqubits = mm.userData.gate.qubits || [near.qubit];
-            var mparams = mm.userData.gate.params;
+            // Qubits/params live on the circuit record, NOT on mesh userData
+            // (userData.gate is only {type, position, id}).
+            var mrec = null;
+            for (var mi = 0; mi < b.circuit.length; mi++) {
+                var mr = b.circuit[mi];
+                if (mr.position && Math.abs(mr.position.x - mm.position.x) < 1e-6 &&
+                    Math.abs(mr.position.y - mm.position.y) < 1e-6 && mr.gate === mtype) { mrec = mr; break; }
+            }
+            var mqubits = (mrec && mrec.qubits && mrec.qubits.length) ? mrec.qubits.slice()
+                : (mrec && typeof mrec.qubit === 'number' ? [mrec.qubit] : [near.qubit]);
+            var mparams = (mrec && mrec.params) ? mrec.params : undefined;
             // For multi-qubit gates, keep relative qubit offsets from the tapped rail.
             var baseQ = mqubits[0];
             var nqs = mqubits.map(function (q) { return near.qubit + (q - baseQ); })
