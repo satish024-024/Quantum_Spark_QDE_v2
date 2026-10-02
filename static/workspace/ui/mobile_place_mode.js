@@ -155,6 +155,7 @@
 
     function armGate(type) {
         disarm(true);
+        ensureCanvasListeners(); // re-verify: canvas may have been (re)created since boot
         armed = { type: type, kind: kindOf(type), step: 0, controlQubit: null, depthHint: 0, angle: 'pi/2' };
         document.querySelectorAll('.gate-item.mplace-armed').forEach(function (el) {
             el.classList.remove('mplace-armed');
@@ -587,6 +588,10 @@
 
     var tapStart = null;
     function onCanvasPointerDown(e) {
+        // Only track taps that land on the WebGL canvas itself, not on
+        // overlays/panels inside #canvas-container.
+        var t = e.target;
+        if (!t || (t.tagName !== 'CANVAS' && t.id !== 'canvas-container')) return;
         tapStart = { x: e.clientX, y: e.clientY, t: Date.now() };
     }
 
@@ -602,17 +607,24 @@
         else if (!selectGateAt(e, b)) deselectGate();
     }
 
+    function ensureCanvasListeners() {
+        // Attach to #canvas-container (persistent) instead of the canvas itself:
+        // the engine may create/replace the canvas after we boot, which would
+        // silently drop listeners attached directly to a stale canvas element.
+        var cc = document.getElementById('canvas-container');
+        if (!cc || cc.dataset.mplaceBound) return;
+        cc.dataset.mplaceBound = '1';
+        cc.addEventListener('pointerdown', onCanvasPointerDown);
+        cc.addEventListener('pointerup', onCanvasPointerUp);
+    }
+
     function boot() {
         var pal = document.querySelector('.sidebar') || document;
         pal.addEventListener('click', onPaletteClick, true);
 
-        var c = canvas();
-        if (c) {
-            c.addEventListener('pointerdown', onCanvasPointerDown);
-            c.addEventListener('pointerup', onCanvasPointerUp);
-            // NOTE: do not override touch-action here; OrbitControls manages it.
-            // Overriding it broke pinch-zoom on some Android devices.
-        }
+        ensureCanvasListeners();
+        // NOTE: do not override touch-action here; OrbitControls manages it.
+        // Overriding it broke pinch-zoom on some Android devices.
 
         document.querySelectorAll('.cb-tab').forEach(function (t) {
             t.addEventListener('click', function () { disarm(); deselectGate(); });
