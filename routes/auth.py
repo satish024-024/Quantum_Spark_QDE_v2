@@ -357,3 +357,71 @@ def get_api_instances():
         return jsonify({'success': True, 'instances': instances})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ---------------------------------------------------------------------------
+# Forgot password / reset password / change password
+# ---------------------------------------------------------------------------
+@auth_bp.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    """Start a password reset: generate a single-use token for the email.
+
+    No email service is configured, so the reset link is returned directly.
+    (Plug in SMTP later via env vars and send the link by email instead.)
+    The response never reveals whether the email exists.
+    """
+    try:
+        data = request.get_json() or {}
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'success': False, 'message': 'Email is required'}), 400
+
+        token = user_auth.create_password_reset_token(email)
+        # Always respond generically to avoid email enumeration.
+        resp = {'success': True,
+                'message': 'If an account exists for this email, a reset link has been created.'}
+        if token:
+            # No mailer configured: hand the link back directly.
+            base = request.host_url.rstrip('/')
+            resp['reset_url'] = f'{base}/reset-password?token={token}'
+            resp['note'] = 'Email sending is not configured; use this link directly. It expires in 1 hour.'
+        return jsonify(resp)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Request failed: {str(e)}'}), 500
+
+
+@auth_bp.route('/reset-password')
+def reset_password_page():
+    """Render the set-new-password page (token validated client-side too)."""
+    from flask import render_template
+    return render_template('reset_password.html')
+
+
+@auth_bp.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    """Set a new password using a valid reset token."""
+    try:
+        data = request.get_json() or {}
+        token = data.get('token') or ''
+        new_password = data.get('new_password') or ''
+        ok, msg = user_auth.reset_password_with_token(token, new_password)
+        return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Reset failed: {str(e)}'}), 500
+
+
+@auth_bp.route('/api/change-password', methods=['POST'])
+def change_password():
+    """Change password for the logged-in user (verifies current password)."""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+        data = request.get_json() or {}
+        ok, msg = user_auth.change_password(
+            user_id,
+            data.get('current_password') or '',
+            data.get('new_password') or ''
+        )
+        return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Change failed: {str(e)}'}), 500

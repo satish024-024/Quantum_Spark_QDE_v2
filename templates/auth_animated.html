@@ -543,6 +543,41 @@
                 filter: blur(0) !important;
             }
         }
+        /* Password visibility toggle + forgot-password row/modal */
+        .pw-toggle {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.55); cursor: pointer; font-size: 0.95rem; z-index: 2;
+        }
+        .pw-toggle:hover { color: #fff; }
+        .input-box input[type="password"], .input-box input[type="text"].pw-shown { padding-right: 40px; }
+        .forgot-row { text-align: right; margin: -4px 0 10px; }
+        .forgot-row a { color: #6ee7ff; font-size: 0.85rem; text-decoration: none; }
+        .forgot-row a:hover { text-decoration: underline; }
+        .fp-modal {
+            position: fixed; inset: 0; z-index: 9999; display: none;
+            align-items: center; justify-content: center; padding: 1rem;
+            background: rgba(5,10,20,0.7); backdrop-filter: blur(4px);
+        }
+        .fp-modal.show { display: flex; }
+        .fp-card {
+            width: 100%; max-width: 400px; background: #16232e; color: #fff;
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.6rem;
+        }
+        .fp-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .fp-card h3 i { color: #6ee7ff; }
+        .fp-card p { font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem; }
+        .fp-card input {
+            width: 100%; padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #fff; font-size: 1rem;
+        }
+        .fp-card .btn { width: 100%; padding: 0.85rem; border: 0; border-radius: 10px;
+            background: linear-gradient(90deg, #00c6ff, #0072ff); color: #fff; font-weight: 600; cursor: pointer; }
+        .fp-card .btn:disabled { opacity: 0.6; }
+        .fp-msg { margin-top: 0.9rem; font-size: 0.88rem; display: none; word-break: break-all; }
+        .fp-msg.ok { display: block; color: #a9f0c6; }
+        .fp-msg.err { display: block; color: #ffb3ab; }
+        .fp-msg a { color: #6ee7ff; }
+        .fp-close { float: right; background: none; border: 0; color: rgba(255,255,255,0.6); font-size: 1.2rem; cursor: pointer; }
     </style>
 </head>
 
@@ -565,6 +600,10 @@
                     <input type="password" id="login_password" required>
                     <label>Password</label>
                     <i class="fas fa-lock"></i>
+                    <span class="pw-toggle" data-for="login_password" title="Show password"><i class="fas fa-eye"></i></span>
+                </div>
+                <div class="forgot-row animation" style="--i:3; --j:24">
+                    <a href="#" id="forgotLink">Forgot password?</a>
                 </div>
                 <button type="submit" class="btn animation" style="--i:3; --j:24" id="loginBtn">
                     <span id="loginText">Access Dashboard</span>
@@ -599,6 +638,7 @@
                     <input type="password" id="reg_password" required>
                     <label>Password</label>
                     <i class="fas fa-lock"></i>
+                    <span class="pw-toggle" data-for="reg_password" title="Show password"><i class="fas fa-eye"></i></span>
                 </div>
                 <div class="input-box animation" style="--i:20; --j:3">
                     <input type="password" id="api_key" required>
@@ -781,9 +821,77 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 hideAllStatus();
+                document.getElementById('fpModal').classList.remove('show');
             }
         });
+
+        // Password visibility toggles
+        document.querySelectorAll('.pw-toggle').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var inp = document.getElementById(el.dataset.for);
+                if (!inp) return;
+                var show = inp.type === 'password';
+                inp.type = show ? 'text' : 'password';
+                if (show) inp.classList.add('pw-shown'); else inp.classList.remove('pw-shown');
+                el.innerHTML = '<i class="fas fa-eye' + (show ? '-slash' : '') + '"></i>';
+            });
+        });
+
+        // Forgot-password modal
+        var fpModal = document.getElementById('fpModal');
+        document.getElementById('forgotLink').addEventListener('click', function (e) {
+            e.preventDefault();
+            document.getElementById('fpMsg').className = 'fp-msg';
+            document.getElementById('fpMsg').innerHTML = '';
+            document.getElementById('fpEmail').value = document.getElementById('login_email').value || '';
+            fpModal.classList.add('show');
+        });
+        document.getElementById('fpClose').addEventListener('click', function () {
+            fpModal.classList.remove('show');
+        });
+        fpModal.addEventListener('click', function (e) {
+            if (e.target === fpModal) fpModal.classList.remove('show');
+        });
+        document.getElementById('fpSend').addEventListener('click', async function () {
+            var email = document.getElementById('fpEmail').value.trim();
+            var msg = document.getElementById('fpMsg');
+            var btn = this;
+            if (!email) { msg.className = 'fp-msg err'; msg.textContent = 'Please enter your email address.'; return; }
+            btn.disabled = true; btn.textContent = 'Sending…';
+            try {
+                const r = await fetch('/api/forgot-password', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                const d = await r.json();
+                if (d.success) {
+                    msg.className = 'fp-msg ok';
+                    if (d.reset_url) {
+                        msg.innerHTML = 'Reset link (valid 1 hour, single use):<br><a href="' + d.reset_url + '">' + d.reset_url + '</a>';
+                    } else {
+                        msg.textContent = d.message;
+                    }
+                } else {
+                    msg.className = 'fp-msg err'; msg.textContent = d.message || 'Request failed.';
+                }
+            } catch (err) {
+                msg.className = 'fp-msg err'; msg.textContent = 'Connection error. Please try again.';
+            }
+            btn.disabled = false; btn.textContent = 'Send reset link';
+        });
     </script>
+
+    <!-- Forgot password modal -->
+    <div class="fp-modal" id="fpModal" role="dialog" aria-label="Forgot password">
+        <div class="fp-card">
+            <button class="fp-close" id="fpClose" aria-label="Close"><i class="fas fa-xmark"></i></button>
+            <h3><i class="fas fa-key"></i> Forgot password?</h3>
+            <p>Enter your account email and we'll create a one-time reset link for you.</p>
+            <input type="email" id="fpEmail" placeholder="Email address" autocomplete="email">
+            <button class="btn" id="fpSend">Send reset link</button>
+            <div class="fp-msg" id="fpMsg"></div>
+        </div>
+    </div>
 </body>
 
 </html>
