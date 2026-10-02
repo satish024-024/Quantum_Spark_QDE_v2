@@ -133,3 +133,117 @@
     align-items: center;
     gap: 4px;
 }
+
+/* ---------- Scroll-aware auto-hide (near-vanish) ---------- */
+.workspace-header.header-animated {
+    transition: transform 0.38s cubic-bezier(.22,.61,.36,1), opacity 0.38s ease;
+    will-change: transform, opacity;
+}
+
+.workspace-header.header-hidden {
+    transform: translateY(-115%) scale(0.98);
+    opacity: 0.12;
+    pointer-events: none;
+}
+
+/* ---------- Refresh button spin feedback ---------- */
+#refresh-all-btn.spinning i {
+    animation: header-spin 0.9s linear infinite;
+}
+
+@keyframes header-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Layout preferences popover ---------- */
+#layout-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 220px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(18, 20, 24, 0.14);
+    padding: 8px;
+    z-index: 1200;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(.22,.61,.36,1);
+}
+
+#layout-popover.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.layout-popover-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    padding: 8px 10px 6px;
+}
+
+.layout-popover-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+}
+
+.layout-popover-row:hover {
+    background: rgba(18, 20, 24, 0.05);
+}
+
+.layout-popover-row i {
+    width: 18px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.layout-toggle {
+    margin-left: auto;
+    width: 36px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(18, 20, 24, 0.15);
+    position: relative;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.layout-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: left 0.2s ease;
+}
+
+.layout-toggle.on {
+    background: var(--accent-aqua);
+}
+
+.layout-toggle.on::after {
+    left: 17px;
+}

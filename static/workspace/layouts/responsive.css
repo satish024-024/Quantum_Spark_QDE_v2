@@ -249,3 +249,118 @@ canvas, svg, img, video {
         font-size: 14px;
     }
 }
+
+/* ============================================================
+   Mobile polish round 2 (2026-10-02)
+   - WhatsApp-style bottom navigation: big touch targets, icon+label
+   - Header pills never clip; status strip never overlaps content
+   - Roomier, app-like widget blocks on phones (laptop UI untouched)
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* ---- Bottom dock becomes a proper app nav bar ---- */
+    .bottom-dock {
+        width: calc(100% - 20px);
+        left: 10px;
+        transform: none;
+        bottom: 10px;
+        padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px));
+        gap: 2px;
+        border-radius: 22px;
+    }
+
+    .bottom-dock-item {
+        flex: 1 1 0;
+        flex-direction: column;
+        gap: 3px;
+        padding: 9px 4px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 14px;
+        min-height: 56px;
+    }
+
+    .bottom-dock-item i {
+        font-size: 21px;
+    }
+
+    .bottom-dock-item span {
+        display: inline !important; /* labels stay visible, WhatsApp-style */
+        font-size: 10.5px;
+        line-height: 1.2;
+    }
+
+    .bottom-dock-item.active {
+        background: rgba(0, 168, 150, 0.12);
+    }
+
+    /* ---- Header pills: never clip, never overlap neighbors ---- */
+    .panel-header-actions {
+        max-width: 100%;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .panel-header-actions .btn,
+    .panel-header-actions select {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex-shrink: 1;
+        min-height: 34px;
+    }
+
+    /* Status strip sits in normal flow above content, always readable */
+    .workspace-status-strip {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ---- Roomier blocks, thumb-friendly controls ---- */
+    .panel-card {
+        border-radius: 20px;
+    }
+
+    .widget {
+        margin-bottom: 2px;
+    }
+
+    .panel-header-title h4 {
+        font-size: 15px;
+    }
+
+    /* Buttons inside widgets get comfortable touch targets */
+    .panel-body .btn,
+    .panel-body button:not(.bottom-dock-item) {
+        min-height: 38px;
+    }
+
+    /* KPI cards breathe a little more */
+    .kpi-grid > div {
+        border-radius: 18px;
+    }
+
+    /* Circuit canvas + bloch widgets: full-width, calm heights */
+    #circuit-content,
+    #bloch-content {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Even the smallest phones keep the full nav bar usable */
+    .bottom-dock-item {
+        font-size: 10px;
+        min-height: 54px;
+        padding: 8px 2px 6px;
+    }
+
+    .bottom-dock-item i {
+        font-size: 19px;
+    }
+
+    .bottom-dock {
+        border-radius: 20px;
+    }
+}
