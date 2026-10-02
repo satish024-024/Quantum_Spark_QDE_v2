@@ -60,3 +60,6 @@ ibm_quantum_api_report_*.json
 
 .vercel
 scratch/
+node_modules
+
+node_modules/

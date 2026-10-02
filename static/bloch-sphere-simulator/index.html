@@ -337,6 +337,13 @@
         .sheet-toggle { display: none; } /* desktop: hidden */
 
         @media (max-width: 768px) {
+            #bloch-sphere {
+                height: calc(100dvh - 56px) !important;
+            }
+            .toolbox:not(.collapsed) ~ #bloch-sphere {
+                height: calc(100dvh - 52dvh) !important;
+            }
+
             /* ---------- Compact navbar ---------- */
             .navbar { padding: 8px 10px; gap: 8px; }
             .navbar h1 { font-size: 14px; white-space: nowrap; }
@@ -1185,8 +1192,26 @@ print("Probabilities:", state.probabilities())`;
                     e.stopPropagation();
                     var collapsed = tb.classList.toggle('collapsed');
                     toggle.textContent = collapsed ? '⌃' : '⌄';
+
+                    // Trigger global resize so canvas fits new space
+                    setTimeout(function() {
+                        if (window.GlobalContext && window.GlobalContext.onresize) {
+                            window.GlobalContext.onresize();
+                        }
+                    }, 350); // match transition duration
                 });
                 tb.appendChild(toggle);
+            }
+
+            // Setup ResizeObserver to adjust 3D canvas when toolbox or container resizes
+            var blochSphere = document.getElementById('bloch-sphere');
+            if (window.ResizeObserver && blochSphere) {
+                var ro = new ResizeObserver(function() {
+                    if (window.GlobalContext && window.GlobalContext.onresize) {
+                        window.GlobalContext.onresize();
+                    }
+                });
+                ro.observe(blochSphere);
             }
         })();
     </script>
