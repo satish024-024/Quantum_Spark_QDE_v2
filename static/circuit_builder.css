@@ -155,7 +155,7 @@ button { font-family: var(--cb-font); }
 }
 .cb-avatar {
     width: 34px; height: 34px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--cb-accent), var(--cb-purple));
+    background: var(--cb-accent);
     color: #fff; font-weight: 700; font-size: 0.8rem;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -196,11 +196,11 @@ button { font-family: var(--cb-font); }
 }
 .btn:active { transform: scale(0.97); }
 .btn-primary {
-    background: linear-gradient(180deg, #1a8cff, var(--cb-accent)) !important;
+    background: var(--cb-accent) !important;
     color: #fff !important;
-    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    box-shadow: var(--cb-shadow-s);
 }
-.btn-primary:hover { box-shadow: 0 8px 22px rgba(0, 113, 227, 0.45), inset 0 1px 0 rgba(255,255,255,0.25); }
+.btn-primary:hover { box-shadow: var(--cb-shadow-m); }
 .btn-secondary {
     background: var(--cb-surface-solid) !important;
     border-color: var(--cb-border-strong) !important;
@@ -475,7 +475,7 @@ button { font-family: var(--cb-font); }
 .cb-qubitstates .qs span { font-size: 0.68rem; color: var(--cb-text-2); }
 .cb-qs-dot {
     width: 44px; height: 44px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #e8f1ff, #c9defc 60%, #a9c8f5);
+    background: var(--cb-accent-soft);
     border: 1px solid var(--cb-border-strong);
     display: flex; align-items: center; justify-content: center;
     font-size: 0.7rem; font-weight: 800; color: var(--cb-accent-dark);
@@ -552,7 +552,7 @@ button { font-family: var(--cb-font); }
     font-family: var(--cb-font);
     flex-shrink: 0;
 }
-.gate-item span { font-size: 0.64rem !important; font-weight: 600; color: var(--cb-text-2); line-height: 1.25; }
+.gate-item span { font-size: var(--cb-t-chip) !important; font-weight: 600; color: var(--cb-text-2); line-height: 1.25; }
 /* Keep the original per-gate accent hues, softened for light UI */
 .gate-item[data-gate="X"] .gate-icon, .gate-item[data-gate="SX"] .gate-icon { color: #c22727; background: rgba(210,40,40,0.1); border-color: rgba(210,40,40,0.3); }
 .gate-item[data-gate="Y"] .gate-icon, .gate-item[data-gate="CY"] .gate-icon { color: #0b7c74; background: rgba(11,124,116,0.1); border-color: rgba(11,124,116,0.3); }
@@ -810,7 +810,7 @@ button { font-family: var(--cb-font); }
         flex: 1;
         display: flex; flex-direction: column; align-items: center; gap: 0.18rem;
         background: transparent; border: 0; cursor: pointer;
-        font-size: 0.64rem; font-weight: 700; color: var(--cb-text-2);
+        font-size: var(--cb-t-tab); font-weight: 700; color: var(--cb-text-2);
         padding: 0.45rem 0.2rem; border-radius: 10px;
         min-height: 52px; justify-content: center;
     }
@@ -927,6 +927,9 @@ button { font-family: var(--cb-font); }
 
 /* Make sure long gate names never break the tiles */
 .gate-item span { overflow-wrap: anywhere; }
+/* Mobile: tap metaphor, not drag */
+.gate-item { cursor: pointer; }
+.gate-item:active { cursor: pointer; }
 
 /* Hide empty legacy wrappers after the shell moves their children */
 .header-left:empty { display: none; }
