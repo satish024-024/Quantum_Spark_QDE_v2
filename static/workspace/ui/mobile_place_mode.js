@@ -36,7 +36,11 @@
     /* ---------------- gate metadata ---------------- */
     var TWO_QUBIT = ['CNOT', 'CX', 'CZ', 'CY', 'CH', 'SWAP', 'ISWAP', 'CRX', 'CRY', 'CRZ'];
     var THREE_QUBIT = ['TOFFOLI', 'CCX', 'CCZ', 'CSWAP', 'FREDKIN'];
-    var PARAMETRIC = ['RX', 'RY', 'RZ']; // angle sheet; Qiskit codegen reads params[0]
+    var PARAMETRIC = ['RX', 'RY', 'RZ', 'P']; // angle sheet; Qiskit codegen reads params[0]
+    /* U needs 3 angles (theta/phi/lambda) which the mobile sheet doesn't collect,
+       and the engine's Qiskit codegen has no case for U — so block it on mobile
+       rather than silently placing a broken gate. */
+    var MOBILE_BLOCKED = { U: 'The U gate needs 3 angles — please use the desktop builder for it.' };
     var SPACING_X = 0.8, SPACING_Y = 0.6;
 
     var GATE_LABELS = {
@@ -53,6 +57,7 @@
     /* ---------------- state ---------------- */
     var armed = null;        // {type, kind, step, controlQubit, depthHint, angle}
     var selectedMesh = null;
+    var moveMesh = null;       // mesh being moved; next rail tap re-places it
     var ui = {};
     var raycaster = null;
     var circuitPlane = null;
@@ -62,11 +67,16 @@
 
     /* ---------------- engine access ---------------- */
     function app() { return window.unifiedQuantumApp || null; }
+    /* Camera/renderer/controls live on the visualization, not the app root. */
+    function vis() {
+        var a = app();
+        return (a && a.visualization) ? a.visualization : a;
+    }
     function builder() { var a = app(); return (a && a.circuitBuilder) ? a.circuitBuilder : null; }
     function three() { return window.THREE || null; }
 
-    function vibrate(ms) {
-        try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignore */ }
+    function vibrate(pattern) {
+        try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* ignore */ }
     }
 
     function refreshUI(b) {
@@ -124,7 +134,7 @@
 
     /* ---------------- camera ---------------- */
     function setPlacementCamera(on) {
-        var a = app();
+        var a = vis();
         if (!a || !a.controls) return;
         a.controls.enableRotate = !on;
         a.controls.enablePan = !on;
@@ -132,7 +142,7 @@
     }
 
     function snapCameraFront() {
-        var a = app(), b = builder();
+        var a = vis(), b = builder();
         if (!a || !a.camera || !a.controls) return;
         var n = (b && b.qubits) || 3;
         var maxDepth = 0;
@@ -187,12 +197,13 @@
 
     function disarm(silent) {
         armed = null;
+        moveMesh = null;
         setPlacementCamera(false);
         document.querySelectorAll('.gate-item.mplace-armed').forEach(function (el) {
             el.classList.remove('mplace-armed');
         });
         hideAngleSheet();
-        if (!silent) hideHintBar();
+        if (!silent) hideHintbar();
     }
 
     /* ---------------- angle sheet (RX/RY/RZ) ---------------- */
@@ -268,7 +279,7 @@
 
     /* ---------------- placement core ---------------- */
     function canvas() {
-        var a = app();
+        var a = vis();
         return (a && a.renderer) ? a.renderer.domElement : document.getElementById('quantumCanvas');
     }
 
@@ -282,7 +293,7 @@
     }
 
     function raycastPlane(e) {
-        var a = app(), T = three();
+        var a = vis(), T = three();
         if (!a || !a.camera || !T) return null;
         if (!raycaster) raycaster = new T.Raycaster();
         if (!circuitPlane) circuitPlane = new T.Plane(new T.Vector3(0, 0, 1), 0);
@@ -410,6 +421,10 @@
         } else if (e.op === 'del') {
             var p = rePlace(b, e.rec);
             if (p) e.mesh = p;
+        } else if (e.op === 'move') {
+            // Undo a move: remove from new spot, restore at old spot.
+            if (e.mesh && b.gateInstances.indexOf(e.mesh) >= 0) removePlaced(b, e.mesh);
+            if (e.prev) { var rp = rePlace(b, e.prev); if (rp) e.mesh = rp; }
         }
         redoStack.push(e);
         vibrate(10);
@@ -451,6 +466,28 @@
 
         if (near.qubit < 0 || near.dist > 0.45 || depth < 0 || hit.x > maxX || hit.x < -1) {
             flashHint('Tap closer to a qubit rail');
+            return;
+        }
+
+        // Move mode: re-place the selected gate at the new position.
+        if (moveMesh) {
+            var mm = moveMesh;
+            var mtype = mm.userData.gate.type;
+            var mqubits = mm.userData.gate.qubits || [near.qubit];
+            var mparams = mm.userData.gate.params;
+            // For multi-qubit gates, keep relative qubit offsets from the tapped rail.
+            var baseQ = mqubits[0];
+            var nqs = mqubits.map(function (q) { return near.qubit + (q - baseQ); })
+                .filter(function (q) { return q >= 0 && q < n; });
+            if (nqs.length !== mqubits.length) { flashHint('Not enough room here'); return; }
+            var md = nextFreeDepth(b, nqs, depth);
+            var gone = removePlaced(b, mm);
+            var mp = placeGate(b, mtype, md, nqs, mparams);
+            if (mp) mRecord({ op: 'move', mesh: mp.mesh, rec: mp.rec, prev: gone });
+            moveMesh = null;
+            setPlacementCamera(false);
+            hideHintbar();
+            vibrate(15);
             return;
         }
 
@@ -498,7 +535,7 @@
     }
 
     function selectGateAt(e, b) {
-        var a = app(), T = three();
+        var a = vis(), T = three();
         if (!a || !a.camera || !T || !b.gateInstances) return false;
         if (!raycaster) raycaster = new T.Raycaster();
         var ndc = ndcFromEvent(e);
@@ -554,6 +591,18 @@
         });
         popup.appendChild(del);
 
+        var mv = document.createElement('button');
+        mv.type = 'button';
+        mv.className = 'mplace-delbtn';
+        mv.textContent = 'Move gate';
+        mv.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            var m = selectedMesh;
+            deselectGate();
+            if (m) startMove(m);
+        });
+        popup.appendChild(mv);
+
         popup.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
         popup.style.top = Math.max(8, e.clientY - 40) + 'px';
         document.body.appendChild(popup);
@@ -570,6 +619,21 @@
         hideGatePopup();
     }
 
+    function startMove(mesh) {
+        moveMesh = mesh;
+        disarm(true);
+        setPlacementCamera(true);
+        setHint('Tap a new rail position for ' + label(mesh.userData.gate.type) + ' (tap ✕ to cancel)');
+        showHintbar();
+        vibrate(10);
+    }
+
+    function cancelMove() {
+        moveMesh = null;
+        setPlacementCamera(false);
+        hideHintbar();
+    }
+
     /* ---------------- wire up ---------------- */
     function onPaletteClick(e) {
         var item = e.target && e.target.closest ? e.target.closest('.gate-item') : null;
@@ -583,7 +647,9 @@
             var scrim = document.querySelector('.cb-scrim');
             if (scrim) scrim.classList.remove('show');
         }
-        armGate(item.dataset.gate);
+        var gtype = item.dataset.gate;
+        if (MOBILE_BLOCKED[gtype]) { flashHint(MOBILE_BLOCKED[gtype]); return; }
+        armGate(gtype);
     }
 
     var tapStart = null;
@@ -603,7 +669,7 @@
         if (dx * dx + dy * dy > 100 || dt > 600) return; // 10px / 600ms tap threshold
         var b = builder();
         if (!b) return;
-        if (armed) handlePlacementTap(e, b);
+        if (armed || moveMesh) handlePlacementTap(e, b);
         else if (!selectGateAt(e, b)) deselectGate();
     }
 
@@ -623,18 +689,14 @@
         pal.addEventListener('click', onPaletteClick, true);
 
         ensureCanvasListeners();
-        // NOTE: do not override touch-action here; OrbitControls manages it.
-        // Overriding it broke pinch-zoom on some Android devices.
 
-        document.querySelectorAll('.cb-tab').forEach(function (t) {
-            t.addEventListener('click', function () { disarm(); deselectGate(); });
-        });
+        // Event delegation: tabs are created by the shell, possibly after we boot.
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.closest && e.target.closest('.cb-tab')) { disarm(); deselectGate(); }
+        }, true);
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) { disarm(); deselectGate(); }
         });
-
-        // NOTE: pixel-ratio cap removed — the engine's default worked reliably;
-        // overriding it correlated with rendering corruption on Android GPUs.
 
         document.addEventListener('click', function (e) {
             if (popup && !popup.contains(e.target)) deselectGate();

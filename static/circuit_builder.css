@@ -787,9 +787,7 @@ button { font-family: var(--cb-font); }
     .cb-tabbar {
         display: flex;
         position: sticky; bottom: 0; z-index: 150;
-        background: var(--cb-surface);
-        -webkit-backdrop-filter: blur(22px) saturate(1.6);
-        backdrop-filter: blur(22px) saturate(1.6);
+        background: var(--cb-surface-solid);
         border-top: 1px solid var(--cb-border);
         padding: 0.45rem 0.6rem calc(0.45rem + env(safe-area-inset-bottom));
         gap: 0.25rem;
@@ -805,9 +803,6 @@ button { font-family: var(--cb-font); }
     }
     .cb-tab i { font-size: 1.1rem; }
     .cb-tab.active { color: var(--cb-accent); background: var(--cb-accent-soft); }
-
-    .cb-tabpane { display: none; }
-    .cb-tabpane.active { display: block; }
 
     /* GPU SAFETY (Android): backdrop-filter + WebGL causes compositor corruption
        (full-page RGB noise, dead touch). Kill every blur on mobile; use solids. */
