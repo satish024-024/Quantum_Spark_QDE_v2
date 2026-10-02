@@ -621,7 +621,7 @@ button { font-family: var(--cb-font); }
 /* Gates floating action button (mobile) */
 .cb-gates-fab {
     display: none;
-    position: fixed; right: 1rem; bottom: calc(5.4rem + env(safe-area-inset-bottom)); z-index: 300;
+    position: fixed; right: 1rem; bottom: calc(5.4rem + env(safe-area-inset-bottom)); z-index: 402;
     width: 58px; height: 58px; border-radius: 50%;
     background: linear-gradient(180deg, #1a8cff, var(--cb-accent));
     color: #fff; font-size: 1.3rem;
@@ -752,17 +752,26 @@ button { font-family: var(--cb-font); }
     .cb-runopts { grid-template-columns: 1fr 1fr; }
     .cb-runopts .cb-runopt:last-child { grid-column: 1 / -1; }
 
-    /* Sidebar becomes a bottom sheet */
+    /* Sidebar becomes a bottom sheet.
+       Solid background on mobile: heavy backdrop-filter on a large fixed sheet
+       is a known rendering hazard on Android (smearing/blur artifacts) and hurts
+       scroll performance. visibility keeps the closed sheet truly inert. */
     .sidebar {
         position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 401;
         border-radius: 22px 22px 0 0;
         border: 0; border-top: 1px solid var(--cb-border);
+        background: var(--cb-surface-solid);
+        -webkit-backdrop-filter: none; backdrop-filter: none;
         max-height: 78vh; max-height: 78dvh;
-        transform: translateY(105%);
-        transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+        transform: translateY(105%); visibility: hidden;
+        transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s linear 0.32s;
         box-shadow: 0 -18px 60px rgba(15, 23, 42, 0.25);
+        overflow-y: auto; overscroll-behavior: contain;
     }
-    .sidebar.cb-sheet-open { transform: translateY(0); }
+    .sidebar.cb-sheet-open {
+        transform: translateY(0); visibility: visible;
+        transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
     .sidebar::before {
         content: ""; display: block;
         width: 44px; height: 5px; border-radius: 3px;
