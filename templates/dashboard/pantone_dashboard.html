@@ -69,7 +69,7 @@
                 <div class="editor-panel">
                     {% include 'dashboard/widgets/circuit_canvas.html' %}
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                    <div class="pair-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
                         {% include 'dashboard/widgets/measurement_results.html' %}
                         {% include 'dashboard/widgets/entanglement_analysis.html' %}
                     </div>
@@ -85,7 +85,7 @@
 
                 <!-- BOTTOM PANEL CONTAINER -->
                 <div class="bottom-panel-container col-span-12">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+                    <div class="pair-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
                         {% include 'dashboard/widgets/comparison.html' %}
                         {% include 'dashboard/widgets/radar_chart.html' %}
                     </div>

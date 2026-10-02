@@ -73,3 +73,179 @@
         display: none; /* Show only icons on small screens */
     }
 }
+
+/* ============================================================
+   Mobile dashboard fixes (2026-10-02)
+   Makes the workspace feel like a native mobile app:
+   no text running off-screen, compact cards, sane stacking.
+   ============================================================ */
+
+/* Guard against any overflowing media */
+canvas, svg, img, video {
+    max-width: 100%;
+}
+
+/* Small tablets / large phones and below */
+@media (max-width: 768px) {
+    /* Tighter page rhythm + room for the floating bottom dock */
+    .workspace-wrapper {
+        padding: var(--space-sm);
+        padding-bottom: 110px;
+        gap: var(--space-sm);
+    }
+
+    .workspace-grid,
+    .workspace-content {
+        gap: var(--space-sm);
+    }
+
+    /* Bottom panel must not span 3 columns in a 1-column grid */
+    .bottom-panel-container {
+        grid-column: 1 / -1;
+    }
+
+    /* Side-by-side widget pairs stack vertically */
+    .pair-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ---- KPI cards: 2x2 compact grid instead of 4 squeezed columns ---- */
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: var(--space-sm);
+    }
+
+    .kpi-grid > div {
+        grid-column: auto !important;
+        padding: 14px !important;
+        min-width: 0;
+    }
+
+    .kpi-grid .number-display {
+        font-size: 24px !important;
+    }
+
+    .kpi-grid p {
+        font-size: 11px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ---- Header: stack cleanly, never overflow ---- */
+    .workspace-header {
+        gap: var(--space-sm);
+    }
+
+    .workspace-header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .workspace-user-profile {
+        padding-left: 0;
+        border-left: none;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .workspace-user-info {
+        min-width: 0;
+    }
+
+    .workspace-user-info .email {
+        max-width: 40vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .workspace-status-strip {
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        padding: 8px 12px;
+        font-size: 12px;
+        justify-content: space-between;
+    }
+
+    /* ---- Widgets: breathing room, scrollable tables ---- */
+    .panel-body {
+        padding: var(--space-sm);
+    }
+
+    .panel-header {
+        padding: var(--space-sm);
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .panel-body table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #detailed-backends-modal,
+    #all-jobs-modal,
+    #snapshots-fullscreen-modal,
+    .detailed-modal {
+        width: calc(100vw - 24px) !important;
+        max-height: 88vh !important;
+        overflow: auto !important;
+        margin: 12px !important;
+    }
+
+    .slide-over-panel {
+        width: calc(100vw - 40px);
+        right: calc(-100vw + 40px);
+    }
+
+    /* ---- Breadcrumb wraps instead of clipping ---- */
+    .breadcrumb-nav {
+        flex-wrap: wrap;
+        font-size: 12px;
+    }
+
+    /* ---- Heavy visual widgets get a shorter, calmer mobile size ---- */
+    #3d-quantum-circuit {
+        height: 220px !important;
+    }
+
+    .widget[data-widget="bloch-sphere"] #bloch-3d-container {
+        height: 220px !important;
+    }
+
+    .empty-state-container {
+        padding: 24px var(--space-sm);
+    }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+    .workspace-header {
+        padding: 10px 12px;
+    }
+
+    .workspace-logo-text h1 {
+        font-size: 17px;
+    }
+
+    .kpi-grid .number-display {
+        font-size: 22px !important;
+    }
+
+    .kpi-grid > div {
+        padding: 12px !important;
+    }
+
+    .workspace-user-info .email {
+        max-width: 34vw;
+    }
+
+    .panel-header-title h4 {
+        font-size: 14px;
+    }
+}

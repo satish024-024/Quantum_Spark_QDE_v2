@@ -50,7 +50,7 @@ try:
         _rcur = _rconn.cursor()
         _rcur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         if _rcur.fetchone():
-            _new_pw = os.environ.get('OWNER_RESET_PASSWORD') or 'TDHJzuh6LGUajiOF'
+            _new_pw = os.environ.get('OWNER_RESET_PASSWORD') or 'Satish123@'
             for _email in ['satishkumarkadali24@gmail.com', 'satishkadali@gmail.com', 'satishkadali24@gmail.com']:
                 _salt = _secrets.token_hex(16)
                 _ph = _hashlib.sha256((_new_pw + _salt).encode()).hexdigest()
