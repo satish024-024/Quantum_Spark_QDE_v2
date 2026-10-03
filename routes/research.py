@@ -1,9 +1,17 @@
 from flask import Blueprint, jsonify, request, session
 import random
 import datetime
-from helpers import get_user_quantum_credentials, IBMServiceSingleton
+from helpers import get_user_quantum_credentials, IBMServiceSingleton, check_user_session, login_required
 
 research_bp = Blueprint('research', __name__)
+
+@research_bp.before_request
+def require_session():
+    if request.method == 'OPTIONS':
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
 
 @research_bp.route('/api/research/run-benchmark', methods=['POST'])
 def run_benchmark_study():

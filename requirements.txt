@@ -19,3 +19,4 @@ sqlalchemy>=2.0.25
 networkx>=3.3
 PyJWT>=2.8.0
 python-dotenv>=1.0.0
+argon2-cffi>=23.1.0

@@ -1,10 +1,21 @@
 from flask import Blueprint, jsonify, request, session
-from helpers import get_user_quantum_credentials, provider_credentials, quantum_manager_singleton, ProviderRegistry
+from helpers import (
+    get_user_quantum_credentials, provider_credentials, quantum_manager_singleton,
+    ProviderRegistry, check_user_session, login_required
+)
 import inspect
 import time
 import threading
 
 backends_bp = Blueprint('backends', __name__)
+
+@backends_bp.before_request
+def require_session():
+    if request.method == 'OPTIONS':
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
 
 @backends_bp.route('/api/backends', methods=['GET'])
 def get_all_backends_aggregated():

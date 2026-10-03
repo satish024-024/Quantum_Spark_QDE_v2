@@ -3,9 +3,20 @@ import json
 import time
 import re
 from qiskit import QuantumCircuit
-from helpers import get_user_quantum_credentials, gemini_ai, GEMINI_AI_AVAILABLE, quantum_manager_singleton
+from helpers import (
+    get_user_quantum_credentials, gemini_ai, GEMINI_AI_AVAILABLE, quantum_manager_singleton,
+    check_user_session, login_required
+)
 
 ai_bp = Blueprint('ai', __name__)
+
+@ai_bp.before_request
+def require_session():
+    if request.method == 'OPTIONS':
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
 
 class QuantumCircuitGenerator:
     """Generate quantum circuits for AI assistant integration"""

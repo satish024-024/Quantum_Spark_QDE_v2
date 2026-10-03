@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, session, Response
 from helpers import (
     get_user_quantum_credentials, IBMServiceSingleton, IBMJobCache, IBMResultsCache,
     quantum_manager_singleton, CircuitStateManager, circuit_manager, validate_crn,
-    ProviderRegistry
+    ProviderRegistry, check_user_session, login_required
 )
 import sqlite3
 import time
@@ -16,6 +16,14 @@ from database import db
 from helpers import get_db_path
 
 jobs_bp = Blueprint('jobs', __name__)
+
+@jobs_bp.before_request
+def require_session():
+    if request.method == 'OPTIONS':
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
 
 def extract_counts_from_result(result):
     """Safely extract counts dictionary from any Qiskit result object (V1 or V2 PrimitiveResult)."""

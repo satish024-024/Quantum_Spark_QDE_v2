@@ -2,9 +2,45 @@ import os
 import sqlite3
 from flask import Blueprint, jsonify, request, session
 from helpers import user_auth, get_user_quantum_credentials, provider_credentials, validate_crn
-from helpers import get_db_path
+from helpers import get_db_path, check_user_session, login_required
 
 auth_bp = Blueprint('auth', __name__)
+
+AUTH_PUBLIC_ENDPOINTS = {
+    'auth.register',
+    'auth.login',
+    'auth.forgot_password',
+    'auth.reset_password',
+    'auth.auth_selection',
+    'auth.reset_password_page',
+    'auth.health_check',
+}
+AUTH_PUBLIC_PATHS = {
+    '/auth',
+    '/api/register',
+    '/api/login',
+    '/api/forgot-password',
+    '/reset-password',
+    '/api/reset-password',
+    '/health',
+    '/api/health',
+}
+
+@auth_bp.before_request
+def require_session_auth():
+    if request.method == 'OPTIONS':
+        return None
+    if request.endpoint in AUTH_PUBLIC_ENDPOINTS or request.path in AUTH_PUBLIC_PATHS:
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
+
+@auth_bp.route('/health')
+@auth_bp.route('/api/health')
+def health_check():
+    import time
+    return jsonify({'status': 'healthy', 'timestamp': time.time()}), 200
 
 @auth_bp.route('/auth')
 def auth_selection():
@@ -63,8 +99,6 @@ def register():
                 user_data = user_auth.verify_token(token)
                 session['user_id'] = user_data['user_id']
                 session['user_email'] = email
-                session['quantum_token'] = user_api_key
-                session['quantum_crn'] = user_crn
                 session['auth_token'] = token
                 try:
                     session['pwd_version'] = user_auth.get_pwd_version(user_data['user_id'])
@@ -152,8 +186,6 @@ def login():
                 except Exception:
                     session['pwd_version'] = 0
             session['user_email'] = email
-            session['quantum_token'] = api_key
-            session['quantum_crn'] = crn
             session['auth_token'] = token
             # Keep the login alive across browser restarts (30-day cookie).
             session.permanent = True
@@ -212,8 +244,7 @@ def get_auth_status():
     user_email = session.get('user_email')
     
     if user_id and user_email:
-        token = session.get('quantum_token')
-        crn = session.get('quantum_crn')
+        token, crn = get_user_quantum_credentials()
         
         return jsonify({
             "authenticated": True,
@@ -244,17 +275,7 @@ def circuit_auth_status():
             "error": "Please log in to save and execute circuits"
         })
         
-    # Get user credentials
-    quantum_token = session.get('quantum_token')
-    quantum_crn = session.get('quantum_crn')
-    
-    if not quantum_token or not quantum_crn:
-        try:
-            # Try to fetch from DB/helpers
-            quantum_token, quantum_crn = get_user_quantum_credentials()
-        except Exception as e:
-            print(f"Error fetching quantum credentials for user {user_id}: {e}")
-            
+    quantum_token, quantum_crn = get_user_quantum_credentials()
     is_configured = bool(quantum_token and quantum_crn)
     
     return jsonify({
@@ -479,6 +500,8 @@ def change_password():
             data.get('current_password') or '',
             data.get('new_password') or ''
         )
+        if ok:
+            session['pwd_version'] = user_auth.get_pwd_version(user_id)
         return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
     except Exception as e:
         return jsonify({'success': False, 'message': f'Change failed: {str(e)}'}), 500
