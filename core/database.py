@@ -238,6 +238,7 @@ class QuantumDatabase:
                     estimated_time TEXT,
                     result_json TEXT,
                     error_message TEXT,
+                    user_id INTEGER,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -296,9 +297,19 @@ class QuantumDatabase:
                 )
             ''')
             
+            # Migration: Ensure user_id column exists on jobs table
+            try:
+                cursor.execute("PRAGMA table_info(jobs)")
+                existing_cols = [row[1] for row in cursor.fetchall()]
+                if 'user_id' not in existing_cols:
+                    cursor.execute("ALTER TABLE jobs ADD COLUMN user_id INTEGER")
+            except Exception as mig_err:
+                logger.warning(f"Jobs migration error: {mig_err}")
+
             # Create indexes for better performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_backends_timestamp ON backends(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_jobs_timestamp ON jobs(timestamp)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON metrics(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_quantum_states_timestamp ON quantum_states(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)')
@@ -853,22 +864,31 @@ class QuantumDatabase:
                 conn.commit()
                 return deleted > 0
     
-    def cleanup_old_snapshots(self):
-        """Clean up snapshots based on retention_days"""
+    def cleanup_old_snapshots(self, user_id=None):
+        """Clean up snapshots based on retention_days, optionally scoped to user_id"""
         with self.lock:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # Delete snapshots past their retention period
-                cursor.execute('''
-                    DELETE FROM historical_snapshots
-                    WHERE timestamp < datetime('now', '-' || retention_days || ' days')
-                ''')
+                if user_id is not None:
+                    cursor.execute('''
+                        DELETE FROM historical_snapshots
+                        WHERE timestamp < datetime('now', '-' || retention_days || ' days')
+                          AND user_id = ?
+                    ''', (str(user_id),))
+                else:
+                    cursor.execute('''
+                        DELETE FROM historical_snapshots
+                        WHERE timestamp < datetime('now', '-' || retention_days || ' days')
+                    ''')
                 
                 deleted = cursor.rowcount
                 conn.commit()
                 self.logger.info(f"Cleaned up {deleted} old snapshots")
                 return deleted
+
+    cleanup_expired_snapshots = cleanup_old_snapshots
     
     def get_snapshot_stats(self, user_id='system'):
         """Get statistics about snapshots"""

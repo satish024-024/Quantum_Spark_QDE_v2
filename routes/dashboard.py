@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, session
+import os
 import time
 import datetime
 from helpers import (
@@ -275,6 +276,11 @@ def cleanup_database():
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
+        admin_email = (os.environ.get('ADMIN_EMAIL') or '').strip().lower()
+        user_email = (session.get('user_email') or '').strip().lower()
+        if not admin_email or not user_email or user_email != admin_email:
+            return jsonify({'success': False, 'error': 'Administrator access required'}), 403
 
         data = request.get_json(silent=True) or {}
         try:
@@ -1045,8 +1051,14 @@ def cleanup_snapshots():
         if not user_id:
             return jsonify({'success': False, 'error': 'Authentication required'}), 401
         
-        # Clean up old snapshots (respects per-snapshot retention_days)
-        deleted_count = db.cleanup_old_snapshots()
+        # Clean up old snapshots scoped to the calling user
+        admin_email = (os.environ.get('ADMIN_EMAIL') or '').strip().lower()
+        user_email = (session.get('user_email') or '').strip().lower()
+        data = request.get_json(silent=True) or {}
+        if data.get('all_users') and admin_email and user_email == admin_email:
+            deleted_count = db.cleanup_expired_snapshots()
+        else:
+            deleted_count = db.cleanup_expired_snapshots(user_id=str(user_id))
         
         return jsonify({
             'success': True,

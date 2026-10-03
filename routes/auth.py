@@ -55,8 +55,8 @@ def auth_selection():
 def register():
     """User registration endpoint"""
     try:
-        data = request.get_json()
-        email = data.get('email')
+        data = request.get_json() or {}
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         api_key = data.get('api_key')
         crn = data.get('crn')
@@ -112,7 +112,6 @@ def register():
                 return jsonify({
                     "success": True,
                     "message": f"{message}. You have been automatically logged in.",
-                    "token": token,
                     "redirect": "/dashboard"
                 })
             else:
@@ -154,7 +153,7 @@ def login():
     """User login endpoint"""
     try:
         data = request.get_json() or {}
-        email = data.get('email')
+        email = (data.get('email') or '').strip().lower()
         password = data.get('password')
         
         if not email or not password:
@@ -163,7 +162,10 @@ def login():
                 "message": "Email and password are required"
             }), 400
 
-        ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or 'unknown').split(',')[0].strip()
+        if os.environ.get('TRUST_PROXY') == '1':
+            ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or 'unknown').split(',')[0].strip()
+        else:
+            ip = request.remote_addr or 'unknown'
         login_rate_key = f"{ip}:{(email or '').strip().lower()}"
         if _login_is_rate_limited(login_rate_key, max_hits=5, window_s=60):
             return jsonify({
@@ -201,7 +203,6 @@ def login():
             return jsonify({
                 "success": True,
                 "message": message,
-                "token": token,
                 "redirect": "/dashboard"
             })
         else:
@@ -320,7 +321,7 @@ def save_provider_credentials():
         session[f"provider_creds_{provider}"] = True
         
         # Try to validate
-        validation_result = validate_provider_credentials(provider, credentials)
+        validation_result = validate_provider_credentials(provider, credentials, user_id=user_id)
         if validation_result.get('success'):
             print(f"✅ {provider.upper()} credentials saved and validated for user {user_id}")
             return jsonify({
@@ -346,7 +347,7 @@ def save_provider_credentials():
         print(f"Error saving credentials: {e}")
         return jsonify({'error': str(e)}), 500
 
-def validate_provider_credentials(provider, credentials):
+def validate_provider_credentials(provider, credentials, user_id=None):
     """Validate credentials by attempting to connect to the provider."""
     import requests
     from providers.registry import ProviderRegistry
@@ -371,7 +372,8 @@ def validate_provider_credentials(provider, credentials):
                     })
                 try:
                     from providers.ionq_provider import IonQProvider
-                    ProviderRegistry._providers['ionq'] = IonQProvider(api_key=api_key)
+                    if user_id is not None:
+                        ProviderRegistry.register('ionq', IonQProvider(api_key=api_key), user_id=user_id)
                 except Exception as update_err:
                     print(f"⚠️ Could not update provider: {update_err}")
                 return {'success': True, 'backends': backends}
@@ -454,14 +456,23 @@ def forgot_password():
         resp = {'success': True,
                 'message': 'If an account exists for this email, a reset link has been sent.'}
         if token:
-            base = (os.environ.get('APP_BASE_URL') or request.host_url).rstrip('/')
-            reset_url = f'{base}/reset-password?token={token}'
-            try:
-                from core.mailer import is_configured, send_password_reset_email
-                if is_configured():
-                    send_password_reset_email(email, reset_url)
-            except Exception as mail_err:
-                print(f'⚠️ Reset email failed: {mail_err}')
+            base_url = os.environ.get('APP_BASE_URL')
+            is_prod = (
+                os.environ.get('VERCEL') is not None
+                or os.environ.get('VERCEL_ENV') is not None
+                or os.environ.get('ENV') == 'production'
+            )
+            if not base_url and is_prod:
+                print('⚠️ [SECURITY] APP_BASE_URL unset in production environment; refusing to generate password reset URL from request host.')
+            else:
+                base = (base_url or request.host_url).rstrip('/')
+                reset_url = f'{base}/reset-password?token={token}'
+                try:
+                    from core.mailer import is_configured, send_password_reset_email
+                    if is_configured():
+                        send_password_reset_email(email, reset_url)
+                except Exception as mail_err:
+                    print(f'⚠️ Reset email failed: {mail_err}')
         return jsonify(resp)
     except Exception as e:
         return jsonify({'success': False, 'message': f'Request failed: {str(e)}'}), 500

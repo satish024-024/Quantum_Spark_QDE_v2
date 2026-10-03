@@ -24,6 +24,85 @@ def require_session():
     valid, err_resp = check_user_session()
     if not valid:
         return err_resp
+import ast
+
+DISALLOWED_NAMES = {'open', 'eval', 'exec', 'compile', 'breakpoint', 'help', 'input', 'os', 'sys', 'subprocess'}
+DISALLOWED_ATTRS = {'__class__', '__bases__', '__base__', '__mro__', '__subclasses__',
+                    '__globals__', '__code__', '__closure__', '__builtins__'}
+
+def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+    root_module = name.split('.')[0]
+    if root_module not in {'qiskit', 'qiskit_aer', 'math', 'numpy', 'cmath'}:
+        raise ImportError(f"Import of module '{name}' is blocked in sandboxed environment")
+    return __import__(name, globals, locals, fromlist, level)
+
+SAFE_CIRCUIT_BUILTINS = {
+    'range': range,
+    'len': len,
+    'print': print,
+    'int': int,
+    'float': float,
+    'str': str,
+    'bool': bool,
+    'list': list,
+    'dict': dict,
+    'set': set,
+    'tuple': tuple,
+    'enumerate': enumerate,
+    'zip': zip,
+    'map': map,
+    'filter': filter,
+    'sum': sum,
+    'min': min,
+    'max': max,
+    'abs': abs,
+    'round': round,
+    'pow': pow,
+    'isinstance': isinstance,
+    'issubclass': issubclass,
+    'Exception': Exception,
+    'ValueError': ValueError,
+    'TypeError': TypeError,
+    'IndexError': IndexError,
+    'KeyError': KeyError,
+    'True': True,
+    'False': False,
+    'None': None,
+    '__import__': _safe_import,
+}
+
+def validate_and_execute_circuit(code):
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        raise ValueError(f"Syntax error in circuit code: {e}")
+        
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
+            raise ValueError(f"Disallowed statement: {type(node).__name__}")
+        elif isinstance(node, ast.Name) and node.id in DISALLOWED_NAMES:
+            raise ValueError(f"Disallowed name: '{node.id}'")
+        elif isinstance(node, ast.Attribute) and (node.attr in DISALLOWED_ATTRS or (node.attr.startswith('__') and node.attr.endswith('__'))):
+            raise ValueError(f"Disallowed attribute access: '{node.attr}'")
+
+    from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
+    import math
+    import numpy as np
+
+    exec_globals = {
+        '__builtins__': SAFE_CIRCUIT_BUILTINS.copy(),
+        'QuantumCircuit': QuantumCircuit,
+        'ClassicalRegister': ClassicalRegister,
+        'QuantumRegister': QuantumRegister,
+        'transpile': transpile,
+        'math': math,
+        'pi': math.pi,
+        'np': np,
+        'numpy': np,
+    }
+    local_vars = {}
+    exec(code, exec_globals, local_vars)
+    return local_vars
 
 def extract_counts_from_result(result):
     """Safely extract counts dictionary from any Qiskit result object (V1 or V2 PrimitiveResult)."""
@@ -130,7 +209,7 @@ def get_provider_jobs(provider_id, user_id, limit=None):
     else:
         # Fetch other providers jobs from local database
         try:
-            local_jobs = db.get_jobs(limit=limit or 20)
+            local_jobs = db.get_jobs(limit=limit or 20, user_id=user_id or session.get('user_id'))
             filtered_jobs = []
             for j in local_jobs:
                 backend = j.get('backend_name', '').lower()
@@ -231,7 +310,7 @@ def get_provider_results(provider_id, user_id):
     else:
         # Return results from local DB
         try:
-            local_jobs = db.get_jobs(limit=20)
+            local_jobs = db.get_jobs(limit=20, user_id=user_id or session.get('user_id'))
             results = []
             for j in local_jobs:
                 status = j.get('status', '').upper()
@@ -289,7 +368,10 @@ def get_all_jobs_aggregated():
             return jsonify({'jobs': []}), 200
             
         providers = ProviderRegistry.list_providers()
-        for pid in providers.keys():
+        provider_ids = list(providers.keys())
+        if 'local' not in provider_ids:
+            provider_ids.append('local')
+        for pid in provider_ids:
             try:
                 jobs = get_provider_jobs(pid, user_id, limit=limit)
                 all_jobs.extend(jobs)
@@ -426,7 +508,7 @@ def get_results():
 
         # Also get local results from DB
         try:
-            local_jobs = db.get_jobs(limit=20)
+            local_jobs = db.get_jobs(limit=20, user_id=user_id or session.get('user_id'))
             for job in local_jobs:
                 try:
                     status = job.get('status', '').upper()
@@ -491,7 +573,11 @@ def execute_circuit_local():
             
         data = request.get_json() or {}
         code = data.get('code', '').strip()
-        shots = data.get('shots', 1024)
+        try:
+            shots = int(data.get('shots', 1024))
+            shots = max(1, min(10000, shots))
+        except (ValueError, TypeError):
+            shots = 1024
         
         if not code:
             return jsonify({'success': False, 'error': 'No code provided'}), 400
@@ -504,29 +590,8 @@ def execute_circuit_local():
             QISKIT_AVAILABLE = False
             
         start_time = time.time()
-        exec_globals = {
-            '__builtins__': __builtins__,
-        }
-        
-        if QISKIT_AVAILABLE:
-            try:
-                from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-                exec_globals['QuantumCircuit'] = QuantumCircuit
-                exec_globals['ClassicalRegister'] = ClassicalRegister
-                exec_globals['QuantumRegister'] = QuantumRegister
-                exec_globals['transpile'] = transpile
-                import math
-                import numpy as np
-                exec_globals['pi'] = math.pi
-                exec_globals['math'] = math
-                exec_globals['np'] = np
-                exec_globals['numpy'] = np
-            except Exception as e:
-                return jsonify({'success': False, 'error': f'Failed to import Qiskit: {e}'}), 500
-                
-        local_vars = {}
         try:
-            exec(code, exec_globals, local_vars)
+            local_vars = validate_and_execute_circuit(code)
         except Exception as exec_err:
             return jsonify({'success': False, 'error': f'Code execution failed: {exec_err}'}), 500
             
@@ -542,6 +607,9 @@ def execute_circuit_local():
                 
         if qc is None:
             return jsonify({'success': False, 'error': 'No quantum circuit instance found in code'}), 400
+            
+        if qc.num_qubits < 1 or qc.num_qubits > 30:
+            return jsonify({'success': False, 'error': f'Circuit qubit count must be between 1 and 30, got {qc.num_qubits}'}), 400
             
         job_id = f"LOCAL_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
         counts = None
@@ -585,6 +653,7 @@ def execute_circuit_local():
                 'job_id': job_id,
                 'backend_name': f'Local Simulator ({circuit_type})',
                 'status': 'COMPLETED',
+                'user_id': user_id,
                 'creation_date': datetime.datetime.now().isoformat(),
                 'end_date': datetime.datetime.now().isoformat(),
                 'queue_position': 0,
@@ -604,7 +673,7 @@ def execute_circuit_local():
                 },
                 'error_message': ''
             }
-            db.store_jobs([local_job_data])
+            db.store_jobs([local_job_data], user_id=user_id)
         except Exception as db_err:
             print(f"Error storing local job: {db_err}")
             
@@ -715,7 +784,11 @@ def submit_ibm_job():
         data = request.get_json() or {}
         code = data.get('code', '').strip()
         backend_name = data.get('backend', '')
-        shots = data.get('shots', 1024)
+        try:
+            shots = int(data.get('shots', 1024))
+            shots = max(1, min(10000, shots))
+        except (ValueError, TypeError):
+            shots = 1024
         
         if not code or not backend_name:
             return jsonify({'success': False, 'error': 'Code and backend required'}), 400
@@ -724,8 +797,10 @@ def submit_ibm_job():
         service = QiskitRuntimeService(channel='ibm_quantum_platform', token=quantum_token)
         backend = service.backend(backend_name)
         
-        local_vars = {}
-        exec(code, {}, local_vars)
+        try:
+            local_vars = validate_and_execute_circuit(code)
+        except Exception as exec_err:
+            return jsonify({'success': False, 'error': f'Code execution failed: {exec_err}'}), 400
         
         qc = None
         for v in local_vars.values():
@@ -735,6 +810,9 @@ def submit_ibm_job():
                 
         if not qc:
             return jsonify({'success': False, 'error': 'No circuit found in code'}), 400
+
+        if qc.num_qubits < 1 or qc.num_qubits > 30:
+            return jsonify({'success': False, 'error': f'Circuit qubit count must be between 1 and 30, got {qc.num_qubits}'}), 400
             
         transpiled_qc = transpile(qc, backend=backend)
         sampler = Sampler(mode=backend)
@@ -774,7 +852,11 @@ def run_circuit_ibm():
     try:
         data = request.get_json() or {}
         qasm = data.get('qasm', '').strip()
-        shots = data.get('shots', 1024)
+        try:
+            shots = int(data.get('shots', 1024))
+            shots = max(1, min(10000, shots))
+        except (ValueError, TypeError):
+            shots = 1024
         backend_name = data.get('backend', 'ibmq_qasm_simulator')
         
         if not qasm:
@@ -791,6 +873,8 @@ def run_circuit_ibm():
         backend = service.backend(backend_name)
         
         qc = QuantumCircuit.from_qasm_str(qasm)
+        if qc.num_qubits < 1 or qc.num_qubits > 30:
+            return jsonify({'success': False, 'error': f'Circuit qubit count must be between 1 and 30, got {qc.num_qubits}'}), 400
         transpiled_qc = transpile(qc, backend=backend)
         
         sampler = Sampler(mode=backend)
@@ -817,10 +901,22 @@ def run_circuit_stream():
         data = request.get_json() or {}
         circuit_data = data.get('circuit')
         backend_name = data.get('backend', 'auto')
-        shots = data.get('shots', 1024)
+        try:
+            shots = int(data.get('shots', 1024))
+            shots = max(1, min(10000, shots))
+        except (ValueError, TypeError):
+            shots = 1024
         
         if not circuit_data:
             return jsonify({'success': False, 'error': 'No circuit data provided'}), 400
+
+        try:
+            num_qubits = int(circuit_data.get('qubits', 2))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid qubits parameter'}), 400
+
+        if num_qubits < 1 or num_qubits > 30:
+            return jsonify({'success': False, 'error': f'Circuit qubit count must be between 1 and 30, got {num_qubits}'}), 400
             
         quantum_token, quantum_crn = get_user_quantum_credentials()
         if not quantum_token:
@@ -980,14 +1076,13 @@ def run_circuit_stream():
                 
                 # Save to database
                 try:
-                    conn = sqlite3.connect(get_db_path())
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO jobs (job_id, user_id, backend, shots, status, result_data)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (job_id, session.get('user_id'), resolved_backend, shots, 'COMPLETED', json.dumps(counts)))
-                    conn.commit()
-                    conn.close()
+                    db.store_jobs([{
+                        'job_id': job_id,
+                        'backend_name': resolved_backend,
+                        'status': 'COMPLETED',
+                        'result': {'counts': counts},
+                        'user_id': session.get('user_id'),
+                    }], user_id=session.get('user_id'))
                 except Exception as db_err:
                     print(f"Error saving job: {db_err}")
                 
