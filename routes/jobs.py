@@ -477,7 +477,11 @@ def get_results():
 def execute_circuit_local():
     """Execute quantum circuit locally and store results in database"""
     try:
-        data = request.get_json()
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+            
+        data = request.get_json() or {}
         code = data.get('code', '').strip()
         shots = data.get('shots', 1024)
         
@@ -692,6 +696,10 @@ def execute_circuit_api():
 @jobs_bp.route('/api/ibm/submit-job', methods=['POST'])
 def submit_ibm_job():
     try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
         quantum_token, quantum_crn = get_user_quantum_credentials()
         if not quantum_token:
             return jsonify({'success': False, 'error': 'IBM Quantum credentials required'}), 400

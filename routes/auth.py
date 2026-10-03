@@ -1,6 +1,7 @@
+import os
+import sqlite3
 from flask import Blueprint, jsonify, request, session
 from helpers import user_auth, get_user_quantum_credentials, provider_credentials, validate_crn
-import sqlite3
 from helpers import get_db_path
 
 auth_bp = Blueprint('auth', __name__)
@@ -33,7 +34,7 @@ def register():
         success, message = user_auth.register_user(email, password, api_key, crn)
         
         if success:
-            print(f"  User registered successfully: {email}")
+            print("  User registered successfully")
             
             # Verify user was created in database
             try:
@@ -58,6 +59,7 @@ def register():
             login_success, login_message, token, user_api_key, user_crn = user_auth.login_user(email, password)
             
             if login_success:
+                session.clear()
                 user_data = user_auth.verify_token(token)
                 session['user_id'] = user_data['user_id']
                 session['user_email'] = email
@@ -71,7 +73,7 @@ def register():
                 # Keep the login alive across browser restarts (30-day cookie).
                 session.permanent = True
                 
-                print(f"  User automatically logged in: ID={user_data['user_id']}, Email={email}")
+                print(f"  User automatically logged in: ID={user_data['user_id']}")
                 
                 return jsonify({
                     "success": True,
@@ -98,11 +100,26 @@ def register():
             "message": f"Registration failed: {str(e)}"
         }), 500
 
+_login_failed_attempts = {}
+def _login_is_rate_limited(key, max_hits=5, window_s=60):
+    import time
+    now = time.time()
+    hits = [t for t in _login_failed_attempts.get(key, []) if now - t < window_s]
+    _login_failed_attempts[key] = hits
+    return len(hits) >= max_hits
+
+def _record_login_failure(key):
+    import time
+    now = time.time()
+    hits = _login_failed_attempts.get(key, [])
+    hits.append(now)
+    _login_failed_attempts[key] = hits
+
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
     """User login endpoint"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         email = data.get('email')
         password = data.get('password')
         
@@ -111,12 +128,20 @@ def login():
                 "success": False,
                 "message": "Email and password are required"
             }), 400
+
+        ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or 'unknown').split(',')[0].strip()
+        login_rate_key = f"{ip}:{(email or '').strip().lower()}"
+        if _login_is_rate_limited(login_rate_key, max_hits=5, window_s=60):
+            return jsonify({
+                "success": False,
+                "message": "Too many failed login attempts. Please try again later."
+            }), 429
         
         success, message, token, api_key, crn = user_auth.login_user(email, password)
         
-        print(f"🔐 [LOGIN DEBUG] success={success}, api_key={api_key is not None}, crn={crn is not None}")
-        
         if success:
+            _login_failed_attempts.pop(login_rate_key, None)
+            session.clear()
             user_data = user_auth.verify_token(token)
             if user_data:
                 session['user_id'] = user_data.get('user_id')
@@ -141,8 +166,6 @@ def login():
                     'instance': crn
                 }
             
-            print(f"🔐 [LOGIN DEBUG] Session stored: user_id={session.get('user_id')}, quantum_token={session.get('quantum_token') is not None}")
-            
             return jsonify({
                 "success": True,
                 "message": message,
@@ -150,6 +173,7 @@ def login():
                 "redirect": "/dashboard"
             })
         else:
+            _record_login_failure(login_rate_key)
             return jsonify({
                 "success": False,
                 "message": message
@@ -407,24 +431,16 @@ def forgot_password():
         token = user_auth.create_password_reset_token(email)
         # Always respond generically to avoid email enumeration.
         resp = {'success': True,
-                'message': 'If an account exists for this email, a reset link has been created.'}
+                'message': 'If an account exists for this email, a reset link has been sent.'}
         if token:
-            base = request.host_url.rstrip('/')
+            base = (os.environ.get('APP_BASE_URL') or request.host_url).rstrip('/')
             reset_url = f'{base}/reset-password?token={token}'
-            emailed = False
             try:
                 from core.mailer import is_configured, send_password_reset_email
                 if is_configured():
-                    ok, _msg = send_password_reset_email(email, reset_url)
-                    emailed = ok
+                    send_password_reset_email(email, reset_url)
             except Exception as mail_err:
-                print(f'⚠️ Reset email failed, falling back to direct link: {mail_err}')
-            if emailed:
-                resp['message'] = 'If an account exists for this email, a reset link has been sent.'
-            else:
-                # No mailer configured (or send failed): hand the link back directly.
-                resp['reset_url'] = reset_url
-                resp['note'] = 'Email sending is not configured; use this link directly. It expires in 1 hour.'
+                print(f'⚠️ Reset email failed: {mail_err}')
         return jsonify(resp)
     except Exception as e:
         return jsonify({'success': False, 'message': f'Request failed: {str(e)}'}), 500

@@ -182,6 +182,10 @@ def get_metrics_history():
 def get_database_stats():
     """Get database statistics"""
     try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
         stats = db.get_database_stats()
         return jsonify({
             "success": True,
@@ -257,7 +261,19 @@ def get_database_stats_secure():
 def cleanup_database():
     """Clean up old database data"""
     try:
-        days_to_keep = request.json.get('days', 30) if request.json else 30
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
+        data = request.get_json(silent=True) or {}
+        try:
+            days_to_keep = int(data.get('days', 30))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid days parameter'}), 400
+
+        if days_to_keep < 1:
+            return jsonify({'success': False, 'error': 'days_to_keep must be at least 1'}), 400
+
         db.cleanup_old_data(days_to_keep)
         return jsonify({
             "success": True,
@@ -850,6 +866,10 @@ def get_snapshot_statistics():
 def get_quantum_credentials_api():
     """Get logged in user's quantum credentials (token and CRN) to propagate to the circuit builder."""
     try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
         quantum_token, quantum_crn = get_user_quantum_credentials()
         if quantum_token:
             return jsonify({

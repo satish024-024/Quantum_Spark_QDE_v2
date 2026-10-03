@@ -65,6 +65,10 @@ class QuantumCircuitGenerator:
         template = self.circuit_templates[circuit_type]
         params = custom_params or {}
         num_qubits = params.get('qubits', template['qubits'])
+        if not isinstance(num_qubits, int) or num_qubits < 1 or num_qubits > 30:
+            raise ValueError(f"Invalid qubit count: {num_qubits}. Must be between 1 and 30.")
+        if num_qubits < template['qubits']:
+            num_qubits = template['qubits']
         shots = params.get('shots', template['shots'])
         
         qc = QuantumCircuit(num_qubits, num_qubits)
@@ -178,11 +182,19 @@ print(job.result().get_counts())
         params = {}
         qubit_match = re.search(r'(\d+)\s*qubit', query_lower)
         if qubit_match:
-            params['qubits'] = int(qubit_match.group(1))
+            try:
+                raw_qubits = int(qubit_match.group(1))
+                params['qubits'] = max(1, min(raw_qubits, 30))
+            except (ValueError, OverflowError):
+                params['qubits'] = 30
             
         shots_match = re.search(r'(\d+)\s*shot', query_lower)
         if shots_match:
-            params['shots'] = int(shots_match.group(1))
+            try:
+                raw_shots = int(shots_match.group(1))
+                params['shots'] = max(1, min(raw_shots, 10000))
+            except (ValueError, OverflowError):
+                params['shots'] = 1024
             
         return circuit_type, params
     
@@ -285,6 +297,8 @@ def ai_quantum_chat():
         if any(word in message.lower() for word in ['create', 'generate', 'make', 'build', 'design', 'circuit']):
             try:
                 circuit_type, params = circuit_generator.parse_natural_language(message)
+                if 'qubits' in params:
+                    params['qubits'] = max(1, min(params['qubits'], 30))
                 circuit_result = circuit_generator.generate_circuit(circuit_type, params)
                 circuit_generated = True
                 circuit_data = circuit_generator.convert_to_3d_circuit(circuit_result)
