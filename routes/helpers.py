@@ -9,8 +9,8 @@ import threading
 import sqlite3
 import logging
 from datetime import timezone
-from typing import Dict, List, Any, Optional, Union
-from flask import session, jsonify
+from functools import wraps
+from flask import session, jsonify, request
 
 # Force UTF-8 encoding for standard output/error to prevent UnicodeEncodeError in serverless and console logs
 if hasattr(sys.stdout, 'buffer'):
@@ -74,6 +74,46 @@ except Exception as e:
     gemini_ai = None
     GEMINI_AI_AVAILABLE = False
     print(f"⚠️ Gemini AI Service not available: {e}")
+
+def check_user_session():
+    """
+    Validate that the current request has a valid authenticated session.
+    Checks:
+    1. session.get('user_id') exists.
+    2. pwd_version in session matches DB pwd_version.
+    3. user is active (is_active == 1).
+    Returns (True, None) if valid, or (False, error_response_tuple) if invalid.
+    """
+    user_id = session.get('user_id')
+    if not user_id:
+        return False, (jsonify({
+            'success': False,
+            'authenticated': False,
+            'error': 'Authentication required',
+            'message': 'Authentication required'
+        }), 401)
+
+    pwd_version = session.get('pwd_version')
+    if not user_auth.validate_user_session(user_id, pwd_version):
+        session.clear()
+        return False, (jsonify({
+            'success': False,
+            'authenticated': False,
+            'error': 'Session expired or invalid',
+            'message': 'Session expired or invalid'
+        }), 401)
+
+    return True, None
+
+def login_required(f):
+    """Decorator to enforce session authentication and validation on endpoints."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        valid, err_resp = check_user_session()
+        if not valid:
+            return err_resp
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Global In-Memory Credentials Cache
 provider_credentials = {}
@@ -174,28 +214,14 @@ def handle_ibm_error(error):
     }
 
 def get_user_quantum_credentials():
-    """Get user's IBM Quantum credentials from session or database"""
+    """Get user's IBM Quantum credentials from server-side database (never client session cookie)."""
     user_id = session.get('user_id')
-    user_email = session.get('user_email', 'Unknown')
-    
     if not user_id:
         return None, None
         
-    quantum_token = session.get('quantum_token')
-    quantum_crn = session.get('quantum_crn')
-    
-    if quantum_token:
-        if quantum_crn:
-            valid_crn = validate_crn(quantum_crn)
-            if valid_crn:
-                return quantum_token, valid_crn
-            else:
-                session.pop('quantum_crn', None)
-        return quantum_token, None
-        
-    # Query database
+    # Query database strictly server-side
     try:
-        # Check ibm_credentials table
+        # Check ibm_credentials table first
         try:
             conn = sqlite3.connect(get_db_path())
             cursor = conn.cursor()
@@ -206,22 +232,14 @@ def get_user_quantum_credentials():
             if result:
                 quantum_token, quantum_crn = result
                 valid_crn = validate_crn(quantum_crn) if quantum_crn else None
-                session['quantum_token'] = quantum_token
-                if valid_crn:
-                    session['quantum_crn'] = valid_crn
                 return quantum_token, valid_crn
         except Exception as db_err:
-            print(f"Error checking ibm_credentials table: {db_err}")
+            pass
 
-        # Legacy fallback to user_auth
+        # Fallback to users table via user_auth
         quantum_token, quantum_crn = user_auth.get_user_credentials(user_id)
         if quantum_token:
             valid_crn = validate_crn(quantum_crn) if quantum_crn else None
-            session['quantum_token'] = quantum_token
-            if valid_crn:
-                session['quantum_crn'] = valid_crn
-            else:
-                session.pop('quantum_crn', None)
             return quantum_token, valid_crn
     except Exception as e:
         print(f"Error fetching user credentials: {e}")
