@@ -39,7 +39,7 @@ def get_all_backends_aggregated():
                 creds = provider_credentials.get(creds_key)
             
             try:
-                provider_inst = ProviderRegistry.get(pid)
+                provider_inst = ProviderRegistry.get(pid, user_id=user_id)
                 if hasattr(provider_inst, 'get_available_backends'):
                     sig = inspect.signature(provider_inst.get_available_backends)
                     backends = []
@@ -137,7 +137,7 @@ def get_single_quantum_provider(provider_id):
         provider_data = all_providers[provider_id].copy()
         
         try:
-            provider_inst = ProviderRegistry.get(provider_id)
+            provider_inst = ProviderRegistry.get(provider_id, user_id=user_id)
             if hasattr(provider_inst, 'get_available_backends'):
                 sig = inspect.signature(provider_inst.get_available_backends)
                 if 'credentials' in sig.parameters:
