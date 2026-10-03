@@ -154,6 +154,8 @@ class UserAuthSystem:
     def create_password_reset_token(self, email):
         """Create a single-use reset token valid for 1 hour. Returns token or None."""
         self._init_reset_table()
+        if email:
+            email = email.strip().lower()
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
@@ -251,7 +253,10 @@ class UserAuthSystem:
     
     def register_user(self, email, password, api_key, crn):
         """Register a new user"""
-        if not email or len(email) > 254 or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+        if not email:
+            return False, "Invalid email address"
+        email = email.strip().lower()
+        if len(email) > 254 or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
             return False, "Invalid email address"
             
         conn = sqlite3.connect(self.db_path)
@@ -294,6 +299,8 @@ class UserAuthSystem:
     
     def login_user(self, email, password):
         """Login user and return token"""
+        if email:
+            email = email.strip().lower()
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         

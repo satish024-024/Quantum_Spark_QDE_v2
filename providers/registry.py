@@ -17,39 +17,29 @@ class ProviderRegistry:
     _providers: Dict[str, QuantumProvider] = {}
     
     @classmethod
-    def register(cls, name: str, provider: QuantumProvider):
+    def register(cls, name: str, provider: QuantumProvider, user_id: int = None):
         """
-        Register a quantum provider.
-        
-        Args:
-            name: Provider identifier (e.g., 'ibm', 'aws_braket')
-            provider: Provider instance implementing QuantumProvider interface
+        Register a quantum provider. If user_id is provided, keys per user to avoid cross-user leakage.
         """
-        if name in cls._providers:
-            raise ValueError(f"Provider '{name}' is already registered")
-        cls._providers[name] = provider
+        key = f"{user_id}:{name}" if user_id is not None else name
+        cls._providers[key] = provider
     
     @classmethod
-    def get(cls, name: str) -> QuantumProvider:
+    def get(cls, name: str, user_id: int = None) -> QuantumProvider:
         """
-        Get provider by name.
-        
-        Args:
-            name: Provider identifier
-            
-        Returns:
-            Provider instance
-            
-        Raises:
-            ValueError: If provider not registered
+        Get provider by name, checking per-user instance first before global fallback.
         """
-        if name not in cls._providers:
-            available = ', '.join(cls._providers.keys())
-            raise ValueError(
-                f"Provider '{name}' not registered. "
-                f"Available: {available}"
-            )
-        return cls._providers[name]
+        if user_id is not None:
+            user_key = f"{user_id}:{name}"
+            if user_key in cls._providers:
+                return cls._providers[user_key]
+        if name in cls._providers:
+            return cls._providers[name]
+        available = ', '.join(k for k in cls._providers.keys() if ':' not in k)
+        raise ValueError(
+            f"Provider '{name}' not registered. "
+            f"Available: {available}"
+        )
     
     @classmethod
     def list_providers(cls) -> Dict[str, Dict]:
@@ -66,11 +56,13 @@ class ProviderRegistry:
             }
         """
         result = {}
-        for name, provider in cls._providers.items():
+        for key, provider in cls._providers.items():
+            if ':' in key:
+                continue
             try:
                 backends = provider.get_available_backends()
-                result[name] = {
-                    "name": name,
+                result[key] = {
+                    "name": key,
                     "backends": backends
                 }
             except Exception as e:
