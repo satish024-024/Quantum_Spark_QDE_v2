@@ -149,22 +149,32 @@ class FastQuantumDashboard {
         this.hideLoadingAnimation('backends');
     }
 
+    escapeHtml(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     initializeJobsWidget() {
         const jobsBody = document.getElementById('jobs-body');
         if (jobsBody) {
             jobsBody.innerHTML = this.state.jobs.map(job => `
                 <tr>
-                    <td>${job.id.substring(0, 8)}...</td>
-                    <td>${job.backend}</td>
-                    <td><span class="status-badge ${job.status.toLowerCase()}">${job.status}</span></td>
-                    <td>${job.qubits}</td>
+                    <td>${this.escapeHtml(job.id.substring(0, 8))}...</td>
+                    <td>${this.escapeHtml(job.backend)}</td>
+                    <td><span class="status-badge ${this.escapeHtml(job.status.toLowerCase())}">${this.escapeHtml(job.status)}</span></td>
+                    <td>${this.escapeHtml(job.qubits)}</td>
                     <td>
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${job.status === 'COMPLETED' ? '100' : '75'}%"></div>
                         </div>
                     </td>
                     <td>
-                        <button class="action-btn" onclick="viewJobDetails('${job.id}')">
+                        <button class="action-btn" onclick="viewJobDetails('${this.escapeHtml(job.id)}')">
                             <i class="fas fa-eye"></i>
                         </button>
                     </td>
