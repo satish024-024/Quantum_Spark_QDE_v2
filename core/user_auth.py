@@ -12,10 +12,13 @@ import re
 from datetime import datetime, timedelta
 from flask import request, jsonify, session
 import os
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, InvalidHash
 
 class UserAuthSystem:
     def __init__(self, secret_key=None):
         self.secret_key = secret_key or secrets.token_hex(32)
+        self.hasher = PasswordHasher()
         db_url = os.environ.get('DATABASE_URL')
         if db_url and db_url.startswith('sqlite://'):
             self.db_path = db_url.replace('sqlite:///', '').replace('sqlite://', '')
@@ -81,13 +84,32 @@ class UserAuthSystem:
         conn.close()
     
     def hash_password(self, password):
-        """Hash password using SHA-256 with salt"""
-        salt = secrets.token_hex(16)
-        return hashlib.sha256((password + salt).encode()).hexdigest(), salt
+        """Hash password using argon2id"""
+        return self.hasher.hash(password), 'argon2id'
     
-    def verify_password(self, password, password_hash, salt):
-        """Verify password against hash with salt"""
-        return hashlib.sha256((password + salt).encode()).hexdigest() == password_hash
+    def verify_password(self, password, password_hash, salt=None):
+        """Verify password against hash. Supports argon2id and legacy SHA-256."""
+        if not password or not password_hash:
+            return False
+            
+        # Check if hash is argon2id
+        if password_hash.startswith('$argon2'):
+            try:
+                return self.hasher.verify(password_hash, password)
+            except (VerifyMismatchError, InvalidHash):
+                return False
+            except Exception as e:
+                print(f"Argon2 verify error: {e}")
+                return False
+                
+        # Legacy SHA-256 with salt (constant-time comparison)
+        if salt and salt != 'argon2id':
+            computed = hashlib.sha256((password + salt).encode()).hexdigest()
+            return secrets.compare_digest(computed, password_hash)
+            
+        # Legacy unsalted SHA-256 (constant-time comparison)
+        computed = hashlib.sha256(password.encode()).hexdigest()
+        return secrets.compare_digest(computed, password_hash)
     
     def generate_token(self, user_id, email):
         """Generate JWT token for user"""
@@ -292,23 +314,17 @@ class UserAuthSystem:
             if not is_active:
                 return False, "Account is deactivated", None, None, None
             
-            # Handle legacy users without salt (simple password verification)
-            if salt is None:
-                # For legacy users, use simple hash comparison
-                simple_hash = hashlib.sha256(password.encode()).hexdigest()
-                if simple_hash != password_hash:
-                    return False, "Invalid password", None, None, None
-                
-                # Update user with proper salt for future logins
+            # Verify password (supports argon2id and legacy SHA-256)
+            if not self.verify_password(password, password_hash, salt):
+                return False, "Invalid password", None, None, None
+
+            # Transparently upgrade legacy SHA-256 hash to argon2id
+            if not password_hash.startswith('$argon2'):
                 new_password_hash, new_salt = self.hash_password(password)
                 cursor.execute('''
                     UPDATE users SET password_hash = ?, salt = ? WHERE id = ?
                 ''', (new_password_hash, new_salt, user_id))
                 conn.commit()
-            else:
-                # Verify password with salt
-                if not self.verify_password(password, password_hash, salt):
-                    return False, "Invalid password", None, None, None
             
             # Update last login
             cursor.execute('''
