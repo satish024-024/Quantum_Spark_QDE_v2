@@ -1,10 +1,21 @@
 from flask import Blueprint, jsonify, request, session
 import time
 import datetime
-from helpers import get_user_quantum_credentials, quantum_manager_singleton, QuantumBackendManager
+from helpers import (
+    get_user_quantum_credentials, quantum_manager_singleton, QuantumBackendManager,
+    check_user_session, login_required
+)
 from database import db
 
 dashboard_bp = Blueprint('dashboard', __name__)
+
+@dashboard_bp.before_request
+def require_session():
+    if request.method == 'OPTIONS':
+        return None
+    valid, err_resp = check_user_session()
+    if not valid:
+        return err_resp
 
 @dashboard_bp.route('/api/dashboard_metrics', methods=['GET'])
 def get_dashboard_metrics():
