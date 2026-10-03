@@ -265,10 +265,20 @@ class CircuitSuggestionsUI {
             const depth = fullCircuit ? fullCircuit.depth : 'N/A';
             const gates = fullCircuit ? fullCircuit.gates.length : 'N/A';
 
+            const escapeHtml = (unsafe) => {
+                if (unsafe === null || unsafe === undefined) return '';
+                return String(unsafe)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            };
+
             circuitCard.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                     <h3 style="margin: 0; color: #00d4ff; font-size: 1.1rem; font-weight: 600; line-height: 1.3;">
-                        ${circuit.name}
+                        ${escapeHtml(circuit.name)}
                     </h3>
                     <div style="
                         background: rgba(0, 212, 255, 0.2);
@@ -279,7 +289,7 @@ class CircuitSuggestionsUI {
                         font-weight: bold;
                         white-space: nowrap;
                     ">
-                        ${qubits}Q • ${depth}D
+                        ${escapeHtml(qubits)}Q • ${escapeHtml(depth)}D
                     </div>
                 </div>
                 
@@ -293,7 +303,7 @@ class CircuitSuggestionsUI {
                     display: -webkit-box;
                     -webkit-line-clamp: 3;
                     -webkit-box-orient: vertical;
-                ">${circuit.description}</p>
+                ">${escapeHtml(circuit.description)}</p>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                     <div style="display: flex; gap: 15px; font-size: 0.8rem; color: #888;">
