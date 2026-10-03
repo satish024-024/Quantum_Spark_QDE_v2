@@ -281,7 +281,7 @@ class UserAuthSystem:
             if not user:
                 return False, "User not found", None, None, None
             
-            user_id, user_email, password_hash, api_key, crn, salt, is_active = user
+            user_id, user_email, password_hash, api_key, crn, salt, is_active, pwd_version = user
             
             if not is_active:
                 return False, "Account is deactivated", None, None, None
