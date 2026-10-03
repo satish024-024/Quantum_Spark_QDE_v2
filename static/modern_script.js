@@ -200,6 +200,16 @@ function updateJobsUI() {
         return;
     }
     
+    const escapeHtml = (unsafe) => {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+    
     jobsBody.innerHTML = state.jobs.slice(0, 5).map(job => {
         const statusClass = getJobStatusClass(job.status);
         const statusLabel = job.status;
@@ -209,12 +219,12 @@ function updateJobsUI() {
         
         return `
             <tr>
-                <td>${job.id}</td>
-                <td>${job.backend}</td>
-                <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-                <td>${job.qubits}</td>
-                <td>${startTime}</td>
-                <td>${estCompletion}</td>
+                <td>${escapeHtml(job.id)}</td>
+                <td>${escapeHtml(job.backend)}</td>
+                <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(statusLabel)}</span></td>
+                <td>${escapeHtml(job.qubits)}</td>
+                <td>${escapeHtml(startTime)}</td>
+                <td>${escapeHtml(estCompletion)}</td>
             </tr>
         `;
     }).join('');
