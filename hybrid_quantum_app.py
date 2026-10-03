@@ -1,5 +1,6 @@
 import os
 import sys
+import secrets
 
 # Configure project paths to resolve imports correctly
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -18,26 +19,16 @@ app = Flask(__name__)
 # Without this, Flask uses a browser-session cookie that dies when the
 # browser closes, forcing a login every time the app is reopened.
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-# Secure cookie only on HTTPS (Vercel); harmless on http://localhost.
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('VERCEL') is not None
+app.config['SESSION_COOKIE_SECURE'] = (
+    os.environ.get('VERCEL') is not None
+    or os.environ.get('VERCEL_ENV') is not None
+    or os.environ.get('ENV') == 'production'
+)
 
-# Configure a consistent secret key to prevent user sessions from invalidating
-secret_key_file = os.path.join(project_root, '.secret_key')
-if os.path.exists(secret_key_file):
-    try:
-        with open(secret_key_file, 'r') as f:
-            app.secret_key = f.read().strip()
-    except Exception as e:
-        print(f"Warning: Failed to read .secret_key: {e}")
-        app.secret_key = os.environ.get('FLASK_SECRET_KEY') or "quantum_spark_handcrafted_key_2026_vercel"
-else:
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY') or "quantum_spark_handcrafted_key_2026_vercel"
-    try:
-        with open(secret_key_file, 'w') as f:
-            f.write(app.secret_key)
-    except Exception as e:
-        print(f"Warning: Failed to write .secret_key: {e}")
+# Configure secret key: from env var or generate random per boot (no file write)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
 
 # Register Blueprint routes
 from routes.views import views_bp

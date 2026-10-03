@@ -8,6 +8,7 @@ import hashlib
 import sqlite3
 import time
 import secrets
+import re
 from datetime import datetime, timedelta
 from flask import request, jsonify, session
 import os
@@ -189,12 +190,14 @@ class UserAuthSystem:
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
+            cursor.execute('UPDATE password_reset_tokens SET used = 1 WHERE token = ? AND used = 0', (token,))
+            if cursor.rowcount != 1:
+                return False, "Reset link is invalid or has expired"
             pw_hash, salt = self.hash_password(new_password)
             cursor.execute(
                 'UPDATE users SET password_hash = ?, salt = ?, pwd_version = COALESCE(pwd_version, 0) + 1 WHERE id = ?',
                 (pw_hash, salt, user_id)
             )
-            cursor.execute('UPDATE password_reset_tokens SET used = 1 WHERE token = ?', (token,))
             conn.commit()
             return True, "Password has been reset successfully"
         finally:
@@ -226,6 +229,9 @@ class UserAuthSystem:
     
     def register_user(self, email, password, api_key, crn):
         """Register a new user"""
+        if not email or len(email) > 254 or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
+            return False, "Invalid email address"
+            
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -362,10 +368,11 @@ class UserAuthSystem:
                 is_active_ok = result[0] is None or result[0] == 1
                 if not is_active_ok:
                     return False
-                if session_pwd_version is not None:
-                    db_version = result[1] if len(result) > 1 else 0
-                    if (db_version or 0) != (session_pwd_version or 0):
-                        return False
+                if session_pwd_version is None:
+                    return False
+                db_version = result[1] if len(result) > 1 else 0
+                if (db_version or 0) != (session_pwd_version or 0):
+                    return False
                 return True
             return False
         except Exception as e:
